@@ -4,7 +4,7 @@ Created by **Srdjan Kotarlic**
 
 ## LinkedIn Post — English
 
-Today I’m releasing **PPTBridge SK for OBS**, a native macOS OBS plugin I built for live presentation workflows.
+Today I’m releasing **PPTBridge SK**, a native macOS plugin for OBS that I built for live presentation workflows.
 
 It adds two real source types to OBS:
 
@@ -32,7 +32,7 @@ Built by **Srdjan Kotarlic**
 
 ## LinkedIn Post — Serbian
 
-Danas objavljujem **PPTBridge SK for OBS**, native macOS OBS plugin koji sam napravio za live prezentacije i event produkciju.
+Danas objavljujem **PPTBridge SK**, native macOS plugin za OBS koji sam napravio za live prezentacije i event produkciju.
 
 Plugin dodaje dva prava source tipa u OBS:
 

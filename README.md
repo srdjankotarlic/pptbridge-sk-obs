@@ -2,7 +2,7 @@
 
 **Created by Srdjan Kotarlic**
 
-PPTBridge SK for OBS is a native macOS OBS plugin for PowerPoint workflows in live production.
+PPTBridge SK is a native macOS plugin for OBS built for PowerPoint workflows in live production.
 
 It adds two real OBS source types:
 
@@ -14,6 +14,12 @@ The goal is simple:
 - send a clean PowerPoint slide feed to program
 - keep a separate presenter view with notes on a stage or confidence monitor
 - let the speaker move slides with a clicker through OBS hotkeys
+
+## Preview
+
+![PPTBridge SK launch overview](native-plugin/media/github/launch-overview.png)
+
+![PPTBridge SK workflow overview](native-plugin/media/github/workflow-overview.png)
 
 ## What It Does
 
