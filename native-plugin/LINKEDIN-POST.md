@@ -4,52 +4,56 @@ Created by **Srdjan Kotarlic**
 
 ## LinkedIn Post — English
 
-Today I’m sharing **PPTBridge SK for OBS**, a native macOS OBS plugin I built for live presentation workflows.
+Today I’m releasing **PPTBridge SK for OBS**, a native macOS OBS plugin I built for live presentation workflows.
 
-It adds real PowerPoint source types to OBS:
+It adds two real source types to OBS:
 
 - `PPTBridge SK Slide`
 - `PPTBridge SK Presenter`
 
-The goal was simple: make it easier to send a clean slide feed to program while giving the speaker a separate presenter view with notes, next slide preview, and timer.
+The idea was simple: make it easy to send a clean PowerPoint feed to program while keeping a separate presenter view with notes for the speaker or confidence monitor.
 
-It also supports clicker-friendly OBS hotkeys, so a speaker on stage can move slides without touching the production machine.
+It also supports OBS hotkeys, so speakers can move slides with common presenter remotes and clickers without touching the production machine.
 
-What I’m especially happy about:
+Main things it solves:
 
-- native OBS source workflow
-- presenter notes support
-- clean program vs presenter split
-- PowerPoint fallback on macOS when LibreOffice conversion fails
+- clean slide output for stream or in-room screens
+- separate presenter view with notes, timer, and next-slide context
+- clicker-friendly slide control
+- native OBS workflow instead of fragile window-capture workarounds
 
-This project is now public and free to use.
+The project is public and free to use.
 
-Created by **Srdjan Kotarlic**
+GitHub: `[paste repo or release link here]`
 
-#obs #obsstudio #powerpoint #plugin #macos #livestream #opensource #eventproduction
+Built by **Srdjan Kotarlic**
+
+#obs #obsstudio #powerpoint #plugin #macos #opensource #livestream #eventproduction #conference #presentation
 
 ## LinkedIn Post — Serbian
 
-Danas objavljujem **PPTBridge SK for OBS**, native macOS OBS plugin koji sam napravio za live prezentacije.
+Danas objavljujem **PPTBridge SK for OBS**, native macOS OBS plugin koji sam napravio za live prezentacije i event produkciju.
 
-Plugin dodaje prave PowerPoint source tipove u OBS:
+Plugin dodaje dva prava source tipa u OBS:
 
 - `PPTBridge SK Slide`
 - `PPTBridge SK Presenter`
 
-Ideja je bila da postoji:
+Cilj mi je bio da napravim praktičan workflow:
 
-- čist slide feed za program / publiku
+- čist PowerPoint slide izlaz za program ili publiku
 - poseban presenter view sa notes za monitor na bini
 - kontrola slajdova preko OBS hotkeys i clickera
 
-Posebno mi je drago što sada radi kao pravi OBS plugin, a ne samo kao skripta ili browser workaround.
+Najvažnije mi je što sada radi kao pravi OBS plugin, a ne kao improvizacija preko window capture ili sličnih workaround-a.
 
-Projekat je besplatan i otvoren za korišćenje.
+Projekat je javan i besplatan za korišćenje.
+
+GitHub: `[ovde nalepi repo ili release link]`
 
 Autor: **Srdjan Kotarlic**
 
-#obs #obsstudio #plugin #powerpoint #macos #opensource #livestream
+#obs #obsstudio #plugin #powerpoint #macos #opensource #livestream #eventproduction #konferencije
 
 ## Short Intro Line For Video Or Demo
 
