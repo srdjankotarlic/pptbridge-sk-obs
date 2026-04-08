@@ -2,7 +2,7 @@
 
 ## PPTBridge SK for OBS v0.1.0
 
-Created by **Srđan Kotarlić**
+Created by **Srdjan Kotarlic**
 
 PPTBridge SK for OBS is a native macOS OBS plugin that adds real PowerPoint source types to OBS:
 
@@ -45,4 +45,4 @@ PPTBridge SK for OBS is a native macOS OBS plugin that adds real PowerPoint sour
 
 ### Author
 
-Built and published by **Srđan Kotarlić**
+Built and published by **Srdjan Kotarlic**

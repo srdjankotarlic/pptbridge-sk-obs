@@ -1,6 +1,6 @@
 # GitHub Repo Metadata
 
-Created by **Srđan Kotarlić**
+Created by **Srdjan Kotarlic**
 
 ## Recommended Repository Name
 
@@ -8,7 +8,7 @@ Created by **Srđan Kotarlić**
 
 ## Repository Description
 
-`Native macOS OBS plugin for PowerPoint slide and presenter sources, created by Srđan Kotarlić.`
+`Native macOS OBS plugin for PowerPoint slide and presenter sources, created by Srdjan Kotarlic.`
 
 ## GitHub "About" Short Text
 
@@ -50,8 +50,8 @@ Copy these into GitHub topics:
 ## Author Credit To Keep
 
 - Product name: `PPTBridge SK for OBS`
-- Creator line: `Created by Srđan Kotarlić`
-- Short credit: `by Srđan Kotarlić`
+- Creator line: `Created by Srdjan Kotarlic`
+- Short credit: `by Srdjan Kotarlic`
 
 ## Visibility Recommendation
 

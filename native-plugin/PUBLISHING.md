@@ -2,8 +2,8 @@
 
 Author credit:
 - Product name: `PPTBridge SK for OBS`
-- Creator line: `Created by Srđan Kotarlić`
-- Short credit: `by Srđan Kotarlić`
+- Creator line: `Created by Srdjan Kotarlic`
+- Short credit: `by Srdjan Kotarlic`
 
 Recommended free launch:
 1. Publish the source code on GitHub.
@@ -46,7 +46,7 @@ Suggested repo name:
 
 Suggested repository description:
 
-- `Native macOS OBS plugin for PowerPoint slide and presenter sources, created by Srđan Kotarlić.`
+- `Native macOS OBS plugin for PowerPoint slide and presenter sources, created by Srdjan Kotarlic.`
 
 Suggested visibility:
 
@@ -110,7 +110,7 @@ If possible, also record a short 20-30 second demo:
 
 Suggested repository:
 - Name: `pptbridge-sk-obs`
-- Description: `PPTBridge SK for OBS is a native macOS OBS plugin for PowerPoint slide and presenter sources, created by Srđan Kotarlić.`
+- Description: `PPTBridge SK for OBS is a native macOS OBS plugin for PowerPoint slide and presenter sources, created by Srdjan Kotarlic.`
 
 Suggested release title:
 - `PPTBridge SK for OBS v0.1.0`
@@ -123,7 +123,7 @@ Suggested OBS Forums title:
 - `PPTBridge SK for OBS`
 
 Suggested short pitch:
-- `Native OBS plugin for macOS that adds PowerPoint slide and presenter sources, with clicker-friendly hotkeys and PowerPoint fallback export. Created by Srđan Kotarlić.`
+- `Native OBS plugin for macOS that adds PowerPoint slide and presenter sources, with clicker-friendly hotkeys and PowerPoint fallback export. Created by Srdjan Kotarlic.`
 
 Release checklist:
 1. Run `./scripts/make-release.sh`
@@ -135,7 +135,7 @@ Release checklist:
 
 Portfolio angle:
 - Keep the plugin free first to maximize adoption and visibility.
-- Put `Created by Srđan Kotarlić` in the README, release page, installer text, and forum post.
+- Put `Created by Srdjan Kotarlic` in the README, release page, installer text, and forum post.
 - Add 2 screenshots: clean slide output and presenter view with notes.
 
 Important note:

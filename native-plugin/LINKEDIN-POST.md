@@ -1,6 +1,6 @@
 # LinkedIn Launch Posts
 
-Created by **Srđan Kotarlić**
+Created by **Srdjan Kotarlic**
 
 ## LinkedIn Post — English
 
@@ -24,7 +24,7 @@ What I’m especially happy about:
 
 This project is now public and free to use.
 
-Created by **Srđan Kotarlić**
+Created by **Srdjan Kotarlic**
 
 #obs #obsstudio #powerpoint #plugin #macos #livestream #opensource #eventproduction
 
@@ -47,7 +47,7 @@ Posebno mi je drago što sada radi kao pravi OBS plugin, a ne samo kao skripta i
 
 Projekat je besplatan i otvoren za korišćenje.
 
-Autor: **Srđan Kotarlić**
+Autor: **Srdjan Kotarlic**
 
 #obs #obsstudio #plugin #powerpoint #macos #opensource #livestream
 

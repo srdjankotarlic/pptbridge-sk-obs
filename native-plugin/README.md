@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS
 
-**Created by Srđan Kotarlić**
+**Created by Srdjan Kotarlic**
 
 This folder contains the native OBS plugin version of PPTBridge SK.
 
@@ -19,6 +19,17 @@ This native version is built around a practical conference workflow:
 - render slides natively through macOS APIs
 - expose a clean audience source and a presenter source
 - control slide navigation through OBS frontend hotkeys
+
+## What Problem It Solves
+
+PPTBridge SK is meant for productions where the program feed and the speaker view should not be the same thing.
+
+With this plugin you can:
+
+- send only the slide to program
+- keep notes and upcoming-slide context on a separate monitor
+- let the speaker drive the deck with a clicker that maps to OBS hotkeys
+- avoid fragile window-capture or full-screen PowerPoint workarounds
 
 ## Why This Is Native
 
@@ -125,6 +136,11 @@ Recommended workflow:
 4. Open `Settings > Hotkeys`
 5. Bind `PPTBridge SK: Next Slide` and `PPTBridge SK: Previous Slide`
 6. Let the speaker drive slides with a Spotlight-style clicker
+
+That gives you a clean dual-output workflow:
+
+- program output for audience or stream
+- presenter output for the stage monitor
 
 ## Slide Control
 

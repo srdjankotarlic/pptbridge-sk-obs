@@ -10,7 +10,7 @@ Native macOS OBS plugin for PowerPoint slide and presenter sources.
 
 ## Description
 
-PPTBridge SK for OBS is a native macOS OBS plugin created by **Srđan Kotarlić**.
+PPTBridge SK for OBS is a native macOS OBS plugin created by **Srdjan Kotarlic**.
 
 It adds two real source types to OBS:
 
@@ -72,4 +72,4 @@ Most clickers work if they send:
 
 ## Author
 
-Created by **Srđan Kotarlić**
+Created by **Srdjan Kotarlic**
