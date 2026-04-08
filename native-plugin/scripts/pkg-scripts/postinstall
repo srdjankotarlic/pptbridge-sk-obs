@@ -1,0 +1,67 @@
+#!/bin/bash
+
+set -euo pipefail
+
+PLUGIN_PATH="/Library/Application Support/obs-studio/plugins/pptbridge-obs.plugin"
+CONSOLE_USER="$(stat -f%Su /dev/console 2>/dev/null || true)"
+
+if command -v xattr >/dev/null 2>&1 && [ -d "$PLUGIN_PATH" ]; then
+  xattr -dr com.apple.quarantine "$PLUGIN_PATH" >/dev/null 2>&1 || true
+fi
+
+if [ -n "$CONSOLE_USER" ] && [ "$CONSOLE_USER" != "root" ]; then
+  USER_HOME="$(dscl . -read "/Users/$CONSOLE_USER" NFSHomeDirectory 2>/dev/null | awk '{print $2}' || true)"
+  USER_PLUGIN_PATH="$USER_HOME/Library/Application Support/obs-studio/plugins/pptbridge-obs.plugin"
+  if [ -n "$USER_HOME" ] && [ -d "$USER_PLUGIN_PATH" ]; then
+    rm -rf "$USER_PLUGIN_PATH"
+  fi
+
+  /usr/bin/python3 - "$USER_HOME" <<'PY'
+import json
+import pathlib
+import sys
+
+if len(sys.argv) != 2:
+    raise SystemExit(0)
+
+home = pathlib.Path(sys.argv[1])
+if not home.exists():
+    raise SystemExit(0)
+
+scenes_dir = home / "Library/Application Support/obs-studio/basic/scenes"
+if not scenes_dir.exists():
+    raise SystemExit(0)
+
+for path in list(scenes_dir.glob("*.json")) + list(scenes_dir.glob("*.json.bak")):
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        continue
+
+    modules = data.get("modules")
+    if not isinstance(modules, dict):
+        continue
+
+    scripts = modules.get("scripts-tool")
+    if not isinstance(scripts, list):
+        continue
+
+    filtered = []
+    changed = False
+    for entry in scripts:
+        if not isinstance(entry, dict):
+            filtered.append(entry)
+            continue
+        script_path = entry.get("path", "")
+        if pathlib.Path(script_path).name == "pptbridge_obs.py":
+            changed = True
+            continue
+        filtered.append(entry)
+
+    if changed:
+        modules["scripts-tool"] = filtered
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+PY
+fi
+
+exit 0

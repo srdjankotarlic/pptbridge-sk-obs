@@ -1,0 +1,5 @@
+build/
+dist/
+release/
+third_party/obs-studio/
+.DS_Store
