@@ -25,7 +25,7 @@ This native version is built around a practical conference workflow:
 ## Platform Status
 
 - macOS: public release path, tested and packaged
-- Windows: first native backend is now in the source tree, with PowerPoint-driven slide export, presenter render, live slideshow control, and OBS-side live capture/audio attachment attempts
+- Windows: first native backend is now in the source tree, with PowerPoint-driven slide export, embedded media extraction for fallback playback, presenter render, live slideshow control, and OBS-side live capture/audio attachment attempts
 - Windows is not published as a stable release yet because it still needs real Windows runtime validation and packaging
 
 ## What Problem It Solves

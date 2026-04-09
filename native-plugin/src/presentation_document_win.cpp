@@ -41,6 +41,11 @@ struct CachedSlide {
   SlideMetadata meta;
 };
 
+struct ParsedDeckData {
+  std::vector<CachedSlide> slides;
+  std::vector<std::vector<EmbeddedMedia>> media_by_slide;
+};
+
 struct LiveSnapshot {
   bool running = false;
   size_t current_slide = 0;
@@ -405,7 +410,11 @@ std::vector<std::string> SplitPipeLine(const std::string &line)
   return parts;
 }
 
-bool SaveCachedSlides(const fs::path &metadata_path, const std::string &stamp, const std::vector<CachedSlide> &slides)
+bool SaveCachedSlides(
+  const fs::path &metadata_path,
+  const std::string &stamp,
+  const std::vector<CachedSlide> &slides,
+  const std::vector<std::vector<EmbeddedMedia>> &media_by_slide)
 {
   std::ostringstream output;
   output << "STAMP|" << stamp << "\n";
@@ -417,10 +426,27 @@ bool SaveCachedSlides(const fs::path &metadata_path, const std::string &stamp, c
            << EscapePipeValue(slide.meta.title) << "|"
            << EscapePipeValue(slide.meta.notes) << "\n";
   }
+
+  for (size_t index = 0; index < media_by_slide.size(); ++index) {
+    for (const auto &media : media_by_slide[index]) {
+      output << "MEDIA|"
+             << (index + 1) << "|"
+             << (media.kind == EmbeddedMediaKind::Audio ? "audio" : "video") << "|"
+             << EscapePipeValue(media.file_path) << "|"
+             << EscapePipeValue(media.original_entry) << "|"
+             << media.x << "|"
+             << media.y << "|"
+             << media.width << "|"
+             << media.height << "|"
+             << (media.autoplay ? "1" : "0") << "|"
+             << (media.loop ? "1" : "0") << "\n";
+    }
+  }
+
   return WriteUtf8File(metadata_path, output.str());
 }
 
-bool LoadCachedSlides(const fs::path &metadata_path, const std::string &stamp, std::vector<CachedSlide> &out_slides)
+bool LoadCachedSlides(const fs::path &metadata_path, const std::string &stamp, ParsedDeckData &out_deck)
 {
   const auto contents = ReadUtf8File(metadata_path);
   if (contents.empty()) {
@@ -428,6 +454,7 @@ bool LoadCachedSlides(const fs::path &metadata_path, const std::string &stamp, s
   }
 
   std::vector<CachedSlide> slides;
+  std::vector<std::vector<EmbeddedMedia>> media_by_slide;
   for (const auto &line : SplitLines(contents)) {
     if (line.rfind("STAMP|", 0) == 0) {
       if (line.substr(6) != stamp) {
@@ -450,13 +477,62 @@ bool LoadCachedSlides(const fs::path &metadata_path, const std::string &stamp, s
     slide.meta.title = parts[3];
     slide.meta.notes = parts[4];
     slides.push_back(std::move(slide));
+    if (media_by_slide.size() < slides.size()) {
+      media_by_slide.resize(slides.size());
+    }
+  }
+
+  for (const auto &line : SplitLines(contents)) {
+    if (line.rfind("MEDIA|", 0) != 0) {
+      continue;
+    }
+
+    const auto parts = SplitPipeLine(line);
+    if (parts.size() < 11) {
+      continue;
+    }
+
+    size_t slide_index = 0;
+    try {
+      slide_index = static_cast<size_t>(std::stoul(parts[1]));
+    } catch (...) {
+      continue;
+    }
+    if (slide_index == 0) {
+      continue;
+    }
+
+    if (media_by_slide.size() < slide_index) {
+      media_by_slide.resize(slide_index);
+    }
+
+    EmbeddedMedia media;
+    media.kind = parts[2] == "audio" ? EmbeddedMediaKind::Audio : EmbeddedMediaKind::Video;
+    media.file_path = parts[3];
+    media.original_entry = parts[4];
+    try {
+      media.x = std::stod(parts[5]);
+      media.y = std::stod(parts[6]);
+      media.width = std::stod(parts[7]);
+      media.height = std::stod(parts[8]);
+    } catch (...) {
+      continue;
+    }
+    media.autoplay = parts[9] != "0";
+    media.loop = parts[10] == "1";
+    media_by_slide[slide_index - 1].push_back(std::move(media));
   }
 
   if (slides.empty()) {
     return false;
   }
 
-  out_slides = std::move(slides);
+  if (media_by_slide.size() < slides.size()) {
+    media_by_slide.resize(slides.size());
+  }
+
+  out_deck.slides = std::move(slides);
+  out_deck.media_by_slide = std::move(media_by_slide);
   return true;
 }
 
@@ -475,6 +551,7 @@ param(
 $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 function Escape-PPTBridgeValue([string]$Value) {
   if ($null -eq $Value) { return "" }
@@ -483,6 +560,243 @@ function Escape-PPTBridgeValue([string]$Value) {
   $Value = $Value.Replace("`r", '\r')
   $Value = $Value.Replace("`n", '\n')
   return $Value
+}
+
+function Resolve-PPTBridgeZipTarget([string]$BaseEntry, [string]$Target) {
+  if ([string]::IsNullOrWhiteSpace($Target)) { return "" }
+  $baseUri = [System.Uri]("https://pptbridge.local/" + $BaseEntry.Replace('\', '/'))
+  $resolved = [System.Uri]::new($baseUri, $Target)
+  return $resolved.AbsolutePath.TrimStart('/')
+}
+
+function Get-PPTBridgeZipEntryText($Archive, [string]$EntryPath) {
+  if ($null -eq $Archive -or [string]::IsNullOrWhiteSpace($EntryPath)) { return $null }
+  $entry = $Archive.GetEntry($EntryPath.Replace('\', '/'))
+  if ($null -eq $entry) { return $null }
+  $stream = $entry.Open()
+  $reader = [System.IO.StreamReader]::new($stream, [System.Text.UTF8Encoding]::new($false))
+  try {
+    return $reader.ReadToEnd()
+  } finally {
+    $reader.Dispose()
+    $stream.Dispose()
+  }
+}
+
+function Get-PPTBridgeZipRelationships($Archive, [string]$EntryPath) {
+  $map = @{}
+  $xmlText = Get-PPTBridgeZipEntryText $Archive $EntryPath
+  if ([string]::IsNullOrWhiteSpace($xmlText)) { return $map }
+  [xml]$xml = $xmlText
+  foreach ($relationship in @($xml.Relationships.Relationship)) {
+    if ($null -eq $relationship) { continue }
+    $map[[string]$relationship.Id] = [pscustomobject]@{
+      Type = [string]$relationship.Type
+      Target = [string]$relationship.Target
+      External = ([string]$relationship.TargetMode -eq "External")
+    }
+  }
+  return $map
+}
+
+function Get-PPTBridgeSlideEntries($Archive) {
+  $presentationXml = Get-PPTBridgeZipEntryText $Archive "ppt/presentation.xml"
+  if ([string]::IsNullOrWhiteSpace($presentationXml)) { return @() }
+
+  $relationships = Get-PPTBridgeZipRelationships $Archive "ppt/_rels/presentation.xml.rels"
+  [xml]$presentation = $presentationXml
+  $slideEntries = New-Object System.Collections.Generic.List[string]
+  foreach ($slideId in @($presentation.SelectNodes("//*[local-name()='sldIdLst']/*[local-name()='sldId']"))) {
+    if ($null -eq $slideId) { continue }
+    $relationshipId = $slideId.GetAttribute("id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships")
+    if ([string]::IsNullOrWhiteSpace($relationshipId)) { continue }
+    $relationship = $relationships[$relationshipId]
+    if ($null -eq $relationship -or [string]::IsNullOrWhiteSpace($relationship.Target)) { continue }
+    [void]$slideEntries.Add((Resolve-PPTBridgeZipTarget "ppt/presentation.xml" $relationship.Target))
+  }
+  return @($slideEntries)
+}
+
+function Get-PPTBridgeSlideSize($Archive) {
+  $presentationXml = Get-PPTBridgeZipEntryText $Archive "ppt/presentation.xml"
+  if ([string]::IsNullOrWhiteSpace($presentationXml)) {
+    return [pscustomobject]@{ Width = 0.0; Height = 0.0 }
+  }
+
+  [xml]$presentation = $presentationXml
+  $sizeNode = $presentation.SelectSingleNode("//*[local-name()='sldSz']")
+  if ($null -eq $sizeNode) {
+    return [pscustomobject]@{ Width = 0.0; Height = 0.0 }
+  }
+
+  return [pscustomobject]@{
+    Width = [double]$sizeNode.cx
+    Height = [double]$sizeNode.cy
+  }
+}
+
+function Get-PPTBridgeRelationshipIds($Node) {
+  $ids = New-Object 'System.Collections.Generic.HashSet[string]'
+  $allNodes = New-Object System.Collections.Generic.List[System.Xml.XmlNode]
+  [void]$allNodes.Add($Node)
+  foreach ($child in @($Node.SelectNodes(".//*"))) {
+    [void]$allNodes.Add($child)
+  }
+
+  foreach ($candidate in $allNodes) {
+    if ($null -eq $candidate -or $null -eq $candidate.Attributes) { continue }
+    foreach ($attribute in @($candidate.Attributes)) {
+      if ($null -eq $attribute) { continue }
+      if (@("embed", "link", "id") -contains $attribute.LocalName -and [string]$attribute.Value -like "rId*") {
+        [void]$ids.Add([string]$attribute.Value)
+      }
+    }
+  }
+
+  return @($ids)
+}
+
+function Test-PPTBridgeMediaRelationship($Relationship, [string]$ResolvedTarget) {
+  if ($null -eq $Relationship -or $Relationship.External) { return $false }
+  $extension = [System.IO.Path]::GetExtension($ResolvedTarget).ToLowerInvariant()
+  if (@(".bmp", ".emf", ".gif", ".jpeg", ".jpg", ".png", ".svg", ".tif", ".tiff", ".wmf") -contains $extension) {
+    return $false
+  }
+  if (@(".aac", ".aif", ".aiff", ".avi", ".flac", ".m4a", ".m4v", ".mkv", ".mov", ".mp3", ".mp4", ".mpeg", ".mpg", ".ogg", ".wav", ".webm", ".wma", ".wmv") -contains $extension) {
+    return $true
+  }
+
+  $type = ([string]$Relationship.Type).ToLowerInvariant()
+  return $type.Contains("media") -or $type.Contains("video") -or $type.Contains("audio")
+}
+
+function Get-PPTBridgeMediaKind($Relationship, [string]$ResolvedTarget) {
+  $extension = [System.IO.Path]::GetExtension($ResolvedTarget).ToLowerInvariant()
+  $type = ([string]$Relationship.Type).ToLowerInvariant()
+  if (@(".aac", ".aif", ".aiff", ".flac", ".m4a", ".mp3", ".ogg", ".wav", ".wma") -contains $extension -or $type.Contains("audio")) {
+    return "audio"
+  }
+  return "video"
+}
+
+function Get-PPTBridgeNormalizedRect($Node, [double]$SlideWidth, [double]$SlideHeight) {
+  if ($SlideWidth -le 0 -or $SlideHeight -le 0) {
+    return [pscustomobject]@{ X = 0.0; Y = 0.0; Width = 1.0; Height = 1.0 }
+  }
+
+  $offNode = $Node.SelectSingleNode(".//*[local-name()='off']")
+  $extNode = $Node.SelectSingleNode(".//*[local-name()='ext']")
+  if ($null -eq $offNode -or $null -eq $extNode) {
+    return [pscustomobject]@{ X = 0.0; Y = 0.0; Width = 1.0; Height = 1.0 }
+  }
+
+  return [pscustomobject]@{
+    X = ([double]$offNode.x) / $SlideWidth
+    Y = ([double]$offNode.y) / $SlideHeight
+    Width = ([double]$extNode.cx) / $SlideWidth
+    Height = ([double]$extNode.cy) / $SlideHeight
+  }
+}
+
+function Export-PPTBridgeZipEntry($Archive, [string]$EntryPath, [string]$DestinationRoot) {
+  if ($null -eq $Archive -or [string]::IsNullOrWhiteSpace($EntryPath) -or [string]::IsNullOrWhiteSpace($DestinationRoot)) {
+    return ""
+  }
+
+  $entry = $Archive.GetEntry($EntryPath.Replace('\', '/'))
+  if ($null -eq $entry) { return "" }
+
+  $destinationPath = Join-Path $DestinationRoot ($EntryPath.Replace('/', [System.IO.Path]::DirectorySeparatorChar))
+  $destinationDirectory = Split-Path -Parent $destinationPath
+  if (-not [string]::IsNullOrWhiteSpace($destinationDirectory)) {
+    New-Item -ItemType Directory -Force -Path $destinationDirectory | Out-Null
+  }
+
+  if (-not (Test-Path -LiteralPath $destinationPath) -or ((Get-Item -LiteralPath $destinationPath).Length -ne $entry.Length)) {
+    $input = $entry.Open()
+    $output = [System.IO.File]::Open($destinationPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::Read)
+    try {
+      $input.CopyTo($output)
+    } finally {
+      $output.Dispose()
+      $input.Dispose()
+    }
+  }
+
+  return $destinationPath
+}
+
+function Get-PPTBridgeMediaForSlide($Archive, [string]$SlideEntry, [string]$CacheDir, [double]$SlideWidth, [double]$SlideHeight, $ExtractedCache) {
+  $results = New-Object System.Collections.Generic.List[object]
+  $signatures = New-Object 'System.Collections.Generic.HashSet[string]'
+  $slideXml = Get-PPTBridgeZipEntryText $Archive $SlideEntry
+  if ([string]::IsNullOrWhiteSpace($slideXml)) { return @($results) }
+
+  $relsEntry = ([System.IO.Path]::GetDirectoryName($SlideEntry).Replace('\', '/')) + "/_rels/" + [System.IO.Path]::GetFileName($SlideEntry) + ".rels"
+  $relationships = Get-PPTBridgeZipRelationships $Archive $relsEntry
+  if ($relationships.Count -eq 0) { return @($results) }
+
+  [xml]$slideDocument = $slideXml
+  $shapeNodes = @($slideDocument.SelectNodes("//*[local-name()='spTree']/*"))
+  foreach ($shape in $shapeNodes) {
+    if ($null -eq $shape) { continue }
+
+    $candidateIds = Get-PPTBridgeRelationshipIds $shape
+    if ($candidateIds.Count -eq 0) { continue }
+
+    $best = $null
+    $bestTarget = ""
+    $bestScore = -1
+    foreach ($relationshipId in $candidateIds) {
+      $relationship = $relationships[$relationshipId]
+      if ($null -eq $relationship) { continue }
+      $resolvedTarget = Resolve-PPTBridgeZipTarget $SlideEntry ([string]$relationship.Target)
+      if (-not (Test-PPTBridgeMediaRelationship $relationship $resolvedTarget)) { continue }
+
+      $score = 10
+      $type = ([string]$relationship.Type).ToLowerInvariant()
+      if ($type.Contains("video") -or $type.Contains("audio")) { $score += 20 }
+      $extension = [System.IO.Path]::GetExtension($resolvedTarget).ToLowerInvariant()
+      if (@(".aac", ".aif", ".aiff", ".avi", ".flac", ".m4a", ".m4v", ".mkv", ".mov", ".mp3", ".mp4", ".mpeg", ".mpg", ".ogg", ".wav", ".webm", ".wma", ".wmv") -contains $extension) {
+        $score += 10
+      }
+
+      if ($score -gt $bestScore) {
+        $best = $relationship
+        $bestTarget = $resolvedTarget
+        $bestScore = $score
+      }
+    }
+
+    if ($null -eq $best -or [string]::IsNullOrWhiteSpace($bestTarget)) { continue }
+
+    $normalizedRect = Get-PPTBridgeNormalizedRect $shape $SlideWidth $SlideHeight
+    $extractedPath = ""
+    if ($ExtractedCache.ContainsKey($bestTarget)) {
+      $extractedPath = [string]$ExtractedCache[$bestTarget]
+    } else {
+      $extractedPath = Export-PPTBridgeZipEntry $Archive $bestTarget (Join-Path $CacheDir "embedded-media")
+      if ([string]::IsNullOrWhiteSpace($extractedPath)) { continue }
+      $ExtractedCache[$bestTarget] = $extractedPath
+    }
+
+    $signature = "{0}|{1}|{2}|{3}|{4}" -f $bestTarget, $normalizedRect.X, $normalizedRect.Y, $normalizedRect.Width, $normalizedRect.Height
+    if (-not $signatures.Add($signature)) { continue }
+
+    [void]$results.Add([pscustomobject]@{
+      Kind = Get-PPTBridgeMediaKind $best $bestTarget
+      FilePath = $extractedPath
+      OriginalEntry = $bestTarget
+      X = $normalizedRect.X
+      Y = $normalizedRect.Y
+      Width = $normalizedRect.Width
+      Height = $normalizedRect.Height
+      Autoplay = $true
+      Loop = $false
+    })
+  }
+
+  return @($results)
 }
 
 function Get-PPTBridgeApp([bool]$CreateIfMissing) {
@@ -582,40 +896,70 @@ switch ($Mode) {
 
     $slidesDir = Join-Path $CacheDir "slides"
     New-Item -ItemType Directory -Force -Path $slidesDir | Out-Null
+    $archive = $null
+    $app = $null
+    $presentation = $null
+    try {
+      $archive = [System.IO.Compression.ZipFile]::OpenRead($PptxPath)
+      $slideEntries = Get-PPTBridgeSlideEntries $archive
+      $slideSize = Get-PPTBridgeSlideSize $archive
+      $extractedMediaCache = @{}
 
-    $app = New-Object -ComObject PowerPoint.Application
-    $app.Visible = $true
-    $presentation = Open-PPTBridgePresentation $app $PptxPath $false
-    $presentation.Export($slidesDir, "PNG", $Width, $Height)
+      $app = New-Object -ComObject PowerPoint.Application
+      $app.Visible = $true
+      $presentation = Open-PPTBridgePresentation $app $PptxPath $false
+      $presentation.Export($slidesDir, "PNG", $Width, $Height)
 
-    Write-Output "OK"
-    Write-Output ("COUNT|{0}" -f [int]$presentation.Slides.Count)
+      Write-Output "OK"
+      Write-Output ("COUNT|{0}" -f [int]$presentation.Slides.Count)
 
-    foreach ($slide in @($presentation.Slides)) {
-      $index = [int]$slide.SlideIndex
-      $file = Join-Path $slidesDir ("Slide{0}.PNG" -f $index)
-      if (-not (Test-Path -LiteralPath $file)) {
-        $file = Join-Path $slidesDir ("Slide{0}.png" -f $index)
-      }
-      if (-not (Test-Path -LiteralPath $file)) {
-        $fallback = @(Get-ChildItem -LiteralPath $slidesDir -Filter ("Slide{0}.*" -f $index))
-        if ($fallback.Count -gt 0) {
-          $file = $fallback[0].FullName
+      foreach ($slide in @($presentation.Slides)) {
+        $index = [int]$slide.SlideIndex
+        $file = Join-Path $slidesDir ("Slide{0}.PNG" -f $index)
+        if (-not (Test-Path -LiteralPath $file)) {
+          $file = Join-Path $slidesDir ("Slide{0}.png" -f $index)
+        }
+        if (-not (Test-Path -LiteralPath $file)) {
+          $fallback = @(Get-ChildItem -LiteralPath $slidesDir -Filter ("Slide{0}.*" -f $index))
+          if ($fallback.Count -gt 0) {
+            $file = $fallback[0].FullName
+          }
+        }
+
+        $title = ""
+        try { $title = [string]$slide.Name } catch {}
+        $notes = Get-PPTBridgeNotes $slide
+        Write-Output ("SLIDE|{0}|{1}|{2}|{3}" -f
+          $index,
+          (Escape-PPTBridgeValue $file),
+          (Escape-PPTBridgeValue $title),
+          (Escape-PPTBridgeValue $notes))
+
+        if ($index -le $slideEntries.Count) {
+          foreach ($media in @(Get-PPTBridgeMediaForSlide $archive $slideEntries[$index - 1] $CacheDir $slideSize.Width $slideSize.Height $extractedMediaCache)) {
+            Write-Output ("MEDIA|{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}|{8}|{9}" -f
+              $index,
+              [string]$media.Kind,
+              (Escape-PPTBridgeValue ([string]$media.FilePath)),
+              (Escape-PPTBridgeValue ([string]$media.OriginalEntry)),
+              [string]$media.X,
+              [string]$media.Y,
+              [string]$media.Width,
+              [string]$media.Height,
+              ($(if ($media.Autoplay) { "1" } else { "0" })),
+              ($(if ($media.Loop) { "1" } else { "0" })))
+          }
         }
       }
-
-      $title = ""
-      try { $title = [string]$slide.Name } catch {}
-      $notes = Get-PPTBridgeNotes $slide
-      Write-Output ("SLIDE|{0}|{1}|{2}|{3}" -f
-        $index,
-        (Escape-PPTBridgeValue $file),
-        (Escape-PPTBridgeValue $title),
-        (Escape-PPTBridgeValue $notes))
+    } finally {
+      if ($null -ne $archive) { $archive.Dispose() }
+      if ($null -ne $presentation) {
+        try { $presentation.Close() } catch {}
+      }
+      if ($null -ne $app) {
+        try { $app.Quit() } catch {}
+      }
     }
-
-    $presentation.Close()
-    $app.Quit()
   }
 
   "live-start" {
@@ -743,9 +1087,9 @@ bool RunPowerShellMode(
   return RunProcessCapture(args, out_stdout, out_exit_code);
 }
 
-bool ParseExportOutput(const std::string &output, std::vector<CachedSlide> &out_slides, std::string &out_error)
+bool ParseExportOutput(const std::string &output, ParsedDeckData &out_deck, std::string &out_error)
 {
-  out_slides.clear();
+  out_deck = {};
   bool ok = false;
   for (const auto &line : SplitLines(output)) {
     if (line == "OK") {
@@ -766,12 +1110,60 @@ bool ParseExportOutput(const std::string &output, std::vector<CachedSlide> &out_
     slide.image_path = Utf8ToWide(parts[2]);
     slide.meta.title = parts[3];
     slide.meta.notes = parts[4];
-    out_slides.push_back(std::move(slide));
+    out_deck.slides.push_back(std::move(slide));
+    if (out_deck.media_by_slide.size() < out_deck.slides.size()) {
+      out_deck.media_by_slide.resize(out_deck.slides.size());
+    }
   }
 
-  if (!ok || out_slides.empty()) {
+  for (const auto &line : SplitLines(output)) {
+    if (line.rfind("MEDIA|", 0) != 0) {
+      continue;
+    }
+
+    const auto parts = SplitPipeLine(line);
+    if (parts.size() < 10) {
+      continue;
+    }
+
+    size_t slide_index = 0;
+    try {
+      slide_index = static_cast<size_t>(std::stoul(parts[1]));
+    } catch (...) {
+      continue;
+    }
+    if (slide_index == 0) {
+      continue;
+    }
+
+    if (out_deck.media_by_slide.size() < slide_index) {
+      out_deck.media_by_slide.resize(slide_index);
+    }
+
+    EmbeddedMedia media;
+    media.kind = parts[2] == "audio" ? EmbeddedMediaKind::Audio : EmbeddedMediaKind::Video;
+    media.file_path = parts[3];
+    media.original_entry = parts[4];
+    try {
+      media.x = std::stod(parts[5]);
+      media.y = std::stod(parts[6]);
+      media.width = std::stod(parts[7]);
+      media.height = std::stod(parts[8]);
+    } catch (...) {
+      continue;
+    }
+    media.autoplay = parts[9] != "0";
+    media.loop = parts.size() > 10 && parts[10] == "1";
+    out_deck.media_by_slide[slide_index - 1].push_back(std::move(media));
+  }
+
+  if (!ok || out_deck.slides.empty()) {
     out_error = output.empty() ? "PowerPoint export produced no usable slide output." : output;
     return false;
+  }
+
+  if (out_deck.media_by_slide.size() < out_deck.slides.size()) {
+    out_deck.media_by_slide.resize(out_deck.slides.size());
   }
 
   return true;
@@ -973,7 +1365,9 @@ struct PresentationDocument::Impl {
   fs::path metadata_path;
   std::string file_stamp;
   std::vector<CachedSlide> slides;
+  std::vector<std::vector<EmbeddedMedia>> media_by_slide;
   size_t current_index = 0;
+  bool current_media_triggered = false;
   bool loaded = false;
   bool loading = false;
   bool force_reload = false;
@@ -1013,6 +1407,7 @@ void PresentationDocument::SetLivePowerPointEnabled(bool enabled)
     if (!enabled) {
       impl_->live_ready = false;
       impl_->live_window_title.clear();
+      impl_->current_media_triggered = false;
       impl_->state_version += 1;
     }
   }
@@ -1089,6 +1484,9 @@ void PresentationDocument::SyncLiveStateAsync()
       if (snapshot.running && self->impl_->timer_started_at == std::chrono::steady_clock::time_point::min()) {
         self->impl_->timer_started_at = std::chrono::steady_clock::now();
       }
+      if (snapshot.running) {
+        self->impl_->current_media_triggered = false;
+      }
       self->impl_->state_version += 1;
       self->impl_->last_error.clear();
     } else if (!error.empty()) {
@@ -1149,12 +1547,24 @@ std::size_t PresentationDocument::CurrentIndex() const
 bool PresentationDocument::HasNext() const
 {
   std::lock_guard<std::mutex> lock(impl_->mutex);
+  if (!impl_->live_enabled || !impl_->live_ready) {
+    const bool has_media_on_current =
+      impl_->current_index < impl_->media_by_slide.size() && !impl_->media_by_slide[impl_->current_index].empty();
+    if (has_media_on_current && !impl_->current_media_triggered) {
+      return true;
+    }
+  }
   return impl_->current_index + 1 < impl_->slides.size();
 }
 
 bool PresentationDocument::HasPrevious() const
 {
   std::lock_guard<std::mutex> lock(impl_->mutex);
+  if (!impl_->live_enabled || !impl_->live_ready) {
+    if (impl_->current_media_triggered) {
+      return true;
+    }
+  }
   return impl_->current_index > 0 && !impl_->slides.empty();
 }
 
@@ -1169,10 +1579,20 @@ void PresentationDocument::Next()
   bool use_live = false;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
-    use_live = impl_->live_enabled && impl_->loaded;
+    use_live = impl_->live_enabled && impl_->live_ready;
     if (!use_live) {
+      const bool has_media_on_current =
+        impl_->current_index < impl_->media_by_slide.size() && !impl_->media_by_slide[impl_->current_index].empty();
+      if (has_media_on_current && !impl_->current_media_triggered) {
+        impl_->current_media_triggered = true;
+        impl_->black_screen = false;
+        impl_->state_version += 1;
+        return;
+      }
+
       if (impl_->current_index + 1 < impl_->slides.size()) {
         impl_->current_index += 1;
+        impl_->current_media_triggered = false;
         impl_->state_version += 1;
       }
       impl_->black_screen = false;
@@ -1200,6 +1620,7 @@ void PresentationDocument::Next()
         self->impl_->live_window_title = snapshot.window_title;
         self->impl_->last_error.clear();
         self->impl_->black_screen = false;
+        self->impl_->current_media_triggered = false;
         if (self->impl_->timer_started_at == std::chrono::steady_clock::time_point::min()) {
           self->impl_->timer_started_at = std::chrono::steady_clock::now();
         }
@@ -1207,15 +1628,27 @@ void PresentationDocument::Next()
         return;
       }
 
-      if (self->impl_->current_index + 1 < self->impl_->slides.size()) {
+      const bool has_media_on_current =
+        self->impl_->current_index < self->impl_->media_by_slide.size() &&
+        !self->impl_->media_by_slide[self->impl_->current_index].empty();
+      if (has_media_on_current && !self->impl_->current_media_triggered) {
+        self->impl_->current_media_triggered = true;
+      } else if (self->impl_->current_index + 1 < self->impl_->slides.size()) {
         self->impl_->current_index += 1;
+        self->impl_->current_media_triggered = false;
       }
       self->impl_->state_version += 1;
       self->impl_->black_screen = false;
     } else {
       std::lock_guard<std::mutex> lock(self->impl_->mutex);
-      if (self->impl_->current_index + 1 < self->impl_->slides.size()) {
+      const bool has_media_on_current =
+        self->impl_->current_index < self->impl_->media_by_slide.size() &&
+        !self->impl_->media_by_slide[self->impl_->current_index].empty();
+      if (has_media_on_current && !self->impl_->current_media_triggered) {
+        self->impl_->current_media_triggered = true;
+      } else if (self->impl_->current_index + 1 < self->impl_->slides.size()) {
         self->impl_->current_index += 1;
+        self->impl_->current_media_triggered = false;
       }
       self->impl_->last_error = error.empty() ? output : error;
       self->impl_->state_version += 1;
@@ -1235,7 +1668,7 @@ void PresentationDocument::Previous()
     bool use_live = false;
     {
       std::lock_guard<std::mutex> lock(self->impl_->mutex);
-      use_live = self->impl_->live_enabled && self->impl_->loaded;
+      use_live = self->impl_->live_enabled && self->impl_->live_ready;
     }
 
     if (use_live) {
@@ -1256,8 +1689,11 @@ void PresentationDocument::Previous()
       self->impl_->live_ready = true;
       self->impl_->live_window_title = snapshot.window_title;
       self->impl_->last_error.clear();
+      self->impl_->current_media_triggered = false;
     } else {
-      if (self->impl_->current_index > 0) {
+      if (self->impl_->current_media_triggered) {
+        self->impl_->current_media_triggered = false;
+      } else if (self->impl_->current_index > 0) {
         self->impl_->current_index -= 1;
       }
       if (!error.empty()) {
@@ -1303,7 +1739,7 @@ void PresentationDocument::GoTo(std::size_t index)
     size_t slide_count = 0;
     {
       std::lock_guard<std::mutex> lock(self->impl_->mutex);
-      use_live = self->impl_->live_enabled && self->impl_->loaded;
+      use_live = self->impl_->live_enabled && self->impl_->live_ready;
       slide_count = self->impl_->slides.size();
     }
 
@@ -1326,8 +1762,10 @@ void PresentationDocument::GoTo(std::size_t index)
       self->impl_->live_ready = true;
       self->impl_->live_window_title = snapshot.window_title;
       self->impl_->last_error.clear();
+      self->impl_->current_media_triggered = false;
     } else {
       self->impl_->current_index = clamped;
+      self->impl_->current_media_triggered = false;
       if (!error.empty()) {
         self->impl_->last_error = error;
       }
@@ -1363,7 +1801,15 @@ uint64_t PresentationDocument::PresentationSeconds() const
 
 std::vector<EmbeddedMedia> PresentationDocument::CurrentMedia() const
 {
-  return {};
+  std::lock_guard<std::mutex> lock(impl_->mutex);
+  if (impl_->live_enabled && impl_->live_ready) {
+    return {};
+  }
+  if (!impl_->loaded || !impl_->current_media_triggered || impl_->current_index >= impl_->media_by_slide.size()) {
+    return {};
+  }
+
+  return impl_->media_by_slide[impl_->current_index];
 }
 
 bool PresentationDocument::RenderSlideBGRA(
@@ -1573,7 +2019,7 @@ void PresentationDocument::LoadOnWorker()
   const fs::path source_path(Utf8ToWide(impl_->path));
   const std::string current_stamp = CurrentFileStamp(source_path);
   const fs::path metadata_path = impl_->metadata_path;
-  std::vector<CachedSlide> slides;
+  ParsedDeckData deck_data;
   std::string load_error;
 
   bool force_reload = false;
@@ -1584,22 +2030,22 @@ void PresentationDocument::LoadOnWorker()
     impl_->file_stamp = current_stamp;
   }
 
-  if (!force_reload && LoadCachedSlides(metadata_path, current_stamp, slides)) {
+  if (!force_reload && LoadCachedSlides(metadata_path, current_stamp, deck_data)) {
     blog(LOG_INFO, "[PPTBridge SK] Reused cached Windows slide export for '%s'", impl_->path.c_str());
   } else {
     std::string output;
     int exit_code = -1;
     {
       std::lock_guard<std::mutex> script_lock(impl_->script_mutex);
-      RunPowerShellMode(L"export", Utf8ToWide(impl_->path), impl_->cache_root.wstring(), 0, output, exit_code);
+        RunPowerShellMode(L"export", Utf8ToWide(impl_->path), impl_->cache_root.wstring(), 0, output, exit_code);
     }
 
-    if (exit_code != 0 || !ParseExportOutput(output, slides, load_error)) {
+    if (exit_code != 0 || !ParseExportOutput(output, deck_data, load_error)) {
       if (load_error.empty()) {
         load_error = output.empty() ? "PowerPoint export failed on Windows." : output;
       }
     } else {
-      SaveCachedSlides(metadata_path, current_stamp, slides);
+      SaveCachedSlides(metadata_path, current_stamp, deck_data.slides, deck_data.media_by_slide);
     }
   }
 
@@ -1607,12 +2053,17 @@ void PresentationDocument::LoadOnWorker()
   std::string live_error;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
-    impl_->slides = std::move(slides);
+    impl_->slides = std::move(deck_data.slides);
+    impl_->media_by_slide = std::move(deck_data.media_by_slide);
+    if (impl_->media_by_slide.size() < impl_->slides.size()) {
+      impl_->media_by_slide.resize(impl_->slides.size());
+    }
     impl_->loaded = !impl_->slides.empty();
     impl_->loading = false;
     impl_->live_ready = false;
     impl_->live_window_title.clear();
     impl_->current_index = 0;
+    impl_->current_media_triggered = false;
     impl_->last_error = load_error;
     impl_->state_version += 1;
   }
@@ -1643,6 +2094,7 @@ void PresentationDocument::LoadOnWorker()
       if (!impl_->slides.empty() && live_snapshot.current_slide > 0) {
         impl_->current_index = std::min(live_snapshot.current_slide - 1, impl_->slides.size() - 1);
       }
+      impl_->current_media_triggered = false;
       impl_->timer_started_at = std::chrono::steady_clock::now();
       impl_->state_version += 1;
       impl_->last_error.clear();

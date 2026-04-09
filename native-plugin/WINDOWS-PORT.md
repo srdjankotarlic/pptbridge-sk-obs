@@ -15,12 +15,14 @@ What is already in the Windows code now:
 - Windows `PresentationDocument` backend in `src/presentation_document_win.cpp`
 - PowerPoint-driven slide export on Windows through PowerShell + COM automation
 - presenter notes extraction through PowerPoint notes pages
+- embedded media extraction from the `.pptx` package for fallback OBS-side playback
 - Windows presenter renderer using GDI+
 - live slideshow control on Windows for next/previous/first/last
 - Windows `Slide` source path in `src/source_slide_win.cpp`
 - live slideshow window attachment attempt through OBS `window_capture`
 - live PowerPoint process-audio attachment attempt through OBS process audio capture
-- fallback to exported slide rendering when the live capture path is not ready
+- fallback to exported slide rendering plus extracted embedded media when the live capture path is not ready
+- legacy click-to-play media behavior so a media-heavy slide can stay on screen and start playback before advancing
 
 What is **not** claimed as done yet:
 
@@ -47,8 +49,9 @@ The most realistic Windows path is:
 2. Add a Windows-specific `PresentationDocument` backend.
 3. Use PowerPoint on Windows as the control/export engine through PowerShell + COM.
 4. Export slides to cached PNGs for the safe fallback render path.
-5. Keep the live-show path focused on real PowerPoint slideshow control and OBS-side attachment to the slideshow window/audio process.
-6. Render presenter layout in-plugin with Windows graphics APIs.
+5. Extract embedded media from the `.pptx` package so OBS can still render or mix that media when live slideshow capture is unavailable.
+6. Keep the live-show path focused on real PowerPoint slideshow control and OBS-side attachment to the slideshow window/audio process.
+7. Render presenter layout in-plugin with Windows graphics APIs.
 
 ## Recommended Export Path On Windows
 
@@ -68,9 +71,10 @@ That led to the following Windows backend shape:
 - open the `.pptx` with PowerPoint COM
 - export each slide as PNG into a cache directory
 - extract notes text per slide
+- inspect the PPTX package for embedded media placement and media files
 - save compact slide metadata for the plugin to reload quickly
 
-That avoids bringing a PDF rendering dependency to Windows.
+That avoids bringing a PDF rendering dependency to Windows while still giving the fallback path more than just flat images.
 
 ## Recommended Rendering Path On Windows
 
@@ -116,6 +120,7 @@ Official OBS starting point:
 - verify click-builds and animations in real OBS
 - verify embedded video behavior
 - verify audio ownership and OBS mixer control
+- verify the new fallback media extraction path against real PowerPoint decks
 - add Windows-specific recovery logic where needed
 
 ### Milestone 3: Packaging

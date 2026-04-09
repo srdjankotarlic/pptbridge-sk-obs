@@ -34,7 +34,7 @@ constexpr const char *kHotkeyHelp =
 constexpr const char *kMediaHelp =
   "Windows playback note:\n"
   "PPTBridge SK for Windows prefers a real PowerPoint slideshow session and then attaches OBS to that live show when possible.\n"
-  "If the live slideshow window is not available yet, PPTBridge falls back to the exported slide cache so your show stays controllable.";
+  "If the live slideshow window is not available yet, PPTBridge falls back to exported slides plus extracted embedded media so your show stays controllable inside OBS.";
 
 constexpr const char *kLiveHelp =
   "True live mode on Windows:\n"
@@ -43,11 +43,13 @@ constexpr const char *kLiveHelp =
 
 constexpr const char *kAudioHelp =
   "Conference audio on Windows:\n"
-  "PPTBridge can attempt to route PowerPoint process audio into the PPTBridge SK Slide source when OBS application audio capture is available.\n"
-  "If the live app-audio source is not available yet, the slide source will keep video control and fall back gracefully.";
+  "PPTBridge first tries to use OBS window capture audio for the PowerPoint slideshow window itself, because that keeps the live show path tighter.\n"
+  "If that path is not ready yet, PPTBridge can still try a dedicated PowerPoint process-audio path as a fallback.";
 
 constexpr auto kLiveRecoverRetryDelay = std::chrono::seconds(3);
 constexpr auto kLiveReloadDelay = std::chrono::seconds(10);
+constexpr int kWindowCaptureMethodAuto = 0;
+constexpr int kWindowPriorityTitle = 1;
 
 struct MediaPlaybackSnapshot {
   obs_source_t *source = nullptr;
@@ -232,8 +234,13 @@ BOOL CALLBACK enum_powerpoint_windows(HWND hwnd, LPARAM param)
   context->result.title = title;
   context->result.class_name = get_class_name_utf8(hwnd);
   context->result.executable_name = "POWERPNT.EXE";
-  context->result.descriptor = sanitize_descriptor_value(title) + ":" +
-    sanitize_descriptor_value(context->result.class_name) + ":" +
+  if (ToLowerCopy(context->result.class_name) != "screenclass" &&
+      title_lower.find("powerpoint slide show") == std::string::npos) {
+    return TRUE;
+  }
+
+  context->result.descriptor = sanitize_descriptor_value(context->result.class_name) + ":" +
+    sanitize_descriptor_value(title) + ":" +
     context->result.executable_name;
   return FALSE;
 }
@@ -468,7 +475,13 @@ obs_source_t *create_live_capture_source(SourceContext *context, const LiveWindo
 
   obs_data_t *settings = obs_data_create();
   obs_data_set_string(settings, "window", target.descriptor.c_str());
+  obs_data_set_int(settings, "method", kWindowCaptureMethodAuto);
+  obs_data_set_int(settings, "priority", kWindowPriorityTitle);
   obs_data_set_bool(settings, "cursor", false);
+  obs_data_set_bool(settings, "capture_audio", context->use_live_app_audio && context->audio_enabled);
+  obs_data_set_bool(settings, "force_sdr", false);
+  obs_data_set_bool(settings, "compatibility", false);
+  obs_data_set_bool(settings, "client_area", false);
 
   std::string source_name = std::string(obs_source_get_name(context->source)) + " Live Capture";
   obs_source_t *capture = obs_source_create_private("window_capture", source_name.c_str(), settings);
@@ -489,6 +502,7 @@ obs_source_t *create_live_audio_source(SourceContext *context, const LiveWindowT
 
   obs_data_t *settings = obs_data_create();
   obs_data_set_string(settings, "window", target.descriptor.c_str());
+  obs_data_set_int(settings, "priority", kWindowPriorityTitle);
 
   std::string source_name = std::string(obs_source_get_name(context->source)) + " Live Audio";
   obs_source_t *audio = obs_source_create_private("wasapi_process_output_capture", source_name.c_str(), settings);
@@ -574,6 +588,11 @@ void sync_live_audio_source(SourceContext *context)
     return;
   }
 
+  if (context->live_capture_source) {
+    clear_live_audio_source(context);
+    return;
+  }
+
   const auto target = find_powerpoint_window(context->document->LiveWindowTitle(), context->document->Name());
   if (!target.hwnd) {
     clear_live_audio_source(context);
@@ -621,6 +640,15 @@ std::vector<ChildAudioSnapshot> snapshot_audio_children(SourceContext *context)
   std::vector<ChildAudioSnapshot> snapshot;
   if (!context) {
     return snapshot;
+  }
+
+  if (context->live_capture_source) {
+    ChildAudioSnapshot live_capture;
+    live_capture.source = obs_source_get_ref(context->live_capture_source);
+    live_capture.is_audio = true;
+    if (live_capture.source) {
+      snapshot.push_back(live_capture);
+    }
   }
 
   if (context->live_audio_source) {
@@ -869,8 +897,10 @@ std::string build_status_text(SourceContext *context)
     status << "PowerPoint app audio: ";
     if (!context->use_live_app_audio) {
       status << "disabled";
+    } else if (context->live_capture_source) {
+      status << "attached through live window capture";
     } else if (context->live_audio_source) {
-      status << "attached";
+      status << "attached through process audio fallback";
     } else if (live_ready) {
       status << "searching for process audio";
     } else {

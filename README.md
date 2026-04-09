@@ -72,7 +72,7 @@ For public sharing and installation:
 ## Notes
 
 - Current public release is macOS-focused.
-- A real Windows port foundation is now in the repo under `native-plugin`, but it is still in-progress and not published as a stable Windows release yet.
+- A real Windows port foundation is now in the repo under `native-plugin`, including PowerPoint-driven slide export, embedded media fallback extraction, presenter rendering, and live slideshow control, but it is still in-progress and not published as a stable Windows release yet.
 - In `PPTBridge SK Slide`, true live PowerPoint mode is the preferred path and preserves normal PowerPoint builds, animations, and embedded media behavior much better than cached render mode.
 - `PPTBridge SK Presenter` is PPTBridge's own presenter layout, synchronized to the deck and driven by PPTX notes pages plus slide thumbnails.
 - Presenter notes appear only when the `.pptx` actually contains notes pages for those slides.
