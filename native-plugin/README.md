@@ -22,6 +22,12 @@ This native version is built around a practical conference workflow:
 - control slide navigation through OBS frontend hotkeys
 - fall back to cached render mode with PDF thumbnails and best-effort media handling when live mode is unavailable or disabled
 
+## Platform Status
+
+- macOS: public release path, tested and packaged
+- Windows: first native backend is now in the source tree, with PowerPoint-driven slide export, presenter render, live slideshow control, and OBS-side live capture/audio attachment attempts
+- Windows is not published as a stable release yet because it still needs real Windows runtime validation and packaging
+
 ## What Problem It Solves
 
 PPTBridge SK is meant for productions where the program feed and the speaker view should not be the same thing.
@@ -41,10 +47,11 @@ This is an actual OBS source plugin project, not an OBS script:
 - OBS source registration in `obs_module_load`
 - source rendering through libobs graphics
 - `.plugin` bundle layout for macOS OBS installs
+- platform split in `CMakeLists.txt` so macOS and Windows use different native backends
 
 ## Build Requirements
 
-You need:
+For macOS builds you need:
 
 - OBS Studio installed in `/Applications/OBS.app`
 - OBS source tree or SDK headers available locally
@@ -181,3 +188,4 @@ On macOS with Microsoft PowerPoint installed, `PPTBridge SK Slide` defaults to t
 Presenter notes will only appear when the `.pptx` really contains notes pages for those slides.
 If live mode is unavailable or disabled, PPTBridge falls back to cached render mode for compatibility.
 If you want strict OBS control over local PowerPoint audio during a live show, see `PRO-AUDIO-MODE.md` for the BlackHole and Loopback routing setups.
+For the current Windows engineering status and next steps, see `WINDOWS-PORT.md`.

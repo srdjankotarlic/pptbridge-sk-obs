@@ -50,7 +50,7 @@ struct SourceContext {
   bool auto_recover_live = true;
   double audio_gain_db = 0.0;
   obs_source_t *live_capture_source = nullptr;
-  uint32_t live_capture_window_id = 0;
+  uint64_t live_capture_window_id = 0;
   std::string live_capture_window_title;
   bool live_capture_showing = false;
   bool live_capture_active = false;

@@ -2,7 +2,7 @@
 
 **Created by Srdjan Kotarlic**
 
-PPTBridge SK is a native macOS plugin for OBS built for PowerPoint workflows in live production.
+PPTBridge SK is a native OBS plugin project for PowerPoint workflows in live production.
 
 It adds two real OBS source types:
 
@@ -71,7 +71,8 @@ For public sharing and installation:
 
 ## Notes
 
-- Current public build is macOS-focused.
+- Current public release is macOS-focused.
+- A real Windows port foundation is now in the repo under `native-plugin`, but it is still in-progress and not published as a stable Windows release yet.
 - In `PPTBridge SK Slide`, true live PowerPoint mode is the preferred path and preserves normal PowerPoint builds, animations, and embedded media behavior much better than cached render mode.
 - `PPTBridge SK Presenter` is PPTBridge's own presenter layout, synchronized to the deck and driven by PPTX notes pages plus slide thumbnails.
 - Presenter notes appear only when the `.pptx` actually contains notes pages for those slides.

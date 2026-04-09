@@ -2,20 +2,34 @@
 
 **Author:** Srdjan Kotarlic
 
-This document captures the most practical path for a Windows version of `PPTBridge SK`.
+This document captures the current engineering status and next practical path for the Windows version of `PPTBridge SK`.
 
 ## Honest Status
 
-The current native plugin is **macOS-only** in implementation, even though the product idea is cross-platform.
+The public release is still **macOS-first**, but the repo now contains the first serious Windows implementation layer.
 
-The biggest blockers are:
+What is already in the Windows code now:
 
-- `presentation_document.mm` uses `AppKit`, `Foundation`, and `PDFKit`
-- `CMakeLists.txt` links macOS frameworks directly
-- rendering for both slide and presenter views is currently done with macOS drawing APIs
-- the current PowerPoint fallback uses AppleScript and macOS app bundle discovery
+- platform-specific CMake split for macOS vs Windows builds
+- Windows `plugin-main.cpp` and `source_presenter.cpp`
+- Windows `PresentationDocument` backend in `src/presentation_document_win.cpp`
+- PowerPoint-driven slide export on Windows through PowerShell + COM automation
+- presenter notes extraction through PowerPoint notes pages
+- Windows presenter renderer using GDI+
+- live slideshow control on Windows for next/previous/first/last
+- Windows `Slide` source path in `src/source_slide_win.cpp`
+- live slideshow window attachment attempt through OBS `window_capture`
+- live PowerPoint process-audio attachment attempt through OBS process audio capture
+- fallback to exported slide rendering when the live capture path is not ready
 
-## What Can Be Reused
+What is **not** claimed as done yet:
+
+- verified Windows runtime parity with the macOS release
+- proven embedded video/audio parity in a real Windows OBS test
+- Windows packaging and installer flow
+- a public Windows release zip
+
+## What Was Reused
 
 These parts of the current plugin are still valuable for Windows:
 
@@ -25,17 +39,16 @@ These parts of the current plugin are still valuable for Windows:
 - plugin branding, installer/release structure, docs, and publishing flow
 - general document state machine: loading, loaded, current slide, black screen, timer
 
-## Best Windows Strategy
+## Current Windows Strategy
 
 The most realistic Windows path is:
 
-1. Keep the existing macOS implementation for macOS builds.
+1. Keep the existing macOS implementation untouched for shipping mac builds.
 2. Add a Windows-specific `PresentationDocument` backend.
-3. On Windows, export slides from PowerPoint to images instead of relying on PDFKit.
-4. Read presenter notes either:
-   - from PowerPoint COM via `Slide.NotesPage`, or
-   - from the `.pptx` package directly.
-5. Render the presenter layout with Windows graphics APIs into BGRA pixels for OBS.
+3. Use PowerPoint on Windows as the control/export engine through PowerShell + COM.
+4. Export slides to cached PNGs for the safe fallback render path.
+5. Keep the live-show path focused on real PowerPoint slideshow control and OBS-side attachment to the slideshow window/audio process.
+6. Render presenter layout in-plugin with Windows graphics APIs.
 
 ## Recommended Export Path On Windows
 
@@ -50,12 +63,12 @@ Relevant Microsoft docs:
 - `Slide.NotesPage` exposes notes pages:
   https://learn.microsoft.com/en-us/office/vba/api/powerpoint.slide.notespage
 
-This suggests the following Windows backend:
+That led to the following Windows backend shape:
 
 - open the `.pptx` with PowerPoint COM
 - export each slide as PNG into a cache directory
 - extract notes text per slide
-- save a compact metadata file for the plugin to load
+- save compact slide metadata for the plugin to reload quickly
 
 That avoids bringing a PDF rendering dependency to Windows.
 
@@ -69,72 +82,54 @@ On Windows, the practical equivalent is:
 - DirectWrite or GDI text rendering for notes, labels, and timer
 - final output written into a BGRA buffer, same as today
 
-## Build-System Changes Needed
+## Build-System Status
 
-Current `CMakeLists.txt` is macOS-specific.
+These pieces are now in place:
 
-Minimum Windows work:
+- project languages switch by platform
+- `.mm` sources stay on macOS
+- `.cpp` Windows sources are added for Windows builds
+- macOS frameworks are not linked on Windows
+- Windows build output is prepared as a DLL-style OBS plugin build path
 
-- switch project languages based on platform
-- compile `.mm` only on macOS
-- add `.cpp` Windows implementation files
-- stop linking AppKit/Foundation/PDFKit/CoreGraphics on Windows
-- create Windows packaging outputs in addition to macOS `.plugin` bundle packaging
+Still left for Windows packaging:
+
+- final install layout validation against a real Windows OBS install
+- release zip script
+- optional installer
 
 Official OBS starting point:
 
 - OBS plugin template:
   https://github.com/obsproject/obs-plugintemplate
 
-## Recommended Milestones
+## Remaining Milestones
 
-### Milestone 1: Architecture split
+### Milestone 1: Real Windows runtime validation
 
-- separate common logic from macOS drawing/export logic
-- introduce platform-specific implementation files
-- keep macOS behavior unchanged
+- confirm the new Windows sources compile on a real Windows machine
+- confirm `window_capture` attaches to the real PowerPoint slideshow window
+- confirm `wasapi_process_output_capture` works with the expected OBS build
 
-### Milestone 2: Windows slide export
+### Milestone 2: Live parity hardening
 
-- PowerPoint COM export to PNG
-- cache directory and slide indexing
-- file watching / reload behavior
+- verify click-builds and animations in real OBS
+- verify embedded video behavior
+- verify audio ownership and OBS mixer control
+- add Windows-specific recovery logic where needed
 
-### Milestone 3: Windows presenter notes
+### Milestone 3: Packaging
 
-- notes extraction from COM or `.pptx`
-- metadata persistence
-- parity with current presenter notes behavior
-
-### Milestone 4: Windows presenter renderer
-
-- render current slide image
-- render next-slide preview
-- render notes text
-- render timer and black-screen badge
-
-### Milestone 5: Packaging
-
-- produce Windows zip release
+- produce Windows release zip
+- add Windows install docs
 - optionally add an installer later
-- document PowerPoint dependency clearly
-
-## Publish Recommendation
-
-Do **not** wait for the Windows port before talking about the project publicly.
-
-Best public positioning right now:
-
-- `PPTBridge SK for OBS v0.1.0`
-- `macOS release available now`
-- `Windows version planned`
-
-That is honest, still strong for portfolio, and buys time for a proper Windows port instead of a rushed one.
 
 ## Next Practical Step
 
-If we continue the Windows work, the best next engineering task is:
+The next best engineering task is no longer architecture split. That part is started.
 
-**split `presentation_document.mm` into common state logic plus platform backends**
+The next best task is:
 
-That will reduce risk before implementing PowerPoint COM automation on Windows.
+**move this Windows backend onto a real Windows OBS machine and validate live capture, live audio, and PowerPoint parity against real decks**
+
+That is the point where the Windows code becomes either a releasable alpha or gets another hardening pass.
