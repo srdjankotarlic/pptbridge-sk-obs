@@ -14,14 +14,14 @@
 
 ## Assets To Upload
 
-- `PPTBridge-SK-for-OBS-v0.1.0-macOS.zip`
+- `PPTBridge-SK-for-OBS-v0.1.1-macOS.zip`
 - `PPTBridge-SK-for-OBS-Installer.pkg`
 
 ## GitHub Release
 
 - create the repository
 - push the code
-- create tag `v0.1.0`
+- create tag `v0.1.1`
 - create a GitHub Release
 - paste the body from `GITHUB-RELEASE.md`
 - upload the release assets

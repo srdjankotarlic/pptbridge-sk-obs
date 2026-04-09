@@ -37,11 +37,11 @@ Copy these into GitHub topics:
 
 ## Suggested Release Tag
 
-`v0.1.0`
+`v0.1.1`
 
 ## Suggested Release Title
 
-`PPTBridge SK for OBS v0.1.0`
+`PPTBridge SK for OBS v0.1.1`
 
 ## README Tagline
 

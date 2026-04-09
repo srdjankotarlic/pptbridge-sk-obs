@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS — Setup Guide
 
-**Created by Srđan Kotarlić** | v0.1.0
+**Created by Srđan Kotarlić** | v0.1.1
 
 ## What This Is
 
@@ -25,9 +25,8 @@ You need:
 
 Recommended:
 
-- install both LibreOffice and Microsoft PowerPoint
-- LibreOffice is tried first
-- PowerPoint is used as a fallback on macOS if LibreOffice conversion fails
+- install Microsoft PowerPoint for the preferred true live mode
+- install LibreOffice as a compatibility fallback
 
 ## Install The Plugin
 
@@ -93,9 +92,9 @@ Typical live workflow:
 
 ## Current Limitations
 
-- PowerPoint animations and transitions are flattened during conversion
-- embedded video is not preserved like live PowerPoint playback
-- this is optimized for stable conference-style decks, not animation-heavy show files
+- true live PowerPoint mode is the preferred path for builds, animations, and embedded media on macOS
+- presenter notes appear only when the `.pptx` actually contains notes pages
+- for strict OBS control over locally monitored PowerPoint audio, use the pro routing guide in `native-plugin/PRO-AUDIO-MODE.md`
 
 ## Troubleshooting
 
@@ -111,6 +110,6 @@ Typical live workflow:
 
 For public sharing, use the native plugin release assets in:
 
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.1.0-macOS`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.1.1-macOS`
 
 The legacy Python script remains in this repo only as historical reference.

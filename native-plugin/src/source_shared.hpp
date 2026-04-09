@@ -1,7 +1,9 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -17,6 +19,20 @@ enum class ViewMode {
 };
 
 struct SourceContext {
+  struct MediaPlayback {
+    std::string signature;
+    std::string file_path;
+    bool is_video = false;
+    bool is_audio = false;
+    float x = 0.0f;
+    float y = 0.0f;
+    float width = 0.0f;
+    float height = 0.0f;
+    obs_source_t *source = nullptr;
+    bool showing_child = false;
+    bool active_child = false;
+  };
+
   obs_source_t *source = nullptr;
   std::shared_ptr<PresentationDocument> document;
   ViewMode mode = ViewMode::Slide;
@@ -28,6 +44,28 @@ struct SourceContext {
   uint32_t stride = 0;
   uint64_t rendered_state_version = 0;
   uint64_t rendered_timer_second = 0;
+  bool use_live_powerpoint = true;
+  bool audio_enabled = true;
+  bool use_live_app_audio = true;
+  bool auto_recover_live = true;
+  double audio_gain_db = 0.0;
+  obs_source_t *live_capture_source = nullptr;
+  uint32_t live_capture_window_id = 0;
+  std::string live_capture_window_title;
+  bool live_capture_showing = false;
+  bool live_capture_active = false;
+  obs_source_t *live_audio_source = nullptr;
+  int live_audio_owner_pid = 0;
+  std::string live_audio_application;
+  bool live_audio_showing = false;
+  bool live_audio_active = false;
+  std::chrono::steady_clock::time_point live_capture_last_seen = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point live_audio_last_seen = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point live_recover_last_attempt = std::chrono::steady_clock::time_point::min();
+  std::chrono::steady_clock::time_point live_reload_last_attempt = std::chrono::steady_clock::time_point::min();
+  std::mutex media_mutex;
+  std::string media_signature;
+  std::vector<MediaPlayback> media_playback;
 };
 
 void source_defaults(obs_data_t *settings);

@@ -14,6 +14,9 @@ INSTALLER_NAME="Install-PPTBridge-SK.command"
 CHECKSUMS_PATH="$RELEASE_DIR/SHA256SUMS.txt"
 ZIP_CHECKSUM_PATH="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-macOS.zip.sha256"
 
+export COPYFILE_DISABLE=1
+export COPY_EXTENDED_ATTRIBUTES_DISABLE=1
+
 if [ ! -d "$BUNDLE_PATH" ]; then
   echo "Built plugin bundle not found:"
   echo "$BUNDLE_PATH"
@@ -34,6 +37,7 @@ cp "$PROJECT_DIR/scripts/cleanup-legacy-python.sh" "$RELEASE_DIR/cleanup-legacy-
 cp "$PKG_PATH" "$RELEASE_DIR/"
 cp "$PROJECT_DIR/README.md" "$RELEASE_DIR/README.md"
 cp "$PROJECT_DIR/PUBLISHING.md" "$RELEASE_DIR/PUBLISHING.md"
+cp "$PROJECT_DIR/PRO-AUDIO-MODE.md" "$RELEASE_DIR/PRO-AUDIO-MODE.md"
 cp "$PROJECT_DIR/GITHUB-RELEASE.md" "$RELEASE_DIR/GITHUB-RELEASE.md"
 cp "$PROJECT_DIR/GITHUB-REPO-METADATA.md" "$RELEASE_DIR/GITHUB-REPO-METADATA.md"
 cp "$PROJECT_DIR/LINKEDIN-POST.md" "$RELEASE_DIR/LINKEDIN-POST.md"
@@ -44,23 +48,6 @@ cp "$PROJECT_DIR/SIGNING-AND-NOTARIZATION.md" "$RELEASE_DIR/SIGNING-AND-NOTARIZA
 
 chmod +x "$RELEASE_DIR/$INSTALLER_NAME"
 chmod +x "$RELEASE_DIR/cleanup-legacy-python.sh"
-
-(
-  cd "$RELEASE_DIR"
-  shasum -a 256 \
-    "PPTBridge-SK-for-OBS-Installer.pkg" \
-    "$INSTALLER_NAME" \
-    "README.md" \
-    "PUBLISHING.md" \
-    "GITHUB-RELEASE.md" \
-    "GITHUB-REPO-METADATA.md" \
-    "LINKEDIN-POST.md" \
-    "OBS-FORUM-POST.md" \
-    "RELEASE-CHECKLIST.md" \
-    "SCREENSHOT-SHOTLIST.md" \
-    "SIGNING-AND-NOTARIZATION.md" \
-    > "$CHECKSUMS_PATH"
-)
 
 cat > "$RELEASE_DIR/RELEASE-NOTES.md" <<EOF
 # PPTBridge SK for OBS
@@ -74,6 +61,7 @@ Included:
 - pptbridge-obs.plugin
 - README.md
 - PUBLISHING.md
+- PRO-AUDIO-MODE.md
 - GITHUB-RELEASE.md
 - GITHUB-REPO-METADATA.md
 - LINKEDIN-POST.md
@@ -93,13 +81,35 @@ Install:
 
 Runtime note:
 - If OBS starts in Safe Mode, third-party plugins are disabled.
-- The plugin supports LibreOffice export first and Microsoft PowerPoint fallback on macOS.
+- True live PowerPoint mode is the preferred path on macOS when Microsoft PowerPoint is installed.
+- If live mode is unavailable or disabled, PPTBridge falls back to cached render mode for compatibility.
 EOF
+
+(
+  cd "$RELEASE_DIR"
+  shasum -a 256 \
+    "PPTBridge-SK-for-OBS-Installer.pkg" \
+    "$INSTALLER_NAME" \
+    "README.md" \
+    "PUBLISHING.md" \
+    "PRO-AUDIO-MODE.md" \
+    "GITHUB-RELEASE.md" \
+    "GITHUB-REPO-METADATA.md" \
+    "LINKEDIN-POST.md" \
+    "OBS-FORUM-POST.md" \
+    "RELEASE-CHECKLIST.md" \
+    "RELEASE-NOTES.md" \
+    "SCREENSHOT-SHOTLIST.md" \
+    "SIGNING-AND-NOTARIZATION.md" \
+    > "$CHECKSUMS_PATH"
+)
+
+/usr/bin/xattr -cr "$RELEASE_DIR" || true
 
 (
   cd "$PROJECT_DIR/release"
   rm -f "$ZIP_PATH"
-  ditto -c -k --sequesterRsrc --keepParent "$(basename "$RELEASE_DIR")" "$ZIP_PATH"
+  /usr/bin/zip -qryX "$(basename "$ZIP_PATH")" "$(basename "$RELEASE_DIR")"
 )
 
 shasum -a 256 "$ZIP_PATH" > "$ZIP_CHECKSUM_PATH"

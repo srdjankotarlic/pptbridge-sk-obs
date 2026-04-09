@@ -1,5 +1,7 @@
 #import "source_shared.hpp"
 
+#include "pptbridge_registry.hpp"
+
 namespace pptbridge {
 
 obs_source_info *pptbridge_presenter_source_info()
@@ -45,6 +47,13 @@ obs_source_info *pptbridge_presenter_source_info()
     source_render(static_cast<SourceContext *>(data), effect);
   };
 
+  static const auto activate = [](void *data) {
+    auto *context = static_cast<SourceContext *>(data);
+    if (context && context->document) {
+      Registry::Instance().SetActive(context->document);
+    }
+  };
+
   static const auto get_width = [](void *data) -> uint32_t {
     return source_width(static_cast<SourceContext *>(data));
   };
@@ -63,6 +72,7 @@ obs_source_info *pptbridge_presenter_source_info()
   info.get_defaults = defaults;
   info.get_properties = get_properties;
   info.update = update;
+  info.activate = activate;
   info.video_tick = video_tick;
   info.video_render = video_render;
   info.get_width = get_width;

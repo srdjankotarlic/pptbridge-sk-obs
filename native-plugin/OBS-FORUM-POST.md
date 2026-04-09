@@ -26,11 +26,13 @@ The goal is to support a real event workflow inside OBS:
 ## What it does
 
 - load a `.pptx` directly from source properties
+- default to true live PowerPoint playback on macOS when Microsoft PowerPoint is installed
 - create a clean audience slide source
 - create a presenter source with notes, next-slide preview, and timer
 - support next / previous / first / last / black screen controls
 - work with common presenter remotes that send keyboard keys
-- try LibreOffice first, then fall back to Microsoft PowerPoint on macOS when needed
+- route slideshow audio into OBS through the slide source
+- fall back to cached render mode when live mode is unavailable or disabled
 
 ## Best use cases
 
@@ -67,10 +69,10 @@ Most clickers work if they send:
 
 ## Limitations
 
-- animation-heavy PowerPoint decks are flattened during conversion
-- embedded media is not preserved like full PowerPoint playback
 - current public build is macOS-focused
 - installer is currently unsigned / not notarized
+- presenter notes appear only when the `.pptx` actually contains notes pages
+- presenter source is PPTBridge's own presenter layout, not a direct capture of PowerPoint's native presenter window
 
 ## Links
 

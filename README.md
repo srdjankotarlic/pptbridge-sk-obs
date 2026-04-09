@@ -24,11 +24,14 @@ The goal is simple:
 ## What It Does
 
 - loads a `.pptx` directly from OBS source properties
+- defaults to true live PowerPoint playback on macOS when Microsoft PowerPoint is installed
 - creates a clean slide source for the audience feed
 - creates a presenter source with notes, next slide preview, and timer
 - supports OBS hotkeys for next, previous, first, last, and black screen
+- applies first-run default hotkeys of `2` for next slide and `1` for previous slide
 - works with clickers that send keys like `Page Down`, `Page Up`, and arrow keys
-- tries LibreOffice first, then falls back to Microsoft PowerPoint on macOS when needed
+- routes PowerPoint slideshow audio into the `PPTBridge SK Slide` source and OBS mixer, with built-in gain trim and dedicated app-audio capture in live mode
+- falls back to legacy cached render mode when live PowerPoint mode is unavailable or turned off
 
 ## Best Fit
 
@@ -55,7 +58,7 @@ PPTBridge SK is especially useful for:
 
 For public sharing and installation:
 
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.1.0-macOS.zip`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.1.1-macOS.zip`
 - `native-plugin/dist/PPTBridge-SK-for-OBS-Installer.pkg`
 - [PUBLISHING.md](native-plugin/PUBLISHING.md)
 
@@ -69,5 +72,9 @@ For public sharing and installation:
 ## Notes
 
 - Current public build is macOS-focused.
-- Animation-heavy PowerPoint decks are flattened during conversion.
+- In `PPTBridge SK Slide`, true live PowerPoint mode is the preferred path and preserves normal PowerPoint builds, animations, and embedded media behavior much better than cached render mode.
+- `PPTBridge SK Presenter` is PPTBridge's own presenter layout, synchronized to the deck and driven by PPTX notes pages plus slide thumbnails.
+- Presenter notes appear only when the `.pptx` actually contains notes pages for those slides.
+- If live mode is unavailable or disabled, the plugin falls back to cached render mode for compatibility.
+- If you need strict OBS control over local PowerPoint audio during a live show, use the virtual routing guide in `native-plugin/PRO-AUDIO-MODE.md`.
 - The original Python MVP remains in the repo as reference, but the public product direction is the native `PPTBridge SK for OBS` plugin.

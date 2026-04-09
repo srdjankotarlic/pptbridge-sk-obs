@@ -14,11 +14,13 @@ It is designed to show up inside OBS as real source types:
 This native version is built around a practical conference workflow:
 
 - choose a `.pptx` file directly in the source properties
-- convert the deck to PDF with LibreOffice
-- fall back to Microsoft PowerPoint export on macOS when LibreOffice fails
-- render slides natively through macOS APIs
+- default to true live PowerPoint playback on macOS when Microsoft PowerPoint is installed
+- capture the live slideshow into `PPTBridge SK Slide` as a real OBS source
+- route slideshow audio into the OBS mixer through the slide source, with a built-in gain trim and dedicated PowerPoint app-audio capture in live mode
 - expose a clean audience source and a presenter source
+- render presenter notes, next-slide preview, and timer in a dedicated PPTBridge presenter layout
 - control slide navigation through OBS frontend hotkeys
+- fall back to cached render mode with PDF thumbnails and best-effort media handling when live mode is unavailable or disabled
 
 ## What Problem It Solves
 
@@ -48,11 +50,11 @@ You need:
 - OBS source tree or SDK headers available locally
 - CMake
 - Xcode Command Line Tools or Xcode
-- LibreOffice installed
 
 Optional but recommended:
 
-- Microsoft PowerPoint for the fallback exporter path
+- Microsoft PowerPoint for the preferred true live mode path
+- LibreOffice for the fallback cached-render path when PowerPoint is unavailable
 
 Because the release OBS app on macOS includes the libraries but not the development headers, this project expects:
 
@@ -109,13 +111,14 @@ Build the package:
 Result:
 
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
-- `release/PPTBridge-SK-for-OBS-v0.1.0-macOS.zip`
+- `release/PPTBridge-SK-for-OBS-v0.1.1-macOS.zip`
 
 ## Public Launch Kit
 
 If you want to publish this properly, these files are prepared for you:
 
 - `PUBLISHING.md`
+- `PRO-AUDIO-MODE.md`
 - `GITHUB-RELEASE.md`
 - `OBS-FORUM-POST.md`
 - `RELEASE-CHECKLIST.md`
@@ -159,9 +162,10 @@ Quick setup for a Spotlight-style clicker:
 
 1. In OBS, open `Settings > Hotkeys`
 2. Search for `PPTBridge SK`
-3. Set `PPTBridge SK: Next Slide` to the key your clicker sends for next, usually `Right Arrow` or `Page Down`
-4. Set `PPTBridge SK: Previous Slide` to the key your clicker sends for previous, usually `Left Arrow` or `Page Up`
-5. Click `Apply`
+3. On first launch, PPTBridge SK now defaults to `2` for next slide and `1` for previous slide if you have not set your own bindings yet
+4. Optionally change `PPTBridge SK: Next Slide` to the key your clicker sends for next, usually `Right Arrow` or `Page Down`
+5. Optionally change `PPTBridge SK: Previous Slide` to the key your clicker sends for previous, usually `Left Arrow` or `Page Up`
+6. Click `Apply`
 
 After that, the speaker can drive the deck from the stage with the clicker and the active PPTBridge source will move forward/back.
 
@@ -172,3 +176,8 @@ The included installers also remove legacy PPTBridge Python script entries from 
 
 This native pass is focused on the installable OBS source workflow and rendering path.
 It is designed to run as a real plugin bundle, without requiring the old Python PPTBridge script to stay loaded in OBS.
+On macOS with Microsoft PowerPoint installed, `PPTBridge SK Slide` defaults to true live mode and lets PowerPoint itself handle slideshow builds, animations, and embedded media.
+`PPTBridge SK Presenter` is PPTBridge's own presenter layout, synchronized with the deck and fed by PPTX notes pages and slide thumbnails.
+Presenter notes will only appear when the `.pptx` really contains notes pages for those slides.
+If live mode is unavailable or disabled, PPTBridge falls back to cached render mode for compatibility.
+If you want strict OBS control over local PowerPoint audio during a live show, see `PRO-AUDIO-MODE.md` for the BlackHole and Loopback routing setups.

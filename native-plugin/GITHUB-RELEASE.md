@@ -1,6 +1,6 @@
 # GitHub Release Body
 
-## PPTBridge SK for OBS v0.1.0
+## PPTBridge SK for OBS v0.1.1
 
 Created by **Srdjan Kotarlic**
 
@@ -12,10 +12,37 @@ PPTBridge SK for OBS is a native macOS OBS plugin that adds real PowerPoint sour
 ### What it does
 
 - loads a `.pptx` directly from OBS source properties
+- defaults to true live PowerPoint playback on macOS when Microsoft PowerPoint is installed
 - creates a clean slide source for program output
 - creates a presenter source with notes, next slide preview, and timer
 - supports clicker-friendly OBS hotkeys
-- uses LibreOffice first and Microsoft PowerPoint fallback on macOS when needed
+- routes slideshow audio into OBS through the slide source, with dedicated app-audio capture in live mode
+- falls back to cached render mode when live mode is unavailable or disabled
+
+### What is better in v0.1.1
+
+- stronger true live PowerPoint workflow for macOS conference use
+- dedicated app-audio capture path in live mode
+- better Slide and Presenter shared-state handling
+- automatic live-session recovery and reattach logic
+- clearer source status and warnings for duplicate slide sources on the same deck
+- pro audio guide for BlackHole and Loopback routing when strict local OBS audio control is needed
+
+### How it works now
+
+- `PPTBridge SK Slide` is the main live show source
+- in true live mode, Microsoft PowerPoint runs the slideshow and PPTBridge captures it into OBS
+- `PPTBridge SK Presenter` shows PPTBridge's own presenter layout with notes, next slide preview, and timer
+- OBS hotkeys move the active presentation
+
+### How to use it
+
+1. Add `PPTBridge SK Slide` to your program scene
+2. Add `PPTBridge SK Presenter` to your confidence or speaker scene
+3. Point both sources to the same `.pptx`
+4. In `PPTBridge SK Slide`, keep `Use True Live PowerPoint Mode` enabled
+5. Bind `PPTBridge SK` hotkeys in `Settings > Hotkeys`
+6. For the cleanest live workflow, reuse one existing slide source across scenes with `Add Existing`
 
 ### Best use case
 
@@ -26,7 +53,7 @@ PPTBridge SK for OBS is a native macOS OBS plugin that adds real PowerPoint sour
 
 ### Included assets
 
-- `PPTBridge-SK-for-OBS-v0.1.0-macOS.zip`
+- `PPTBridge-SK-for-OBS-v0.1.1-macOS.zip`
 - `PPTBridge-SK-for-OBS-Installer.pkg`
 
 ### Install
@@ -41,7 +68,9 @@ PPTBridge SK for OBS is a native macOS OBS plugin that adds real PowerPoint sour
 
 - current public build is macOS-focused
 - package is currently unsigned and not notarized
-- PowerPoint animations are flattened during conversion
+- presenter notes appear only when the `.pptx` actually contains PPTX notes pages
+- presenter source is PPTBridge's own presenter layout, not a direct capture of PowerPoint's native presenter window
+- if you need strict OBS control over locally monitored PowerPoint audio, use the `PRO-AUDIO-MODE.md` guide with BlackHole or Loopback
 
 ### Author
 

@@ -39,5 +39,46 @@ std::shared_ptr<PresentationDocument> Registry::Active() const
   return active_.lock();
 }
 
-}  // namespace pptbridge
+void Registry::AttachSource(void *token, const std::string &pptx_path, RegisteredSourceKind kind)
+{
+  if (!token) {
+    return;
+  }
 
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (pptx_path.empty()) {
+    sources_.erase(token);
+    return;
+  }
+
+  sources_[token] = RegisteredSource{ pptx_path, kind };
+}
+
+void Registry::DetachSource(void *token)
+{
+  if (!token) {
+    return;
+  }
+
+  std::lock_guard<std::mutex> lock(mutex_);
+  sources_.erase(token);
+}
+
+size_t Registry::CountSources(const std::string &pptx_path, RegisteredSourceKind kind) const
+{
+  if (pptx_path.empty()) {
+    return 0;
+  }
+
+  std::lock_guard<std::mutex> lock(mutex_);
+  size_t count = 0;
+  for (const auto &[token, source] : sources_) {
+    (void)token;
+    if (source.kind == kind && source.path == pptx_path) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+}  // namespace pptbridge
