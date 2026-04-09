@@ -28,6 +28,7 @@ What is **not** claimed as done yet:
 
 - verified Windows runtime parity with the macOS release
 - proven embedded video/audio parity in a real Windows OBS test
+- PDF input support on Windows
 - Windows packaging and installer flow
 - a public Windows release zip
 

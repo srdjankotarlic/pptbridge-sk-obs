@@ -59,6 +59,7 @@ struct SourceContext {
   std::string live_audio_application;
   bool live_audio_showing = false;
   bool live_audio_active = false;
+  std::chrono::steady_clock::time_point last_live_sync_request = std::chrono::steady_clock::time_point::min();
   std::chrono::steady_clock::time_point live_capture_last_seen = std::chrono::steady_clock::now();
   std::chrono::steady_clock::time_point live_audio_last_seen = std::chrono::steady_clock::now();
   std::chrono::steady_clock::time_point live_recover_last_attempt = std::chrono::steady_clock::time_point::min();

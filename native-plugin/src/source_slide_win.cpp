@@ -29,7 +29,8 @@ constexpr const char *kHotkeyHelp =
   "2. Open Settings > Hotkeys\n"
   "3. Bind or change PPTBridge SK: Next Slide / Previous Slide\n"
   "4. For a clicker, use Right Arrow or Page Down for next, Left Arrow or Page Up for previous\n"
-  "5. Use the buttons below for quick testing inside OBS";
+  "5. Use Add Existing across scenes so one shared source owns state, media, and audio\n"
+  "6. Use the buttons below for quick testing inside OBS";
 
 constexpr const char *kMediaHelp =
   "Windows playback note:\n"
@@ -48,6 +49,8 @@ constexpr const char *kAudioHelp =
 
 constexpr auto kLiveRecoverRetryDelay = std::chrono::seconds(3);
 constexpr auto kLiveReloadDelay = std::chrono::seconds(10);
+constexpr auto kLiveSyncIntervalActive = std::chrono::milliseconds(250);
+constexpr auto kLiveSyncIntervalIdle = std::chrono::seconds(1);
 constexpr int kWindowCaptureMethodAuto = 0;
 constexpr int kWindowPriorityTitle = 1;
 
@@ -1065,9 +1068,9 @@ obs_properties_t *source_properties(SourceContext *context)
   obs_properties_add_path(
     props,
     "pptx_path",
-    "PowerPoint File (.pptx)",
+    "Presentation File",
     OBS_PATH_FILE,
-    "PowerPoint (*.pptx)",
+    "PowerPoint (*.pptx *.pptm *.ppsx *.potx *.potm)",
     nullptr);
   obs_properties_add_int(props, "canvas_width", "Canvas Width", 320, 7680, 1);
   obs_properties_add_int(props, "canvas_height", "Canvas Height", 240, 4320, 1);
@@ -1191,15 +1194,28 @@ void source_update(SourceContext *context, obs_data_t *settings)
 
   context->rendered_state_version = 0;
   context->rendered_timer_second = 0;
+  context->last_live_sync_request = std::chrono::steady_clock::time_point::min();
 }
 
 void source_tick(SourceContext *context)
 {
   if (context && context->document) {
     context->document->EnsureLoadingAsync();
-    context->document->SyncLiveStateAsync();
-    if (context->source && (obs_source_showing(context->source) || obs_source_active(context->source))) {
+    const bool source_visible = context->source && (obs_source_showing(context->source) || obs_source_active(context->source));
+    if (source_visible) {
       Registry::Instance().SetActive(context->document);
+    }
+
+    if (context->mode == ViewMode::Slide && context->use_live_powerpoint) {
+      const auto now = std::chrono::steady_clock::now();
+      const auto interval = source_visible ? kLiveSyncIntervalActive : kLiveSyncIntervalIdle;
+      if (context->last_live_sync_request == std::chrono::steady_clock::time_point::min() ||
+          now - context->last_live_sync_request >= interval) {
+        context->last_live_sync_request = now;
+        context->document->SyncLiveStateAsync();
+      }
+    } else if (source_visible) {
+      context->document->SyncLiveStateAsync();
     }
   }
 

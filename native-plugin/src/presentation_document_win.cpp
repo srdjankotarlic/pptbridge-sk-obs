@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -94,6 +95,34 @@ std::string WideToUtf8(const std::wstring &value)
   std::string utf8(static_cast<size_t>(size - 1), '\0');
   WideCharToMultiByte(CP_UTF8, 0, value.c_str(), -1, utf8.data(), size, nullptr, nullptr);
   return utf8;
+}
+
+std::string ToLowerCopy(std::string value)
+{
+  std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+    return static_cast<char>(std::tolower(ch));
+  });
+  return value;
+}
+
+std::string LowerExtensionForPath(const std::string &path)
+{
+  return ToLowerCopy(fs::path(Utf8ToWide(path)).extension().string());
+}
+
+bool IsSupportedPowerPointExtension(const std::string &path)
+{
+  const auto extension = LowerExtensionForPath(path);
+  return extension == ".pptx" ||
+         extension == ".pptm" ||
+         extension == ".ppsx" ||
+         extension == ".potx" ||
+         extension == ".potm";
+}
+
+bool IsPdfExtension(const std::string &path)
+{
+  return LowerExtensionForPath(path) == ".pdf";
 }
 
 std::wstring QuoteWindowsArg(const std::wstring &arg)
@@ -972,6 +1001,8 @@ switch ($Mode) {
     $presentation = Open-PPTBridgePresentation $app $PptxPath $true
     $window = Get-PPTBridgeWindow $app $presentation
     if ($null -eq $window) {
+      try { $presentation.SlideShowSettings.ShowType = 2 } catch {}
+      try { $presentation.SlideShowSettings.LoopUntilStopped = $false } catch {}
       $null = $presentation.SlideShowSettings.Run()
       Start-Sleep -Milliseconds 700
       $window = Get-PPTBridgeWindow $app $presentation
@@ -1893,6 +1924,12 @@ bool PresentationDocument::RenderPresenterBGRA(
   std::wstring next_image;
   std::wstring notes;
   std::wstring title;
+  std::wstring deck_name;
+  std::wstring mode_label;
+  std::wstring status_label;
+  std::wstring footer_hint;
+  std::wstring last_issue;
+  bool current_has_media = false;
 
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
@@ -1913,11 +1950,24 @@ bool PresentationDocument::RenderPresenterBGRA(
 
     current_index = std::min(impl_->current_index, impl_->slides.size() - 1);
     slide_count = impl_->slides.size();
+    deck_name = Utf8ToWide(impl_->name);
     current_image = impl_->slides[current_index].image_path;
     notes = Utf8ToWide(impl_->slides[current_index].meta.notes);
     title = Utf8ToWide(impl_->slides[current_index].meta.title);
+    current_has_media =
+      current_index < impl_->media_by_slide.size() && !impl_->media_by_slide[current_index].empty();
     if (current_index + 1 < impl_->slides.size()) {
       next_image = impl_->slides[current_index + 1].image_path;
+    }
+    mode_label = impl_->live_enabled ? L"TRUE LIVE" : L"LEGACY";
+    status_label = impl_->live_enabled
+      ? (impl_->live_ready ? L"PowerPoint slideshow attached" : L"Preparing PowerPoint live session")
+      : (current_has_media ? L"Legacy media-ready slide" : L"Legacy cached-render mode");
+    footer_hint = current_has_media
+      ? L"Media on this slide can be armed before advancing."
+      : L"Use OBS hotkeys or clicker buttons to move through the deck.";
+    if (!impl_->last_error.empty()) {
+      last_issue = Utf8ToWide(impl_->last_error);
     }
     if (impl_->timer_started_at != std::chrono::steady_clock::time_point::min()) {
       seconds = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::seconds>(
@@ -1931,15 +1981,20 @@ bool PresentationDocument::RenderPresenterBGRA(
   SolidBrush title_brush(Color(255, 245, 247, 250));
   SolidBrush body_brush(Color(255, 195, 200, 214));
   SolidBrush muted_brush(Color(255, 141, 147, 165));
+  SolidBrush badge_fill(Color(255, 28, 34, 46));
+  SolidBrush success_fill(Color(255, 53, 86, 70));
+  SolidBrush warning_fill(Color(255, 89, 64, 34));
+  SolidBrush footer_fill(Color(255, 14, 18, 25));
   Pen border(Color(255, 42, 48, 64), 2.0f);
 
   graphics.FillRectangle(&background, 0, 0, width, height);
   graphics.FillRectangle(&panel, width * 0.68f, 0.0f, width * 0.32f, static_cast<REAL>(height));
   graphics.FillRectangle(&accent, 0.0f, 0.0f, static_cast<REAL>(width), 6.0f);
+  graphics.FillRectangle(&footer_fill, 0.0f, height - 42.0f, static_cast<REAL>(width), 42.0f);
 
   const RectF current_rect(40.0f, 48.0f, width * 0.62f, height - 96.0f);
-  const RectF next_rect(width * 0.72f, 132.0f, width * 0.22f, height * 0.18f);
-  const RectF notes_rect(width * 0.72f, 360.0f, width * 0.22f, height - 420.0f);
+  const RectF next_rect(width * 0.72f, 252.0f, width * 0.22f, height * 0.14f);
+  const RectF notes_rect(width * 0.72f, 430.0f, width * 0.22f, height - 530.0f);
 
   graphics.DrawRectangle(&border, current_rect.X, current_rect.Y, current_rect.Width, current_rect.Height);
   graphics.DrawRectangle(&border, next_rect.X, next_rect.Y, next_rect.Width, next_rect.Height);
@@ -1954,17 +2009,31 @@ bool PresentationDocument::RenderPresenterBGRA(
   Font label_font(L"Segoe UI Semibold", 18.0f, FontStyleBold, UnitPixel);
   Font notes_font(L"Segoe UI", 20.0f, FontStyleRegular, UnitPixel);
   Font small_font(L"Segoe UI", 16.0f, FontStyleRegular, UnitPixel);
+  Font tiny_font(L"Segoe UI", 14.0f, FontStyleRegular, UnitPixel);
 
   graphics.DrawString(L"PPTBridge SK Presenter", -1, &header_font, PointF(width * 0.72f, 44.0f), &title_brush);
+  if (!deck_name.empty()) {
+    graphics.DrawString(deck_name.c_str(), -1, &small_font, PointF(width * 0.72f, 72.0f), &muted_brush);
+  }
 
   const auto timer = FormatDuration(seconds);
   std::wstringstream slide_counter;
   slide_counter << L"Slide " << (current_index + 1) << L" / " << slide_count;
-  graphics.DrawString(slide_counter.str().c_str(), -1, &label_font, PointF(width * 0.72f, 86.0f), &title_brush);
-  graphics.DrawString(timer.c_str(), -1, &small_font, PointF(width * 0.92f, 88.0f), &accent);
+  graphics.DrawString(slide_counter.str().c_str(), -1, &label_font, PointF(width * 0.72f, 100.0f), &title_brush);
+  graphics.DrawString(timer.c_str(), -1, &small_font, PointF(width * 0.92f, 102.0f), &accent);
 
-  graphics.DrawString(L"Next", -1, &label_font, PointF(width * 0.72f, 106.0f), &muted_brush);
-  graphics.DrawString(L"Notes", -1, &label_font, PointF(width * 0.72f, 332.0f), &muted_brush);
+  const RectF mode_badge(width * 0.72f, 124.0f, 120.0f, 30.0f);
+  SolidBrush &mode_brush = (mode_label == L"TRUE LIVE") ? success_fill : badge_fill;
+  graphics.FillRectangle(&mode_brush, mode_badge);
+  graphics.DrawString(mode_label.c_str(), -1, &tiny_font, RectF(mode_badge.X + 10.0f, mode_badge.Y + 6.0f, mode_badge.Width - 20.0f, 20.0f), nullptr, &title_brush);
+
+  const RectF status_badge(width * 0.72f, 162.0f, width * 0.22f, 44.0f);
+  SolidBrush &status_brush = (!last_issue.empty()) ? warning_fill : badge_fill;
+  graphics.FillRectangle(&status_brush, status_badge);
+  graphics.DrawString(status_label.c_str(), -1, &tiny_font, RectF(status_badge.X + 10.0f, status_badge.Y + 8.0f, status_badge.Width - 20.0f, 28.0f), nullptr, &title_brush);
+
+  graphics.DrawString(L"Next", -1, &label_font, PointF(width * 0.72f, 224.0f), &muted_brush);
+  graphics.DrawString(L"Notes", -1, &label_font, PointF(width * 0.72f, 402.0f), &muted_brush);
 
   std::wstring header_title = title.empty() ? L"Current slide" : title;
   graphics.DrawString(header_title.c_str(), -1, &small_font, PointF(48.0f, 14.0f), &muted_brush);
@@ -1977,6 +2046,14 @@ bool PresentationDocument::RenderPresenterBGRA(
   notes_format.SetTrimming(StringTrimmingEllipsisWord);
   notes_format.SetFormatFlags(StringFormatFlagsLineLimit);
   graphics.DrawString(notes.c_str(), -1, &notes_font, notes_rect, &notes_format, &body_brush);
+
+  if (!last_issue.empty()) {
+    RectF issue_rect(width * 0.72f, height - 108.0f, width * 0.22f, 52.0f);
+    graphics.FillRectangle(&warning_fill, issue_rect);
+    graphics.DrawString(last_issue.c_str(), -1, &tiny_font, RectF(issue_rect.X + 10.0f, issue_rect.Y + 8.0f, issue_rect.Width - 20.0f, issue_rect.Height - 16.0f), &notes_format, &title_brush);
+  }
+
+  graphics.DrawString(footer_hint.c_str(), -1, &tiny_font, RectF(24.0f, height - 30.0f, width - 48.0f, 20.0f), nullptr, &muted_brush);
 
   return CopyBitmapToBGRA(canvas, out_pixels, out_stride);
 }
@@ -2017,6 +2094,53 @@ void PresentationDocument::StartLoadIfNeeded(bool force_reload)
 void PresentationDocument::LoadOnWorker()
 {
   const fs::path source_path(Utf8ToWide(impl_->path));
+  if (!fs::exists(source_path)) {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    impl_->slides.clear();
+    impl_->media_by_slide.clear();
+    impl_->loaded = false;
+    impl_->loading = false;
+    impl_->live_ready = false;
+    impl_->live_window_title.clear();
+    impl_->current_index = 0;
+    impl_->current_media_triggered = false;
+    impl_->last_error = "The selected presentation file could not be found.";
+    impl_->state_version += 1;
+    return;
+  }
+
+  if (IsPdfExtension(impl_->path)) {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    impl_->slides.clear();
+    impl_->media_by_slide.clear();
+    impl_->loaded = false;
+    impl_->loading = false;
+    impl_->live_ready = false;
+    impl_->live_window_title.clear();
+    impl_->current_index = 0;
+    impl_->current_media_triggered = false;
+    impl_->last_error =
+      "PDF input is not enabled in the Windows alpha yet. Use a PowerPoint deck for live animations, notes, and media.";
+    impl_->state_version += 1;
+    return;
+  }
+
+  if (!IsSupportedPowerPointExtension(impl_->path)) {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    impl_->slides.clear();
+    impl_->media_by_slide.clear();
+    impl_->loaded = false;
+    impl_->loading = false;
+    impl_->live_ready = false;
+    impl_->live_window_title.clear();
+    impl_->current_index = 0;
+    impl_->current_media_triggered = false;
+    impl_->last_error =
+      "This Windows build currently expects a PowerPoint file such as .pptx, .pptm, .ppsx, .potx, or .potm.";
+    impl_->state_version += 1;
+    return;
+  }
+
   const std::string current_stamp = CurrentFileStamp(source_path);
   const fs::path metadata_path = impl_->metadata_path;
   ParsedDeckData deck_data;
