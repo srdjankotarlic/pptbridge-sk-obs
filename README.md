@@ -60,6 +60,7 @@ For public sharing and installation:
 
 - `native-plugin/release/PPTBridge-SK-for-OBS-v0.1.1-macOS.zip`
 - `native-plugin/dist/PPTBridge-SK-for-OBS-Installer.pkg`
+- `native-plugin/release/PPTBridge-SK-Windows-Beta-v0.2.0-beta1-source.zip`
 - [PUBLISHING.md](native-plugin/PUBLISHING.md)
 
 ## Repo Structure
@@ -72,8 +73,10 @@ For public sharing and installation:
 ## Notes
 
 - Current public release is macOS-focused.
-- A real Windows port foundation is now in the repo under `native-plugin`, including PowerPoint-driven slide export, embedded media fallback extraction, presenter rendering, and live slideshow control, but it is still in-progress and not published as a stable Windows release yet.
-- PDF input is not enabled yet in the Windows alpha path.
+- A Windows beta preview source pack is now included under `native-plugin/release`, built for real Windows validation before a stable installer release.
+- The Windows beta uses a PowerPoint-driven backend with live slideshow control, slide export fallback, embedded media extraction for fallback playback, presenter rendering, and OBS-side live capture/audio attachment attempts.
+- The Windows beta is not yet a one-click installer release. It is a source/beta pack meant to be built and validated on a real Windows OBS machine.
+- PDF input is not enabled yet in the Windows beta path.
 - In `PPTBridge SK Slide`, true live PowerPoint mode is the preferred path and preserves normal PowerPoint builds, animations, and embedded media behavior much better than cached render mode.
 - `PPTBridge SK Presenter` is PPTBridge's own presenter layout, synchronized to the deck and driven by PPTX notes pages plus slide thumbnails.
 - Presenter notes appear only when the `.pptx` actually contains notes pages for those slides.

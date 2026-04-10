@@ -52,11 +52,13 @@ struct SourceContext {
   obs_source_t *live_capture_source = nullptr;
   uint64_t live_capture_window_id = 0;
   std::string live_capture_window_title;
+  bool live_capture_hooked = false;
   bool live_capture_showing = false;
   bool live_capture_active = false;
   obs_source_t *live_audio_source = nullptr;
   int live_audio_owner_pid = 0;
   std::string live_audio_application;
+  bool live_audio_hooked = false;
   bool live_audio_showing = false;
   bool live_audio_active = false;
   std::chrono::steady_clock::time_point last_live_sync_request = std::chrono::steady_clock::time_point::min();

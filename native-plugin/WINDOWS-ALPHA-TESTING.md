@@ -1,8 +1,8 @@
-# PPTBridge SK Windows Alpha Testing
+# PPTBridge SK Windows Beta Testing
 
 **Author:** Srdjan Kotarlic
 
-This checklist is for the first real Windows runtime validation of the native PPTBridge SK backend.
+This checklist is for the first real Windows runtime validation of the native PPTBridge SK beta backend.
 
 ## Goal
 
@@ -106,7 +106,7 @@ Use at least these decks:
 ## Known Current Limits
 
 - This Windows backend has not yet been runtime-proven on a real Windows OBS machine
-- PDF input is not enabled yet in this Windows alpha
+- PDF input is not enabled yet in this Windows beta
 - local audio ownership may still vary depending on the exact OBS build and Windows capture support available
 
 ## What Feedback To Send Back

@@ -30,7 +30,7 @@ What is **not** claimed as done yet:
 - proven embedded video/audio parity in a real Windows OBS test
 - PDF input support on Windows
 - Windows packaging and installer flow
-- a public Windows release zip
+- a stable public Windows installer release
 
 ## What Was Reused
 

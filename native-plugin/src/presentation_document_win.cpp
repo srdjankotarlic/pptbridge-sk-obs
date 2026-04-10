@@ -1471,7 +1471,7 @@ void PresentationDocument::SyncLiveStateAsync()
   bool should_sync = false;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
-    should_sync = impl_->live_enabled && impl_->loaded;
+    should_sync = impl_->live_enabled && (impl_->loaded || impl_->live_ready);
   }
 
   if (!should_sync) {
@@ -2175,6 +2175,7 @@ void PresentationDocument::LoadOnWorker()
 
   LiveSnapshot live_snapshot;
   std::string live_error;
+  bool live_enabled = false;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     impl_->slides = std::move(deck_data.slides);
@@ -2189,18 +2190,8 @@ void PresentationDocument::LoadOnWorker()
     impl_->current_index = 0;
     impl_->current_media_triggered = false;
     impl_->last_error = load_error;
-    impl_->state_version += 1;
-  }
-
-  if (!load_error.empty()) {
-    blog(LOG_WARNING, "[PPTBridge SK] Windows export failed for '%s': %s", impl_->path.c_str(), load_error.c_str());
-    return;
-  }
-
-  bool live_enabled = false;
-  {
-    std::lock_guard<std::mutex> lock(impl_->mutex);
     live_enabled = impl_->live_enabled;
+    impl_->state_version += 1;
   }
 
   if (live_enabled) {
@@ -2214,6 +2205,7 @@ void PresentationDocument::LoadOnWorker()
     if (exit_code == 0 && ParseLiveSnapshot(output, live_snapshot, live_error) && live_snapshot.running) {
       std::lock_guard<std::mutex> lock(impl_->mutex);
       impl_->live_ready = true;
+      impl_->loaded = true;
       impl_->live_window_title = live_snapshot.window_title;
       if (!impl_->slides.empty() && live_snapshot.current_slide > 0) {
         impl_->current_index = std::min(live_snapshot.current_slide - 1, impl_->slides.size() - 1);
@@ -2221,12 +2213,29 @@ void PresentationDocument::LoadOnWorker()
       impl_->current_media_triggered = false;
       impl_->timer_started_at = std::chrono::steady_clock::now();
       impl_->state_version += 1;
-      impl_->last_error.clear();
+      if (load_error.empty()) {
+        impl_->last_error.clear();
+      } else {
+        impl_->last_error =
+          "Live slideshow attached, but fallback slide export did not complete. Presenter notes and legacy fallback may be limited.";
+      }
     } else if (!live_error.empty()) {
       std::lock_guard<std::mutex> lock(impl_->mutex);
       impl_->last_error = live_error;
       impl_->state_version += 1;
     }
+  }
+
+  if (!load_error.empty() && !live_enabled) {
+    blog(LOG_WARNING, "[PPTBridge SK] Windows export failed for '%s': %s", impl_->path.c_str(), load_error.c_str());
+  } else if (!load_error.empty() && live_error.empty() && live_snapshot.running) {
+    blog(
+      LOG_WARNING,
+      "[PPTBridge SK] Windows export fallback failed for '%s', but live slideshow started successfully: %s",
+      impl_->path.c_str(),
+      load_error.c_str());
+  } else if (!load_error.empty()) {
+    blog(LOG_WARNING, "[PPTBridge SK] Windows export failed for '%s': %s", impl_->path.c_str(), load_error.c_str());
   }
 }
 

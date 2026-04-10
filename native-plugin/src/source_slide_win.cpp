@@ -7,6 +7,8 @@
 #include <windows.h>
 
 #include <algorithm>
+#include <callback/calldata.h>
+#include <callback/proc.h>
 #include <cctype>
 #include <chrono>
 #include <cmath>
@@ -76,6 +78,13 @@ struct LiveWindowTarget {
   std::string class_name;
   std::string executable_name;
   std::string descriptor;
+};
+
+struct HookedSourceState {
+  bool hooked = false;
+  std::string title;
+  std::string class_name;
+  std::string executable;
 };
 
 std::wstring Utf8ToWide(const std::string &value)
@@ -453,6 +462,7 @@ void clear_live_capture_source(SourceContext *context)
   }
   context->live_capture_window_id = 0;
   context->live_capture_window_title.clear();
+  context->live_capture_hooked = false;
 }
 
 void clear_live_audio_source(SourceContext *context)
@@ -468,6 +478,38 @@ void clear_live_audio_source(SourceContext *context)
   }
   context->live_audio_owner_pid = 0;
   context->live_audio_application.clear();
+  context->live_audio_hooked = false;
+}
+
+HookedSourceState query_hooked_source_state(obs_source_t *source)
+{
+  HookedSourceState state;
+  if (!source) {
+    return state;
+  }
+
+  proc_handler_t *handler = obs_source_get_proc_handler(source);
+  if (!handler) {
+    return state;
+  }
+
+  calldata_t data;
+  calldata_init(&data);
+  const bool ok = proc_handler_call(handler, "get_hooked", &data);
+  if (ok) {
+    state.hooked = calldata_bool(&data, "hooked");
+    if (const char *title = calldata_string(&data, "title")) {
+      state.title = title;
+    }
+    if (const char *class_name = calldata_string(&data, "class")) {
+      state.class_name = class_name;
+    }
+    if (const char *executable = calldata_string(&data, "executable")) {
+      state.executable = executable;
+    }
+  }
+  calldata_free(&data);
+  return state;
 }
 
 obs_source_t *create_live_capture_source(SourceContext *context, const LiveWindowTarget &target)
@@ -557,6 +599,7 @@ void sync_live_capture_source(SourceContext *context)
   const auto target = find_powerpoint_window(context->document->LiveWindowTitle(), context->document->Name());
   if (!target.hwnd) {
     if (context->live_capture_source && !context->live_capture_window_title.empty()) {
+      context->live_capture_hooked = query_hooked_source_state(context->live_capture_source).hooked;
       sync_live_capture_activity(context);
       return;
     }
@@ -567,6 +610,11 @@ void sync_live_capture_source(SourceContext *context)
   if (context->live_capture_source &&
       context->live_capture_window_id == static_cast<uint64_t>(reinterpret_cast<uintptr_t>(target.hwnd)) &&
       context->live_capture_window_title == target.title) {
+    const auto state = query_hooked_source_state(context->live_capture_source);
+    context->live_capture_hooked = state.hooked;
+    if (!state.title.empty()) {
+      context->live_capture_window_title = state.title;
+    }
     sync_live_capture_activity(context);
     return;
   }
@@ -575,6 +623,7 @@ void sync_live_capture_source(SourceContext *context)
   context->live_capture_source = create_live_capture_source(context, target);
   context->live_capture_window_id = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(target.hwnd));
   context->live_capture_window_title = target.title;
+  context->live_capture_hooked = query_hooked_source_state(context->live_capture_source).hooked;
   sync_live_capture_activity(context);
 }
 
@@ -592,6 +641,10 @@ void sync_live_audio_source(SourceContext *context)
   }
 
   if (context->live_capture_source) {
+    context->live_capture_hooked = query_hooked_source_state(context->live_capture_source).hooked;
+  }
+
+  if (context->live_capture_source && context->live_capture_hooked) {
     clear_live_audio_source(context);
     return;
   }
@@ -605,6 +658,7 @@ void sync_live_audio_source(SourceContext *context)
   if (context->live_audio_source &&
       context->live_audio_owner_pid == static_cast<int>(target.pid) &&
       context->live_audio_application == target.executable_name) {
+    context->live_audio_hooked = query_hooked_source_state(context->live_audio_source).hooked;
     sync_live_audio_activity(context);
     return;
   }
@@ -613,6 +667,7 @@ void sync_live_audio_source(SourceContext *context)
   context->live_audio_source = create_live_audio_source(context, target);
   context->live_audio_owner_pid = static_cast<int>(target.pid);
   context->live_audio_application = target.executable_name;
+  context->live_audio_hooked = query_hooked_source_state(context->live_audio_source).hooked;
   sync_live_audio_activity(context);
 }
 
@@ -888,8 +943,10 @@ std::string build_status_text(SourceContext *context)
     status << "\n";
 
     status << "Live capture: ";
-    if (context->live_capture_source) {
+    if (context->live_capture_source && context->live_capture_hooked) {
       status << "attached";
+    } else if (context->live_capture_source) {
+      status << "created, waiting for hook";
     } else if (live_ready) {
       status << "searching for slideshow window";
     } else {
@@ -900,10 +957,12 @@ std::string build_status_text(SourceContext *context)
     status << "PowerPoint app audio: ";
     if (!context->use_live_app_audio) {
       status << "disabled";
-    } else if (context->live_capture_source) {
+    } else if (context->live_capture_source && context->live_capture_hooked) {
       status << "attached through live window capture";
-    } else if (context->live_audio_source) {
+    } else if (context->live_audio_source && context->live_audio_hooked) {
       status << "attached through process audio fallback";
+    } else if (context->live_audio_source) {
+      status << "created, waiting for process hook";
     } else if (live_ready) {
       status << "searching for process audio";
     } else {
@@ -1229,9 +1288,16 @@ void source_tick(SourceContext *context)
 
   const auto now = std::chrono::steady_clock::now();
   if (context->live_capture_source) {
-    context->live_capture_last_seen = now;
+    context->live_capture_hooked = query_hooked_source_state(context->live_capture_source).hooked;
   }
   if (context->live_audio_source) {
+    context->live_audio_hooked = query_hooked_source_state(context->live_audio_source).hooked;
+  }
+
+  if (context->live_capture_source && context->live_capture_hooked) {
+    context->live_capture_last_seen = now;
+  }
+  if (context->live_audio_source && context->live_audio_hooked) {
     context->live_audio_last_seen = now;
   }
 
@@ -1247,7 +1313,7 @@ void source_tick(SourceContext *context)
     return;
   }
 
-  if (!context->live_capture_source &&
+  if ((!context->live_capture_source || !context->live_capture_hooked) &&
       now - context->live_capture_last_seen >= kLiveRecoverRetryDelay &&
       (context->live_recover_last_attempt == std::chrono::steady_clock::time_point::min() ||
        now - context->live_recover_last_attempt >= kLiveRecoverRetryDelay)) {
@@ -1258,7 +1324,7 @@ void source_tick(SourceContext *context)
     context->document->SyncLiveStateAsync();
   }
 
-  if (!context->live_capture_source &&
+  if ((!context->live_capture_source || !context->live_capture_hooked) &&
       now - context->live_capture_last_seen >= kLiveReloadDelay &&
       (context->live_reload_last_attempt == std::chrono::steady_clock::time_point::min() ||
        now - context->live_reload_last_attempt >= kLiveReloadDelay)) {

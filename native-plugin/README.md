@@ -26,8 +26,9 @@ This native version is built around a practical conference workflow:
 
 - macOS: public release path, tested and packaged
 - Windows: first native backend is now in the source tree, with PowerPoint-driven slide export, embedded media extraction for fallback playback, presenter render, live slideshow control, and OBS-side live capture/audio attachment attempts
-- Windows is not published as a stable release yet because it still needs real Windows runtime validation and packaging
-- PDF input is not enabled yet in the Windows alpha path
+- Windows beta preview source pack is available for real-machine validation before a stable installer release
+- Windows is not published as a stable installer release yet because it still needs real Windows runtime validation and packaging
+- PDF input is not enabled yet in the Windows beta path
 
 ## What Problem It Solves
 
@@ -121,6 +122,7 @@ Result:
 
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
 - `release/PPTBridge-SK-for-OBS-v0.1.1-macOS.zip`
+- `release/PPTBridge-SK-Windows-Beta-v0.2.0-beta1-source.zip`
 
 ## Public Launch Kit
 
@@ -129,9 +131,33 @@ If you want to publish this properly, these files are prepared for you:
 - `PUBLISHING.md`
 - `PRO-AUDIO-MODE.md`
 - `GITHUB-RELEASE.md`
+- `WINDOWS-BETA-GITHUB-RELEASE.md`
 - `OBS-FORUM-POST.md`
 - `RELEASE-CHECKLIST.md`
 - `SIGNING-AND-NOTARIZATION.md`
+- `WINDOWS-BETA-RELEASE.md`
+
+## Windows Beta Preview
+
+The current Windows deliverable is a beta source pack, not yet a one-click installer.
+
+What the Windows beta is designed to do:
+
+- load a PowerPoint deck directly from source properties
+- expose `PPTBridge SK Slide` and `PPTBridge SK Presenter` in OBS
+- prefer true live PowerPoint slideshow control for animations, click-builds, and embedded media
+- attach the live slideshow window into OBS when possible
+- attempt OBS-side PowerPoint audio attachment through the live window or process-audio fallback
+- fall back to exported slides plus extracted embedded media when live attachment is not ready
+
+Windows beta file:
+
+- `release/PPTBridge-SK-Windows-Beta-v0.2.0-beta1-source.zip`
+
+Validation guide:
+
+- `WINDOWS-ALPHA-TESTING.md`
+- `WINDOWS-BETA-RELEASE.md`
 
 ## OBS Usage Goal
 
