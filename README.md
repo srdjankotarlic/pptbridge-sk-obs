@@ -4,10 +4,14 @@
 
 PPTBridge SK is a native **macOS-first** OBS plugin for PowerPoint workflows in live production.
 
+[![macOS stable](https://img.shields.io/badge/macOS-stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
+[![Windows](https://img.shields.io/badge/Windows-beta_preview-6f42c1?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.0-beta1)
+[![Download macOS installer](https://img.shields.io/badge/Download-macOS_pkg-2da44e?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/PPTBridge-SK-for-OBS-Installer.pkg)
+
 ## Download macOS Installer
 
-- [Download the macOS `.pkg` installer](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.1.1/PPTBridge-SK-for-OBS-Installer.pkg)
-- [View the stable macOS release](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.1.1)
+- [Download the latest stable macOS `.pkg` installer](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/PPTBridge-SK-for-OBS-Installer.pkg)
+- [View the latest stable macOS release](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
 
 Windows work is in progress as a beta preview, but the main public release path today is macOS.
 

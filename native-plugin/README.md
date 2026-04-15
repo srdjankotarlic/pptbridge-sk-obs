@@ -6,8 +6,8 @@ This folder contains the native OBS plugin version of PPTBridge SK.
 
 The main public release path today is the stable macOS build:
 
-- [Download the macOS `.pkg` installer](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.1.1/PPTBridge-SK-for-OBS-Installer.pkg)
-- [Open the stable macOS release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.1.1)
+- [Download the latest stable macOS `.pkg` installer](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/PPTBridge-SK-for-OBS-Installer.pkg)
+- [Open the latest stable macOS release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
 
 It is designed to show up inside OBS as real source types:
 
