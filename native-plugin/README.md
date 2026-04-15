@@ -4,6 +4,11 @@
 
 This folder contains the native OBS plugin version of PPTBridge SK.
 
+The main public release path today is the stable macOS build:
+
+- [Download the macOS `.pkg` installer](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.1.1/PPTBridge-SK-for-OBS-Installer.pkg)
+- [Open the stable macOS release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.1.1)
+
 It is designed to show up inside OBS as real source types:
 
 - `PPTBridge SK Slide`
@@ -24,7 +29,7 @@ This native version is built around a practical conference workflow:
 
 ## Platform Status
 
-- macOS: public release path, tested and packaged
+- macOS: stable public release path, tested and packaged
 - Windows: first native backend is now in the source tree, with PowerPoint-driven slide export, embedded media extraction for fallback playback, presenter render, live slideshow control, and OBS-side live capture/audio attachment attempts
 - Windows beta preview source pack is available for real-machine validation before a stable installer release
 - Windows is not published as a stable installer release yet because it still needs real Windows runtime validation and packaging
