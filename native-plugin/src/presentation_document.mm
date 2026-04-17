@@ -726,6 +726,12 @@ on run argv
 		open POSIX file input_path
 		set targetPresentation to active presentation
 		tell slide show settings of targetPresentation
+			-- Windowed slide show keeps PowerPoint in a normal resizable
+			-- window so the presenter can still use OBS (and the rest of the
+			-- desktop) while the deck is running. OBS still captures the
+			-- slide show window through the screen_capture source. Users who
+			-- want full-screen kiosk can change `slide show type window` to
+			-- `slide show type kiosk` here.
 			set show type to slide show type window
 			set show with presenter to false
 			run slide show
@@ -1446,6 +1452,31 @@ NSBitmapImageRep *CreateBitmap(uint32_t width, uint32_t height)
                  bitsPerPixel:32];
 }
 
+// Copies the drawn bitmap into `out_pixels` in GS_BGRA byte order (B,G,R,A).
+// Empirically, the NSBitmapImageRep produced by CreateBitmap stores bytes in
+// A,R,G,B order on macOS despite the AlphaFirst|LittleEndian flags, which
+// caused OBS to display the presenter thumbnail with the R/B channels
+// scrambled (teal shapes appearing as purple/lavender). This helper performs
+// the byte re-order so the on-screen colors match the real PowerPoint slide.
+void CopyBitmapToBGRA(NSBitmapImageRep *bitmap, uint32_t height, std::vector<uint8_t> &out_pixels)
+{
+  const uint32_t stride = static_cast<uint32_t>(bitmap.bytesPerRow);
+  const uint8_t *src = bitmap.bitmapData;
+  out_pixels.resize(static_cast<size_t>(stride) * height);
+  uint8_t *dst = out_pixels.data();
+  const size_t total = static_cast<size_t>(stride) * height;
+  for (size_t i = 0; i + 3 < total; i += 4) {
+    const uint8_t a = src[i + 0];
+    const uint8_t r = src[i + 1];
+    const uint8_t g = src[i + 2];
+    const uint8_t b = src[i + 3];
+    dst[i + 0] = b;
+    dst[i + 1] = g;
+    dst[i + 2] = r;
+    dst[i + 3] = a;
+  }
+}
+
 NSRect AspectFitRect(NSSize content_size, NSRect bounds)
 {
   if (content_size.width <= 0 || content_size.height <= 0) {
@@ -1581,6 +1612,12 @@ std::string PresentationDocument::Name() const
 void PresentationDocument::SetLivePowerPointEnabled(bool enabled)
 {
   std::lock_guard<std::mutex> lock(impl_->mutex);
+  // Live PowerPoint mode is a PowerPoint-only feature. For raw .pdf decks
+  // we force the flag off so the source always takes the PDFKit path.
+  const auto extension_lower = ToLowerCopy(fs::path(impl_->path).extension().string());
+  if (extension_lower == ".pdf") {
+    enabled = false;
+  }
   if (impl_->live_powerpoint_enabled == enabled) {
     return;
   }
@@ -1724,6 +1761,25 @@ void PresentationDocument::LoadOnWorker()
     std::string error;
     auto cache_dir = CacheDirectoryForDeck(impl_->path);
 
+    // Native PDF path: if the user points a source directly at a .pdf file
+    // (i.e. someone brought a PDF presentation, no PowerPoint involved) we
+    // skip PowerPoint/LibreOffice conversion and the live slideshow session
+    // entirely. PDFKit drives the rendering and Next/Previous/First/Last/
+    // Black all operate on the PDF pages directly via the same codepath used
+    // for converted PPTX decks.
+    const auto extension_lower = ToLowerCopy(fs::path(impl_->path).extension().string());
+    const bool is_pdf_source = (extension_lower == ".pdf");
+    if (is_pdf_source) {
+      std::lock_guard<std::mutex> lock(impl_->mutex);
+      if (impl_->live_powerpoint_enabled) {
+        impl_->live_powerpoint_enabled = false;
+        impl_->live_ready = false;
+        impl_->live_window_title.clear();
+        impl_->live_slide_count = 0;
+        impl_->live_sync_in_flight = false;
+      }
+    }
+
     bool live_enabled = false;
     bool presenter_assets_wanted = false;
     bool already_live_ready = false;
@@ -1774,7 +1830,20 @@ void PresentationDocument::LoadOnWorker()
       return;
     }
 
-    if (!ConvertPptxToPdf(impl_->path, cache_dir, pdf_path, error)) {
+    if (is_pdf_source) {
+      // Native PDF path — treat the user-supplied file as the deck directly.
+      if (!fs::exists(impl_->path)) {
+        std::lock_guard<std::mutex> lock(impl_->mutex);
+        impl_->loading = false;
+        impl_->loaded = false;
+        impl_->error = "The selected .pdf file could not be found.";
+        impl_->version += 1;
+        return;
+      }
+      std::error_code cache_error;
+      fs::create_directories(cache_dir, cache_error);
+      pdf_path = impl_->path;
+    } else if (!ConvertPptxToPdf(impl_->path, cache_dir, pdf_path, error)) {
       std::lock_guard<std::mutex> lock(impl_->mutex);
       impl_->loading = false;
       impl_->loaded = false;
@@ -1796,8 +1865,21 @@ void PresentationDocument::LoadOnWorker()
     }
 
     auto slide_count = static_cast<std::size_t>(document.pageCount);
-    auto metadata = ExtractDeckMetadata(impl_->path, slide_count);
-    auto media_by_slide = ExtractDeckMedia(impl_->path, cache_dir, slide_count);
+    // pptx-only metadata extractors read inside the .pptx zip; skip them
+    // entirely when the source is a standalone .pdf so we don't spawn
+    // unzip processes against a file that is not a zip archive.
+    std::vector<SlideMetadata> metadata;
+    std::vector<std::vector<EmbeddedMedia>> media_by_slide;
+    if (!is_pdf_source) {
+      metadata = ExtractDeckMetadata(impl_->path, slide_count);
+      media_by_slide = ExtractDeckMedia(impl_->path, cache_dir, slide_count);
+    } else {
+      metadata.resize(slide_count);
+      media_by_slide.resize(slide_count);
+      for (std::size_t index = 0; index < slide_count; ++index) {
+        metadata[index].title = "Page " + std::to_string(index + 1);
+      }
+    }
 
     std::lock_guard<std::mutex> lock(impl_->mutex);
     impl_->cache_dir = cache_dir;
@@ -2154,7 +2236,7 @@ bool PresentationDocument::RenderSlideBGRA(
     [NSGraphicsContext restoreGraphicsState];
 
     out_stride = static_cast<uint32_t>(bitmap.bytesPerRow);
-    out_pixels.assign(bitmap.bitmapData, bitmap.bitmapData + out_stride * height);
+    CopyBitmapToBGRA(bitmap, height, out_pixels);
     return true;
   }
 }
@@ -2237,7 +2319,7 @@ bool PresentationDocument::RenderPresenterBGRA(
       DrawCenteredMessage(@"PPTBridge SK", subtitle, NSMakeRect(0, 0, width, height - 56));
       [NSGraphicsContext restoreGraphicsState];
       out_stride = static_cast<uint32_t>(bitmap.bytesPerRow);
-      out_pixels.assign(bitmap.bitmapData, bitmap.bitmapData + out_stride * height);
+      CopyBitmapToBGRA(bitmap, height, out_pixels);
       return true;
     }
 
@@ -2246,7 +2328,7 @@ bool PresentationDocument::RenderPresenterBGRA(
       DrawCenteredMessage(@"PPTBridge SK", @"Presenter thumbnails are not available for this deck yet.", NSMakeRect(0, 0, width, height - 56));
       [NSGraphicsContext restoreGraphicsState];
       out_stride = static_cast<uint32_t>(bitmap.bytesPerRow);
-      out_pixels.assign(bitmap.bitmapData, bitmap.bitmapData + out_stride * height);
+      CopyBitmapToBGRA(bitmap, height, out_pixels);
       return true;
     }
 
@@ -2299,7 +2381,7 @@ bool PresentationDocument::RenderPresenterBGRA(
     [NSGraphicsContext restoreGraphicsState];
 
     out_stride = static_cast<uint32_t>(bitmap.bytesPerRow);
-    out_pixels.assign(bitmap.bitmapData, bitmap.bitmapData + out_stride * height);
+    CopyBitmapToBGRA(bitmap, height, out_pixels);
     return true;
   }
 }

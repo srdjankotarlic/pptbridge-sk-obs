@@ -4,6 +4,7 @@
 #import <Foundation/Foundation.h>
 #import <CoreGraphics/CoreGraphics.h>
 
+#include <algorithm>
 #include <cmath>
 #include <functional>
 #include <sstream>
@@ -16,12 +17,22 @@ namespace pptbridge {
 namespace {
 
 constexpr const char *kHotkeyHelp =
-  "Slide control:\n"
-  "1. First launch default: key 2 = next slide, key 1 = previous slide\n"
-  "2. Open Settings > Hotkeys\n"
-  "3. Bind or change PPTBridge SK: Next Slide / Previous Slide\n"
-  "4. For a clicker, use Right Arrow or Page Down for next, Left Arrow or Page Up for previous\n"
-  "5. Use the buttons below for quick testing inside OBS";
+  "Slide control (PPTX or PDF):\n"
+  "1. Built-in defaults: 2 / PageDown / Right / Space = next, 1 / PageUp / Left = previous,\n"
+  "   B = toggle black, Home = first, End = last.\n"
+  "2. Logitech Spotlight and most presenter remotes already map to these keys,\n"
+  "   so a clicker controls PPTBridge out of the box from the stage.\n"
+  "3. For stage use while PowerPoint is focused, open OBS Settings > General\n"
+  "   and enable \"Disable hiding of the main window\" AND Settings > Hotkeys\n"
+  "   > \"Hotkeys while not in focus\" = Enable, so Spotlight keystrokes still\n"
+  "   reach PPTBridge when you click into PowerPoint on stage.\n"
+  "4. If you brought a PDF presentation instead of a PPTX, pick the .pdf in\n"
+  "   the file field above - PPTBridge renders pages natively, no PowerPoint\n"
+  "   required, and all hotkeys work identically.\n"
+  "5. Multi-deck shows: put each presentation in its own scene. The hotkey\n"
+  "   router automatically targets the PPTBridge source in the current\n"
+  "   program scene, so Spotlight on stage always drives the right deck.\n"
+  "6. Use the buttons below for quick testing inside OBS.";
 
 constexpr const char *kMediaHelp =
   "Media note:\n"
@@ -543,11 +554,26 @@ bool render_live_capture(SourceContext *context)
     return false;
   }
 
+  // Aspect-fit the captured PowerPoint slideshow window into the source
+  // canvas (typically 1920x1080). This prevents the slide from being
+  // stretched non-uniformly when the display aspect ratio does not match
+  // the canvas — for example, a 16:10 MacBook display captured into a
+  // 16:9 canvas. Pillarbox / letterbox bars are drawn only if the aspect
+  // ratios truly differ; when PowerPoint is running kiosk-mode on a 16:9
+  // display the capture fills the canvas exactly with no bars.
+  const float canvas_w = static_cast<float>(context->width);
+  const float canvas_h = static_cast<float>(context->height);
+  const float cap_w = static_cast<float>(capture_width);
+  const float cap_h = static_cast<float>(capture_height);
+  const float scale = std::min(canvas_w / cap_w, canvas_h / cap_h);
+  const float target_w = cap_w * scale;
+  const float target_h = cap_h * scale;
+  const float offset_x = (canvas_w - target_w) * 0.5f;
+  const float offset_y = (canvas_h - target_h) * 0.5f;
+
   gs_matrix_push();
-  gs_matrix_scale3f(
-    static_cast<float>(context->width) / static_cast<float>(capture_width),
-    static_cast<float>(context->height) / static_cast<float>(capture_height),
-    1.0f);
+  gs_matrix_translate3f(offset_x, offset_y, 0.0f);
+  gs_matrix_scale3f(scale, scale, 1.0f);
   obs_source_video_render(context->live_capture_source);
   gs_matrix_pop();
   return true;
@@ -991,15 +1017,25 @@ void source_defaults(obs_data_t *settings)
 obs_properties_t *source_properties(SourceContext *context)
 {
   obs_properties_t *props = obs_properties_create_param(context, nullptr);
+  // The source accepts both PowerPoint decks (.pptx) and PDF presentations
+  // (.pdf) — PDFs are rendered natively via PDFKit so guest speakers who
+  // only bring a PDF can still run their deck through PPTBridge without
+  // requiring PowerPoint or LibreOffice.
   obs_properties_add_path(
     props,
     "pptx_path",
-    "PowerPoint File (.pptx)",
+    "Presentation File (.pptx or .pdf)",
     OBS_PATH_FILE,
-    "PowerPoint (*.pptx)",
+    "Presentations (*.pptx *.pdf);;PowerPoint (*.pptx);;PDF (*.pdf)",
     nullptr);
-  obs_properties_add_int(props, "canvas_width", "Canvas Width", 320, 7680, 1);
-  obs_properties_add_int(props, "canvas_height", "Canvas Height", 240, 4320, 1);
+  // The Slide source is hard-locked to Full HD (1920x1080) so the program
+  // feed is always clean 16:9 broadcast-ready output. Only the Presenter
+  // source exposes canvas size controls, since confidence monitors may
+  // have non-standard resolutions.
+  if (context && context->mode == ViewMode::Presenter) {
+    obs_properties_add_int(props, "canvas_width", "Canvas Width", 320, 7680, 1);
+    obs_properties_add_int(props, "canvas_height", "Canvas Height", 240, 4320, 1);
+  }
   if (context && context->mode == ViewMode::Slide) {
     obs_properties_add_bool(props, "use_live_powerpoint", "Use True Live PowerPoint Mode");
     obs_properties_add_bool(props, "audio_enabled", "Enable PPTBridge Audio Output");
@@ -1050,8 +1086,15 @@ void source_update(SourceContext *context, obs_data_t *settings)
   }
 
   const char *path = obs_data_get_string(settings, "pptx_path");
-  const uint32_t width = static_cast<uint32_t>(obs_data_get_int(settings, "canvas_width"));
-  const uint32_t height = static_cast<uint32_t>(obs_data_get_int(settings, "canvas_height"));
+  // Slide source always renders at Full HD 1920x1080 regardless of any
+  // stored canvas_width/canvas_height. Only the Presenter source honors
+  // user-configurable canvas dimensions.
+  const uint32_t width = (context->mode == ViewMode::Slide)
+    ? 1920u
+    : static_cast<uint32_t>(obs_data_get_int(settings, "canvas_width"));
+  const uint32_t height = (context->mode == ViewMode::Slide)
+    ? 1080u
+    : static_cast<uint32_t>(obs_data_get_int(settings, "canvas_height"));
   const bool use_live_powerpoint = obs_data_get_bool(settings, "use_live_powerpoint");
   const bool audio_enabled = obs_data_get_bool(settings, "audio_enabled");
   const bool use_live_app_audio = obs_data_get_bool(settings, "use_live_app_audio");
