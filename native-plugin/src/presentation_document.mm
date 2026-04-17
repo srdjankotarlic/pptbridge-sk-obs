@@ -231,19 +231,30 @@ std::string CacheDirectoryForDeck(const std::string &pptx_path)
 {
   const auto hash = DeckCacheHash(pptx_path);
 
-  auto powerpoint_container = fs::path(ToStdString(NSHomeDirectory())) /
-    "Library/Containers/com.microsoft.Powerpoint/Data/Library/Caches/com.microsoft.Powerpoint/PPTBridge-SK" / hash;
-  std::error_code error;
-  fs::create_directories(powerpoint_container, error);
-  if (!error) {
-    return powerpoint_container.string();
-  }
-
+  // On macOS 26+ (Tahoe) OBS - as a non-sandboxed app - can no longer
+  // reliably read or write inside other apps' containers
+  // (~/Library/Containers/...). fs::create_directories still reports
+  // success there because the directory already exists, but follow-up
+  // file I/O is silently blocked by TCC and PDFKit returns nil on
+  // otherwise-valid PDFs. We therefore keep the cache inside OBS's own
+  // Application Support directory by default and only fall back to
+  // PowerPoint's container (legacy layout) if for some reason
+  // Application Support is not writable. PowerPoint's AppleScript
+  // "save as PDF" is still allowed to write into Application Support -
+  // macOS will prompt the user the first time and remember the grant.
   auto app_support = fs::path(ToStdString(NSHomeDirectory())) / "Library" / "Application Support" / "PPTBridge SK" / "cache" / hash;
-  error.clear();
+  std::error_code error;
   fs::create_directories(app_support, error);
   if (!error) {
     return app_support.string();
+  }
+
+  auto powerpoint_container = fs::path(ToStdString(NSHomeDirectory())) /
+    "Library/Containers/com.microsoft.Powerpoint/Data/Library/Caches/com.microsoft.Powerpoint/PPTBridge-SK" / hash;
+  error.clear();
+  fs::create_directories(powerpoint_container, error);
+  if (!error) {
+    return powerpoint_container.string();
   }
 
   auto temp_dir = fs::path(ToStdString(NSTemporaryDirectory())) / "pptbridge-native" / hash;
@@ -783,6 +794,21 @@ bool StartPowerPointLiveSession(
     return false;
   }
 
+  // Fast path: if PowerPoint already has a slideshow running (e.g. OBS was
+  // restarted while PowerPoint stayed open from a prior session), just
+  // reattach to that existing session instead of restaging the file and
+  // re-launching the show. QueryPowerPointLiveState queries PowerPoint's
+  // active presentation; if it comes back with a valid window title, we're
+  // good to go.
+  {
+    std::string query_error;
+    LivePowerPointSnapshot existing;
+    if (QueryPowerPointLiveState(existing, query_error) && !existing.window_title.empty()) {
+      snapshot = existing;
+      return true;
+    }
+  }
+
   auto work_dir = fs::path(cache_dir) / "powerpoint-live";
   std::error_code error;
   fs::create_directories(work_dir, error);
@@ -795,8 +821,20 @@ bool StartPowerPointLiveSession(
   error.clear();
   fs::copy_file(pptx_path, copied_input, fs::copy_options::overwrite_existing, error);
   if (error) {
-    out_error = "Could not stage PowerPoint file for live mode.";
-    return false;
+    // Copy may fail if PowerPoint still has the destination open from a
+    // previous run (leaves a ~$...pptx lock file next to it). If we still
+    // have a usable copy from an earlier session, reuse it; otherwise try
+    // a tmp-dir rename, and only then report an error.
+    std::error_code exists_error;
+    if (!fs::exists(copied_input, exists_error)) {
+      auto tmp_staged = work_dir / ("pptbridge_stage_" + fs::path(pptx_path).filename().string());
+      error.clear();
+      fs::copy_file(pptx_path, tmp_staged, fs::copy_options::overwrite_existing, error);
+      if (error) {
+        out_error = "Could not stage PowerPoint file for live mode.";
+        return false;
+      }
+    }
   }
 
   std::string std_out;
