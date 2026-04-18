@@ -12,9 +12,14 @@ PPTBridge SK is a native **macOS-first** OBS plugin for PowerPoint and PDF workf
 
 ## Download
 
-> **Latest stable: v0.2.0 "Pro-Live macOS" — Apple Silicon**
+| Platform | Status | What to download | Link |
+| --- | --- | --- | --- |
+| macOS (Apple Silicon) | **Stable** | `pptbridge-obs-macos-arm64.zip` | [Download macOS stable](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-arm64.zip) |
+| Windows | **Beta preview** | `PPTBridge-SK-for-OBS-Installer-v0.1.4.zip` | [Open Windows beta release](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.0-beta1) |
+
+> **If you want the stable public build, download the macOS release.**
 >
-> [**Download `pptbridge-obs-macos-arm64.zip`**](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-arm64.zip) · [Release notes](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
+> The Windows release is still a beta preview for testing and feedback.
 
 Unzip and drop `pptbridge-obs.plugin` into:
 
@@ -64,6 +69,12 @@ PPTBridge SK is used in:
 - **Live-session fast path.** If PowerPoint is already running the current deck in slideshow, PPTBridge attaches to it instantly instead of restarting playback.
 
 See the full [release notes](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest) for details.
+
+## Which Release Is Which
+
+- `v0.2.0` = **macOS stable**
+- `v0.2.0-beta1` = **Windows beta preview**
+- If you are just trying the plugin and want the safest current path, use the macOS stable release.
 
 ## Quick Start
 

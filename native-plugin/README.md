@@ -9,6 +9,10 @@ The main public release path today is the stable macOS build:
 - [Download the latest stable macOS `.pkg` installer](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/PPTBridge-SK-for-OBS-Installer.pkg)
 - [Open the latest stable macOS release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
 
+Windows testing now lives in a separate beta release:
+
+- [Open the Windows beta preview release](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.0-beta1)
+
 It is designed to show up inside OBS as real source types:
 
 - `PPTBridge SK Slide`
@@ -34,6 +38,12 @@ This native version is built around a practical conference workflow:
 - Windows beta preview now includes both a source pack and a Windows installer preview for real-machine validation before a stable installer release
 - Windows is not published as a stable installer release yet because it still needs real Windows runtime validation and packaging
 - PDF input is not enabled yet in the Windows beta path
+
+## Quick Platform Guide
+
+- `v0.2.0` = macOS stable release
+- `v0.2.0-beta1` = Windows beta preview release
+- If someone asks "which one should I install?", the safe answer today is: macOS users install `v0.2.0`, Windows users test `v0.2.0-beta1`
 
 ## What Problem It Solves
 
