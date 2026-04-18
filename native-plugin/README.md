@@ -31,7 +31,7 @@ This native version is built around a practical conference workflow:
 
 - macOS: stable public release path, tested and packaged
 - Windows: first native backend is now in the source tree, with PowerPoint-driven slide export, embedded media extraction for fallback playback, presenter render, live slideshow control, and OBS-side live capture/audio attachment attempts
-- Windows beta preview source pack is available for real-machine validation before a stable installer release
+- Windows beta preview now includes both a source pack and a Windows installer preview for real-machine validation before a stable installer release
 - Windows is not published as a stable installer release yet because it still needs real Windows runtime validation and packaging
 - PDF input is not enabled yet in the Windows beta path
 
@@ -144,7 +144,10 @@ If you want to publish this properly, these files are prepared for you:
 
 ## Windows Beta Preview
 
-The current Windows deliverable is a beta source pack, not yet a one-click installer.
+The current Windows deliverable is still beta, but it now has two public validation paths:
+
+- a source pack for build-level testing
+- a Windows installer preview zip for faster testing on real OBS machines
 
 What the Windows beta is designed to do:
 
@@ -155,9 +158,10 @@ What the Windows beta is designed to do:
 - attempt OBS-side PowerPoint audio attachment through the live window or process-audio fallback
 - fall back to exported slides plus extracted embedded media when live attachment is not ready
 
-Windows beta file:
+Windows beta files:
 
 - `release/PPTBridge-SK-Windows-Beta-v0.2.0-beta1-source.zip`
+- Windows GitHub beta release also carries the current installer preview zip
 
 Validation guide:
 
