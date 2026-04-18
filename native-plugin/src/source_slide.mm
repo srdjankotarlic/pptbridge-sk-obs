@@ -381,6 +381,38 @@ obs_source_t *create_live_capture_source(SourceContext *context, uint32_t window
 
   if (!capture) {
     blog(LOG_WARNING, "[PPTBridge SK] Could not create a live PowerPoint capture source");
+    return nullptr;
+  }
+
+  // Attach a crop filter that strips PowerPoint's windowed-slideshow
+  // title bar ("PowerPoint Slide Show – [Deck Name]") from the top of
+  // the capture. macOS window chrome is ~28 points; on a Retina display
+  // the window-capture stream comes out at 2x pixel dimensions, so we
+  // crop 56 pixels. The crop_filter output shrinks obs_source_get_height
+  // accordingly, so the aspect-fit in render_live_capture automatically
+  // reflows the remaining slide content to 1920x1080 without bars at
+  // the top - the program feed stays clean and title-bar-free even
+  // though PowerPoint itself is running in a normal windowed slideshow
+  // (which was the requirement so the presenter can still use OBS and
+  // the rest of macOS on the main display).
+  obs_data_t *crop_settings = obs_data_create();
+  obs_data_set_bool(crop_settings, "relative", true);
+  obs_data_set_int(crop_settings, "left", 0);
+  obs_data_set_int(crop_settings, "right", 0);
+  obs_data_set_int(crop_settings, "top", 56);
+  obs_data_set_int(crop_settings, "bottom", 0);
+  obs_source_t *crop = obs_source_create_private(
+    "crop_filter",
+    "PPTBridge SK Title Bar Crop",
+    crop_settings);
+  obs_data_release(crop_settings);
+  if (crop) {
+    obs_source_filter_add(capture, crop);
+    // The filter is retained by the capture source via obs_source_filter_add;
+    // release our initial reference so ownership is clean.
+    obs_source_release(crop);
+  } else {
+    blog(LOG_WARNING, "[PPTBridge SK] Could not attach title-bar crop filter; program feed may show window chrome");
   }
 
   return capture;
