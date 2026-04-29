@@ -105,6 +105,7 @@ For a room-by-room walkthrough, see [SETUP-GUIDE.md](SETUP-GUIDE.md).
 ## Repo Structure
 
 - [native-plugin](native-plugin) — native plugin source, build scripts, installers
+- [BUILDING.md](BUILDING.md) — developer build commands and dependencies
 - [SETUP-GUIDE.md](SETUP-GUIDE.md) — end-user setup walkthrough
 - [install_deps.sh](install_deps.sh) — developer dependency helper
 - [pptbridge_obs.py](pptbridge_obs.py) — legacy Python MVP kept for reference

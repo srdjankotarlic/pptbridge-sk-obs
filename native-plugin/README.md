@@ -136,7 +136,8 @@ Build the package:
 Result:
 
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
-- `release/PPTBridge-SK-for-OBS-v0.1.1-macOS.zip`
+- `release/PPTBridge-SK-for-OBS-v0.2.0-macOS.zip`
+- `release/pptbridge-obs-macos-arm64.zip`
 - `release/PPTBridge-SK-Windows-Beta-v0.2.0-beta1-source.zip`
 
 ## Public Launch Kit

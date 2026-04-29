@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS — Setup Guide
 
-**Created by Srđan Kotarlić** | v0.1.1
+**Created by Srđan Kotarlić** | v0.2.0
 
 ## What This Is
 
@@ -110,6 +110,6 @@ Typical live workflow:
 
 For public sharing, use the native plugin release assets in:
 
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.1.1-macOS`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.2.0-macOS`
 
 The legacy Python script remains in this repo only as historical reference.

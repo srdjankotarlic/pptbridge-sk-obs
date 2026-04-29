@@ -8,11 +8,14 @@ VERSION="$(sed -n 's/^project(.* VERSION \([0-9.][0-9.]*\).*/\1/p' "$PROJECT_DIR
 BRAND_SLUG="PPTBridge-SK-for-OBS"
 RELEASE_DIR="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-macOS"
 ZIP_PATH="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-macOS.zip"
+STABLE_ZIP_NAME="pptbridge-obs-macos-arm64.zip"
+STABLE_ZIP_PATH="$PROJECT_DIR/release/$STABLE_ZIP_NAME"
 BUNDLE_PATH="$PROJECT_DIR/build/bundle/pptbridge-obs.plugin"
 PKG_PATH="$PROJECT_DIR/dist/PPTBridge-SK-for-OBS-Installer.pkg"
 INSTALLER_NAME="Install-PPTBridge-SK.command"
 CHECKSUMS_PATH="$RELEASE_DIR/SHA256SUMS.txt"
 ZIP_CHECKSUM_PATH="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-macOS.zip.sha256"
+STABLE_ZIP_CHECKSUM_PATH="$PROJECT_DIR/release/$STABLE_ZIP_NAME.sha256"
 
 export COPYFILE_DISABLE=1
 export COPY_EXTENDED_ATTRIBUTES_DISABLE=1
@@ -108,11 +111,13 @@ EOF
 
 (
   cd "$PROJECT_DIR/release"
-  rm -f "$ZIP_PATH"
+  rm -f "$ZIP_PATH" "$STABLE_ZIP_PATH"
   /usr/bin/zip -qryX "$(basename "$ZIP_PATH")" "$(basename "$RELEASE_DIR")"
 )
 
+cp "$ZIP_PATH" "$STABLE_ZIP_PATH"
 shasum -a 256 "$ZIP_PATH" > "$ZIP_CHECKSUM_PATH"
+shasum -a 256 "$STABLE_ZIP_PATH" > "$STABLE_ZIP_CHECKSUM_PATH"
 
 echo ""
 echo "Created release folder:"
@@ -120,4 +125,5 @@ echo "$RELEASE_DIR"
 echo ""
 echo "Created release zip:"
 echo "$ZIP_PATH"
+echo "$STABLE_ZIP_PATH"
 echo ""

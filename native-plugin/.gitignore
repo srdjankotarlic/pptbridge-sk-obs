@@ -4,3 +4,7 @@ release/
 output/
 third_party/obs-studio/
 .DS_Store
+*.dmg
+*.pkg
+*.zip
+*.zip.sha256

@@ -342,7 +342,7 @@ def card_download(path):
     rounded(draw, (W - 424, 934, W - 78, 1188), fill=CARD_2, outline=(255, 255, 255, 24), width=2, radius=30)
     draw.text((W - 390, 972), "Built by", font=LABEL, fill=MUTED)
     draw.text((W - 390, 1024), "Srdjan Kotarlic", font=H3, fill=WHITE)
-    draw.text((W - 390, 1084), "macOS v0.1.0", font=BODY_SM, fill=ACCENT_2)
+    draw.text((W - 390, 1084), "macOS v0.2.0", font=BODY_SM, fill=ACCENT_2)
     footer(draw, "Use with LinkedIn post copy", "Share screenshots + release link")
     img.save(path)
 
