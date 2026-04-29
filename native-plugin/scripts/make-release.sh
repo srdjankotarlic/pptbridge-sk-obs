@@ -116,8 +116,11 @@ EOF
 )
 
 cp "$ZIP_PATH" "$STABLE_ZIP_PATH"
-shasum -a 256 "$ZIP_PATH" > "$ZIP_CHECKSUM_PATH"
-shasum -a 256 "$STABLE_ZIP_PATH" > "$STABLE_ZIP_CHECKSUM_PATH"
+(
+  cd "$PROJECT_DIR/release"
+  shasum -a 256 "$(basename "$ZIP_PATH")" > "$ZIP_CHECKSUM_PATH"
+  shasum -a 256 "$(basename "$STABLE_ZIP_PATH")" > "$STABLE_ZIP_CHECKSUM_PATH"
+)
 
 echo ""
 echo "Created release folder:"
