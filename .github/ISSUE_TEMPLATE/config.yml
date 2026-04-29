@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Latest release
+    url: https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest
+    about: Download the current public macOS build.
+  - name: v1.0 release checklist
+    url: https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/1
+    about: Track signing, notarization, and launch readiness.
