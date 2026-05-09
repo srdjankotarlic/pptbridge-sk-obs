@@ -1,6 +1,7 @@
 # PPTBridge SK for OBS
 
 **PowerPoint and PDF sources for live productions in OBS.**
+
 Created by [Srdjan Kotarlic](https://github.com/srdjankotarlic).
 
 PPTBridge SK adds two native OBS source types:
