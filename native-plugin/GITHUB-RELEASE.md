@@ -1,13 +1,18 @@
-# GitHub Release Body
-
 ## PPTBridge SK for OBS v0.2.2
 
 Created by **Srdjan Kotarlic**
 
-PPTBridge SK for OBS is a native macOS OBS plugin that adds real PowerPoint source types to OBS:
+PPTBridge SK for OBS is a native macOS OBS plugin for live PowerPoint/PDF workflows.
+
+It adds real OBS source types:
 
 - `PPTBridge SK Slide`
 - `PPTBridge SK Presenter`
+
+### Download
+
+- Apple Silicon Macs: `pptbridge-obs-macos-apple-silicon.zip`
+- Intel Macs: `pptbridge-obs-macos-intel.zip`
 
 ### What it does
 
@@ -73,13 +78,15 @@ PPTBridge SK for OBS is a native macOS OBS plugin that adds real PowerPoint sour
 
 ### Included assets
 
-- `PPTBridge-SK-for-OBS-v0.2.2-macOS-Apple-Silicon.zip`
-- `PPTBridge-SK-for-OBS-v0.2.2-macOS-Intel.zip`
 - `pptbridge-obs-macos-apple-silicon.zip`
 - `pptbridge-obs-macos-intel.zip`
-- `PPTBridge-SK-for-OBS-Installer.pkg`
-- `Install-PPTBridge-SK.command`
+- `.sha256` checksum files for both downloads
+
+Each ZIP includes:
+
 - `START-HERE-macOS.txt`
+- `Install-PPTBridge-SK.command`
+- `pptbridge-obs.plugin`
 - `INSTALL-macOS.md`
 
 ### Install

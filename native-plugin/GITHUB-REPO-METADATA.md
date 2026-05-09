@@ -8,11 +8,11 @@ Created by **Srdjan Kotarlic**
 
 ## Repository Description
 
-`Native macOS OBS plugin for PowerPoint slide and presenter sources, created by Srdjan Kotarlic.`
+`Native macOS OBS plugin for PowerPoint/PDF slide and presenter sources. Apple Silicon and Intel builds.`
 
 ## GitHub "About" Short Text
 
-`PowerPoint slide and presenter sources for OBS on macOS.`
+`PowerPoint/PDF slide and presenter sources for OBS on macOS. Apple Silicon + Intel.`
 
 ## Suggested Homepage Field
 

@@ -10,8 +10,6 @@ The main public release path today is the stable macOS ZIP for the user's Mac:
 - [Download for Intel Mac](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
 - [Open the latest stable macOS release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
 
-Windows work is kept in the source tree, but the main public download is macOS-only right now to avoid confusing users.
-
 It is designed to show up inside OBS as real source types:
 
 - `PPTBridge SK Slide`
@@ -33,14 +31,10 @@ This native version is built around a practical conference workflow:
 ## Platform Status
 
 - macOS: stable public release path, tested and packaged
-- Windows: first native backend is now in the source tree, with PowerPoint-driven slide export, embedded media extraction for fallback playback, presenter render, live slideshow control, and OBS-side live capture/audio attachment attempts
-- Windows is not published as a stable release yet because it still needs real Windows runtime validation and packaging
-- PDF input is not enabled yet in the Windows development path
 
 ## Quick Platform Guide
 
 - `v0.2.2` = macOS stable release
-- Windows = in development, not the main public download yet
 - If someone asks "which one should I install?", the safe answer today is: M-series Mac users install the Apple Silicon ZIP; older Intel Mac users install the Intel ZIP.
 
 ## What Problem It Solves
@@ -62,7 +56,7 @@ This is an actual OBS source plugin project, not an OBS script:
 - OBS source registration in `obs_module_load`
 - source rendering through libobs graphics
 - `.plugin` bundle layout for macOS OBS installs
-- platform split in `CMakeLists.txt` so macOS and Windows use different native backends
+- native C++ / Objective-C++ source layout for macOS OBS
 
 ## Build Requirements
 
@@ -76,7 +70,6 @@ For macOS builds you need:
 Optional but recommended:
 
 - Microsoft PowerPoint for the preferred true live mode path
-- for Windows alpha validation, see `WINDOWS-ALPHA-TESTING.md`
 - LibreOffice for the fallback cached-render path when PowerPoint is unavailable
 
 Because the release OBS app on macOS includes the libraries but not the development headers, this project expects:
@@ -148,29 +141,9 @@ If you want to publish this properly, these files are prepared for you:
 - `PUBLISHING.md`
 - `PRO-AUDIO-MODE.md`
 - `GITHUB-RELEASE.md`
-- `WINDOWS-BETA-GITHUB-RELEASE.md`
 - `OBS-FORUM-POST.md`
 - `RELEASE-CHECKLIST.md`
 - `SIGNING-AND-NOTARIZATION.md`
-- `WINDOWS-BETA-RELEASE.md`
-
-## Windows Status
-
-Windows work is still in development and is intentionally not part of the main public download yet.
-
-What the Windows path is designed to do:
-
-- load a PowerPoint deck directly from source properties
-- expose `PPTBridge SK Slide` and `PPTBridge SK Presenter` in OBS
-- prefer true live PowerPoint slideshow control for animations, click-builds, and embedded media
-- attach the live slideshow window into OBS when possible
-- attempt OBS-side PowerPoint audio attachment through the live window or process-audio fallback
-- fall back to exported slides plus extracted embedded media when live attachment is not ready
-
-Validation guide:
-
-- `WINDOWS-ALPHA-TESTING.md`
-- `WINDOWS-BETA-RELEASE.md`
 
 ## OBS Usage Goal
 
@@ -229,4 +202,3 @@ On macOS with Microsoft PowerPoint installed, `PPTBridge SK Slide` defaults to t
 Presenter notes will only appear when the `.pptx` really contains notes pages for those slides.
 If live mode is unavailable or disabled, PPTBridge falls back to cached render mode for compatibility.
 If you want strict OBS control over local PowerPoint audio during a live show, see `PRO-AUDIO-MODE.md` for the BlackHole and Loopback routing setups.
-For the current Windows engineering status and next steps, see `WINDOWS-PORT.md`.

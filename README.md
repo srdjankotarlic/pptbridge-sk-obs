@@ -19,7 +19,6 @@ PPTBridge SK adds two native OBS source types:
 | --- | --- | --- | --- |
 | macOS Apple Silicon | Stable | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip) | Use this for M1/M2/M3/M4 Macs |
 | macOS Intel | Stable build, needs Intel runtime feedback | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip) | Use this for older Intel Macs |
-| Windows | In development | Not published as the main download | Kept out of the stable release to avoid confusing users |
 
 The public macOS ZIPs are the safest current path. A signed and notarized `.pkg` installer is tracked for v1.0 in [Issue #1](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/1).
 
@@ -88,7 +87,6 @@ The v1.0 checklist lives in [Issue #1](https://github.com/srdjankotarlic/pptbrid
 - [SETUP-GUIDE.md](SETUP-GUIDE.md) - user setup and troubleshooting
 - [BUILDING.md](BUILDING.md) - developer build commands and dependencies
 - [native-plugin/PRO-AUDIO-MODE.md](native-plugin/PRO-AUDIO-MODE.md) - stricter audio routing setups
-- [native-plugin/WINDOWS-PORT.md](native-plugin/WINDOWS-PORT.md) - Windows engineering status
 - [native-plugin/SIGNING-AND-NOTARIZATION.md](native-plugin/SIGNING-AND-NOTARIZATION.md) - v1.0 signing path
 
 ## Repository Structure
@@ -96,7 +94,7 @@ The v1.0 checklist lives in [Issue #1](https://github.com/srdjankotarlic/pptbrid
 | Path | Purpose |
 | --- | --- |
 | `native-plugin/` | Native OBS plugin source, build scripts, release docs |
-| `native-plugin/src/` | macOS and Windows source implementations |
+| `native-plugin/src/` | Native source implementation |
 | `native-plugin/scripts/` | Build, packaging, install, signing helpers |
 | `native-plugin/media/github/` | GitHub README/release images |
 | `pptbridge_obs.py` | Legacy Python MVP kept only for reference |
@@ -107,7 +105,7 @@ The v1.0 checklist lives in [Issue #1](https://github.com/srdjankotarlic/pptbrid
 - For ideas, open a [Feature request](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/new?template=feature_request.md).
 - For v1.0 release progress, follow [Issue #1](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/1).
 
-When reporting a bug, include your macOS or Windows version, OBS version, PowerPoint version, deck type (`.pptx` or `.pdf`), and the current OBS log.
+When reporting a bug, include your macOS version, Mac type, OBS version, PowerPoint version, deck type (`.pptx` or `.pdf`), and the current OBS log.
 
 ## Roadmap
 
@@ -115,7 +113,6 @@ When reporting a bug, include your macOS or Windows version, OBS version, PowerP
 - Second-Mac clean install verification
 - macOS v1.0 OBS Forum release
 - More real-machine feedback on Intel Macs
-- Windows validation on more machines
 
 ## License
 
