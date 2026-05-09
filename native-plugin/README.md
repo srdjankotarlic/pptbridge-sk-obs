@@ -4,9 +4,10 @@
 
 This folder contains the native OBS plugin version of PPTBridge SK.
 
-The main public release path today is the stable macOS ZIP:
+The main public release path today is the stable macOS ZIP for the user's Mac:
 
-- [Download the latest stable macOS ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-arm64.zip)
+- [Download for Apple Silicon](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
+- [Download for Intel Mac](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
 - [Open the latest stable macOS release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
 
 Windows work is kept in the source tree, but the main public download is macOS-only right now to avoid confusing users.
@@ -38,9 +39,9 @@ This native version is built around a practical conference workflow:
 
 ## Quick Platform Guide
 
-- `v0.2.1` = macOS stable release
+- `v0.2.2` = macOS stable release
 - Windows = in development, not the main public download yet
-- If someone asks "which one should I install?", the safe answer today is: macOS Apple Silicon users install `v0.2.1`
+- If someone asks "which one should I install?", the safe answer today is: M-series Mac users install the Apple Silicon ZIP; older Intel Mac users install the Intel ZIP.
 
 ## What Problem It Solves
 
@@ -135,8 +136,10 @@ Build the package:
 Result:
 
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
-- `release/PPTBridge-SK-for-OBS-v0.2.1-macOS.zip`
-- `release/pptbridge-obs-macos-arm64.zip`
+- `release/PPTBridge-SK-for-OBS-v0.2.2-macOS-Apple-Silicon.zip`
+- `release/PPTBridge-SK-for-OBS-v0.2.2-macOS-Intel.zip`
+- `release/pptbridge-obs-macos-apple-silicon.zip`
+- `release/pptbridge-obs-macos-intel.zip`
 
 ## Public Launch Kit
 

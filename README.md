@@ -8,23 +8,26 @@ PPTBridge SK adds two native OBS source types:
 - `PPTBridge SK Slide` - clean audience/program output
 - `PPTBridge SK Presenter` - speaker view with notes, next slide, and timer
 
-[![macOS stable](https://img.shields.io/badge/macOS-v0.2.1_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
-[![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-arm64-000000?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
-[![Download macOS plugin](https://img.shields.io/badge/Download-macOS_plugin-2da44e?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-arm64.zip)
+[![macOS stable](https://img.shields.io/badge/macOS-v0.2.2_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
+[![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-supported-000000?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
+[![Intel Mac](https://img.shields.io/badge/Intel_Mac-supported-555555?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
 [![License](https://img.shields.io/badge/License-see_LICENSE-lightgrey?style=flat-square)](#license)
 
 ## Download
 
 | Platform | Status | Download | Notes |
 | --- | --- | --- | --- |
-| macOS Apple Silicon | Stable | [`pptbridge-obs-macos-arm64.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-arm64.zip) | Recommended public build |
+| macOS Apple Silicon | Stable | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip) | Use this for M1/M2/M3/M4 Macs |
+| macOS Intel | Stable build, needs Intel runtime feedback | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip) | Use this for older Intel Macs |
 | Windows | In development | Not published as the main download | Kept out of the stable release to avoid confusing users |
 
-The public macOS ZIP is the safest current path. A signed and notarized `.pkg` installer is tracked for v1.0 in [Issue #1](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/1).
+The public macOS ZIPs are the safest current path. A signed and notarized `.pkg` installer is tracked for v1.0 in [Issue #1](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/1).
 
 ## Install on macOS
 
-1. Download and unzip [`pptbridge-obs-macos-arm64.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-arm64.zip).
+1. Download and unzip the ZIP that matches your Mac:
+   - Apple Silicon: [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
+   - Intel: [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
 2. Quit OBS if it is open.
 3. Open `START-HERE-macOS.txt`.
 4. Double-click `Install-PPTBridge-SK.command`.
@@ -58,12 +61,12 @@ PPTBridge SK is built for conference, church, webinar, keynote, and hybrid-event
 | Requirement | macOS stable |
 | --- | --- |
 | macOS | 12 Monterey or newer |
-| CPU | Apple Silicon arm64 |
+| CPU | Apple Silicon or Intel |
 | OBS Studio | 30 or newer |
 | PowerPoint | Microsoft PowerPoint for Mac, required for `.pptx` live mode |
 | PDF decks | Supported without PowerPoint |
 
-Tested locally on macOS 15 Sequoia, macOS 26 Tahoe, and OBS 32.x. Intel Mac support is not part of the current public build.
+Apple Silicon was runtime-tested locally on OBS 32.x. Intel is cross-built against the Intel OBS 32.1.2 app and published for community validation on real Intel Macs.
 
 ## Screenshots
 
@@ -75,7 +78,7 @@ Tested locally on macOS 15 Sequoia, macOS 26 Tahoe, and OBS 32.x. Intel Mac supp
 
 | Release | Status | Use it for |
 | --- | --- | --- |
-| [`v0.2.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.1) | macOS stable | Current Apple Silicon public build with easier installer |
+| [`v0.2.2`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.2) | macOS stable | Current Apple Silicon + Intel public build with easier installer |
 | `v1.0.0` | Planned | Signed/notarized macOS release and wider public launch |
 
 The v1.0 checklist lives in [Issue #1](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/1).
@@ -111,8 +114,8 @@ When reporting a bug, include your macOS or Windows version, OBS version, PowerP
 - Signed and notarized macOS `.pkg` installer
 - Second-Mac clean install verification
 - macOS v1.0 OBS Forum release
-- Windows beta validation on more machines
-- Universal macOS build if Intel demand appears
+- More real-machine feedback on Intel Macs
+- Windows validation on more machines
 
 ## License
 

@@ -4,9 +4,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-BUNDLE_PATH="$PROJECT_DIR/build/bundle/pptbridge-obs.plugin"
-DIST_DIR="$PROJECT_DIR/dist"
-PKG_PATH="$DIST_DIR/PPTBridge-SK-for-OBS-Installer.pkg"
+BUNDLE_PATH="${PPTBRIDGE_BUNDLE_PATH:-$PROJECT_DIR/build/bundle/pptbridge-obs.plugin}"
+DIST_DIR="${PPTBRIDGE_DIST_DIR:-$PROJECT_DIR/dist}"
+PKG_NAME="${PPTBRIDGE_PKG_NAME:-PPTBridge-SK-for-OBS-Installer.pkg}"
+PKG_PATH="$DIST_DIR/$PKG_NAME"
 INSTALL_LOCATION="/Library/Application Support/obs-studio/plugins"
 IDENTIFIER="com.srdjankotarlic.pptbridge-obs.installer"
 VERSION="$(sed -n 's/^project(.* VERSION \([0-9.][0-9.]*\).*/\1/p' "$PROJECT_DIR/CMakeLists.txt" | head -n 1)"

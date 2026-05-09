@@ -6,15 +6,18 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 VERSION="$(sed -n 's/^project(.* VERSION \([0-9.][0-9.]*\).*/\1/p' "$PROJECT_DIR/CMakeLists.txt" | head -n 1)"
 BRAND_SLUG="PPTBridge-SK-for-OBS"
-RELEASE_DIR="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-macOS"
-ZIP_PATH="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-macOS.zip"
-STABLE_ZIP_NAME="pptbridge-obs-macos-arm64.zip"
+RELEASE_SUFFIX="${PPTBRIDGE_RELEASE_SUFFIX:-macOS-Apple-Silicon}"
+DOWNLOAD_LABEL="${PPTBRIDGE_DOWNLOAD_LABEL:-Apple Silicon}"
+RELEASE_DIR="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-$RELEASE_SUFFIX"
+ZIP_PATH="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-$RELEASE_SUFFIX.zip"
+STABLE_ZIP_NAME="${PPTBRIDGE_ZIP_NAME:-pptbridge-obs-macos-apple-silicon.zip}"
 STABLE_ZIP_PATH="$PROJECT_DIR/release/$STABLE_ZIP_NAME"
-BUNDLE_PATH="$PROJECT_DIR/build/bundle/pptbridge-obs.plugin"
-PKG_PATH="$PROJECT_DIR/dist/PPTBridge-SK-for-OBS-Installer.pkg"
+BUNDLE_PATH="${PPTBRIDGE_BUNDLE_PATH:-$PROJECT_DIR/build/bundle/pptbridge-obs.plugin}"
+DIST_DIR="${PPTBRIDGE_DIST_DIR:-$PROJECT_DIR/dist}"
+PKG_PATH="$DIST_DIR/PPTBridge-SK-for-OBS-Installer.pkg"
 INSTALLER_NAME="Install-PPTBridge-SK.command"
 CHECKSUMS_PATH="$RELEASE_DIR/SHA256SUMS.txt"
-ZIP_CHECKSUM_PATH="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-macOS.zip.sha256"
+ZIP_CHECKSUM_PATH="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-$RELEASE_SUFFIX.zip.sha256"
 STABLE_ZIP_CHECKSUM_PATH="$PROJECT_DIR/release/$STABLE_ZIP_NAME.sha256"
 
 export COPYFILE_DISABLE=1
@@ -28,6 +31,8 @@ if [ ! -d "$BUNDLE_PATH" ]; then
   exit 1
 fi
 
+PPTBRIDGE_BUNDLE_PATH="$BUNDLE_PATH" \
+PPTBRIDGE_DIST_DIR="$DIST_DIR" \
 "$SCRIPT_DIR/make-pkg.sh"
 
 mkdir -p "$PROJECT_DIR/release"
@@ -59,6 +64,7 @@ cat > "$RELEASE_DIR/RELEASE-NOTES.md" <<EOF
 
 Version: $VERSION
 Author: Srđan Kotarlić
+macOS package: $DOWNLOAD_LABEL
 
 Included:
 - PPTBridge-SK-for-OBS-Installer.pkg
@@ -87,6 +93,7 @@ Install:
 3. The installer will copy the plugin and open OBS.
 4. Add \`PPTBridge SK Slide\` or \`PPTBridge SK Presenter\`.
 5. If macOS blocks the command, right-click it and choose \`Open\`.
+6. If the installer says the package does not match this Mac, download the other macOS ZIP.
 
 Runtime note:
 - If OBS starts in Safe Mode, third-party plugins are disabled.

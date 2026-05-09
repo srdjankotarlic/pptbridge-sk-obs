@@ -36,7 +36,8 @@ cd native-plugin
 Main outputs:
 
 - `release/PPTBridge-SK-for-OBS-v0.2.0-macOS.zip`
-- `release/pptbridge-obs-macos-arm64.zip`
+- `release/pptbridge-obs-macos-apple-silicon.zip`
+- `release/pptbridge-obs-macos-intel.zip`
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
 
 ## 2. Create The GitHub Repository
@@ -80,7 +81,8 @@ In GitHub:
 6. Paste the text from `GITHUB-RELEASE.md`
 7. Upload:
    - `PPTBridge-SK-for-OBS-v0.2.0-macOS.zip`
-   - `pptbridge-obs-macos-arm64.zip`
+   - `pptbridge-obs-macos-apple-silicon.zip`
+   - `pptbridge-obs-macos-intel.zip`
    - `PPTBridge-SK-for-OBS-Installer.pkg`
 8. Publish the release
 
@@ -119,7 +121,8 @@ Suggested release title:
 
 Suggested release assets:
 - `PPTBridge-SK-for-OBS-v0.2.0-macOS.zip`
-- `pptbridge-obs-macos-arm64.zip`
+- `pptbridge-obs-macos-apple-silicon.zip`
+- `pptbridge-obs-macos-intel.zip`
 - `PPTBridge-SK-for-OBS-Installer.pkg`
 
 Suggested OBS Forums title:

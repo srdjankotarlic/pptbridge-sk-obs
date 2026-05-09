@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS — Setup Guide
 
-**Created by Srđan Kotarlić** | v0.2.1
+**Created by Srđan Kotarlić** | v0.2.2
 
 ## What This Is
 
@@ -19,7 +19,7 @@ Use it when you want:
 
 You need:
 
-- Apple Silicon Mac
+- Apple Silicon or Intel Mac
 - OBS Studio on macOS 12 or newer
 - at least one `.pptx` file
 - Microsoft PowerPoint installed for `.pptx` live mode
@@ -32,7 +32,9 @@ Recommended:
 
 ### Recommended
 
-1. Download and unzip `pptbridge-obs-macos-arm64.zip`
+1. Download and unzip the right ZIP for your Mac:
+   - Apple Silicon: `pptbridge-obs-macos-apple-silicon.zip`
+   - Intel: `pptbridge-obs-macos-intel.zip`
 2. Quit OBS if it is open
 3. Open `START-HERE-macOS.txt`
 4. Double-click `Install-PPTBridge-SK.command`
@@ -116,6 +118,7 @@ Typical live workflow:
 
 For public sharing, use the native plugin release assets in:
 
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.2.1-macOS`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.2.2-macOS-Apple-Silicon`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.2.2-macOS-Intel`
 
 The legacy Python script remains in this repo only as historical reference.

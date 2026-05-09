@@ -17,19 +17,13 @@ fi
 TARGET_DIR="$HOME/Library/Application Support/obs-studio/plugins"
 TARGET_PATH="$TARGET_DIR/pptbridge-obs.plugin"
 BACKUP_PATH="$TARGET_DIR/pptbridge-obs.plugin.previous"
+PLUGIN_EXECUTABLE="$BUNDLE_PATH/Contents/MacOS/pptbridge-obs"
+MACHINE_ARCH="$(uname -m)"
 
 echo ""
 echo "PPTBridge SK for OBS"
 echo "by Srđan Kotarlić"
 echo ""
-
-if [ "$(uname -m)" != "arm64" ]; then
-  echo "This public macOS build is for Apple Silicon Macs only."
-  echo "Intel macOS support is not included in this release yet."
-  echo ""
-  read -r -p "Press Enter to close..."
-  exit 1
-fi
 
 if [ ! -d "$BUNDLE_PATH" ]; then
   echo "Built plugin bundle not found:"
@@ -39,6 +33,33 @@ if [ ! -d "$BUNDLE_PATH" ]; then
   exit 1
 fi
 
+PLUGIN_ARCHES="$(lipo -archs "$PLUGIN_EXECUTABLE" 2>/dev/null || true)"
+if [ -z "$PLUGIN_ARCHES" ]; then
+  echo "Could not detect the plugin architecture."
+  echo "Expected plugin executable:"
+  echo "$PLUGIN_EXECUTABLE"
+  echo ""
+  read -r -p "Press Enter to close..."
+  exit 1
+fi
+
+case " $PLUGIN_ARCHES " in
+  *" $MACHINE_ARCH "*) ;;
+  *)
+    echo "This installer does not match this Mac."
+    echo ""
+    echo "This Mac: $MACHINE_ARCH"
+    echo "This plugin package: $PLUGIN_ARCHES"
+    echo ""
+    echo "Download the matching PPTBridge SK macOS ZIP from GitHub:"
+    echo "- Apple Silicon Macs: pptbridge-obs-macos-apple-silicon.zip"
+    echo "- Intel Macs: pptbridge-obs-macos-intel.zip"
+    echo ""
+    read -r -p "Press Enter to close..."
+    exit 1
+    ;;
+esac
+
 if pgrep -x "OBS" >/dev/null 2>&1; then
   echo "OBS is currently running."
   echo "Please quit OBS before installing PPTBridge SK, then run this installer again."
@@ -47,10 +68,32 @@ if pgrep -x "OBS" >/dev/null 2>&1; then
   exit 1
 fi
 
+OBS_EXECUTABLE="/Applications/OBS.app/Contents/MacOS/OBS"
 if [ ! -d "/Applications/OBS.app" ]; then
   echo "OBS was not found at /Applications/OBS.app."
   echo "The plugin will still be installed, but install OBS Studio before testing it."
   echo ""
+elif [ -x "$OBS_EXECUTABLE" ]; then
+  OBS_ARCHES="$(lipo -archs "$OBS_EXECUTABLE" 2>/dev/null || true)"
+  if [ -n "$OBS_ARCHES" ]; then
+    MATCHING_OBS_ARCH=""
+    for arch in $PLUGIN_ARCHES; do
+      case " $OBS_ARCHES " in
+        *" $arch "*) MATCHING_OBS_ARCH="$arch"; break ;;
+      esac
+    done
+    if [ -z "$MATCHING_OBS_ARCH" ]; then
+      echo "Installed OBS does not match this plugin package."
+      echo ""
+      echo "OBS app architecture: $OBS_ARCHES"
+      echo "Plugin architecture: $PLUGIN_ARCHES"
+      echo ""
+      echo "Install the matching OBS Studio build, or download the matching PPTBridge SK package."
+      echo ""
+      read -r -p "Press Enter to close..."
+      exit 1
+    fi
+  fi
 fi
 
 mkdir -p "$TARGET_DIR"

@@ -76,5 +76,6 @@ Expected outputs:
 ```text
 native-plugin/dist/PPTBridge-SK-for-OBS-Installer.pkg
 native-plugin/release/PPTBridge-SK-for-OBS-v0.2.0-macOS.zip
-native-plugin/release/pptbridge-obs-macos-arm64.zip
+native-plugin/release/pptbridge-obs-macos-apple-silicon.zip
+native-plugin/release/pptbridge-obs-macos-intel.zip
 ```

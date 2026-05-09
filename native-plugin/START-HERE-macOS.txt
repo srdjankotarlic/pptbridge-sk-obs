@@ -1,16 +1,24 @@
-PPTBridge SK for OBS - macOS Apple Silicon
+PPTBridge SK for OBS - macOS
 Created by Srdjan Kotarlic
 
 FAST INSTALL
 
-1. Quit OBS if it is open.
-2. Double-click:
+1. Make sure you downloaded the right ZIP:
+
+   Apple Silicon Macs:
+   pptbridge-obs-macos-apple-silicon.zip
+
+   Intel Macs:
+   pptbridge-obs-macos-intel.zip
+
+2. Quit OBS if it is open.
+3. Double-click:
 
    Install-PPTBridge-SK.command
 
-3. If macOS blocks it, right-click the file and choose Open.
-4. The installer will copy the plugin and open OBS.
-5. In OBS, add a new source:
+4. If macOS blocks it, right-click the file and choose Open.
+5. The installer will copy the plugin and open OBS.
+6. In OBS, add a new source:
 
    PPTBridge SK Slide
 
@@ -32,7 +40,6 @@ Defaults:
 
 REQUIREMENTS
 
-- Apple Silicon Mac
 - macOS 12 or newer
 - OBS Studio 30 or newer
 - Microsoft PowerPoint for PPTX live mode

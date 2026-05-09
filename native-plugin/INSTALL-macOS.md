@@ -1,12 +1,18 @@
 # Install PPTBridge SK on macOS
 
-PPTBridge SK currently ships as an Apple Silicon macOS build.
+PPTBridge SK ships as separate macOS downloads for Apple Silicon and Intel Macs.
 
 ## Fast Install
 
-1. Download the latest macOS ZIP:
+1. Download the right ZIP for your Mac:
 
-   <https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-arm64.zip>
+   Apple Silicon:
+
+   <https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip>
+
+   Intel:
+
+   <https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip>
 
 2. Unzip it.
 3. Quit OBS if it is open.
@@ -49,7 +55,6 @@ Default bindings are:
 
 ## Requirements
 
-- Apple Silicon Mac
 - macOS 12 or newer
 - OBS Studio 30 or newer
 - Microsoft PowerPoint for `.pptx` live mode

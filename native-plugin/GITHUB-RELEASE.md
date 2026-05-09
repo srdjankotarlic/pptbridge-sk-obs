@@ -1,6 +1,6 @@
 # GitHub Release Body
 
-## PPTBridge SK for OBS v0.2.1
+## PPTBridge SK for OBS v0.2.2
 
 Created by **Srdjan Kotarlic**
 
@@ -19,11 +19,18 @@ PPTBridge SK for OBS is a native macOS OBS plugin that adds real PowerPoint sour
 - routes slideshow audio into OBS through the slide source, with dedicated app-audio capture in live mode
 - falls back to cached render mode when live mode is unavailable or disabled
 
-### What is better in v0.2.1
+### What is better in v0.2.2
+
+- separate Apple Silicon and Intel macOS ZIP downloads
+- installer checks that the downloaded package matches the user's Mac architecture
+- installer checks that installed OBS matches the plugin architecture before replacing the old plugin
+- GitHub README now makes the correct download obvious for M-series and Intel Macs
+
+### What was better in v0.2.1
 
 - easier install on a second Mac through `Install-PPTBridge-SK.command`
 - `START-HERE-macOS.txt` added to the release zip
-- installer now checks for Apple Silicon, asks the user to quit OBS before replacing the plugin, clears quarantine, validates the executable, and opens OBS after a successful install
+- installer asks the user to quit OBS before replacing the plugin, clears quarantine, validates the executable, and opens OBS after a successful install
 - README install steps now match the public ZIP package
 - release zip includes a focused macOS install guide
 
@@ -46,7 +53,9 @@ PPTBridge SK for OBS is a native macOS OBS plugin that adds real PowerPoint sour
 
 ### How to use it
 
-1. Download and unzip `pptbridge-obs-macos-arm64.zip`
+1. Download and unzip the ZIP that matches your Mac:
+   - Apple Silicon: `pptbridge-obs-macos-apple-silicon.zip`
+   - Intel: `pptbridge-obs-macos-intel.zip`
 2. Quit OBS
 3. Double-click `Install-PPTBridge-SK.command`
 4. Let the installer open OBS
@@ -64,8 +73,10 @@ PPTBridge SK for OBS is a native macOS OBS plugin that adds real PowerPoint sour
 
 ### Included assets
 
-- `PPTBridge-SK-for-OBS-v0.2.1-macOS.zip`
-- `pptbridge-obs-macos-arm64.zip`
+- `PPTBridge-SK-for-OBS-v0.2.2-macOS-Apple-Silicon.zip`
+- `PPTBridge-SK-for-OBS-v0.2.2-macOS-Intel.zip`
+- `pptbridge-obs-macos-apple-silicon.zip`
+- `pptbridge-obs-macos-intel.zip`
 - `PPTBridge-SK-for-OBS-Installer.pkg`
 - `Install-PPTBridge-SK.command`
 - `START-HERE-macOS.txt`
@@ -73,7 +84,7 @@ PPTBridge SK for OBS is a native macOS OBS plugin that adds real PowerPoint sour
 
 ### Install
 
-1. Download `pptbridge-obs-macos-arm64.zip`
+1. Download the right macOS ZIP for your Mac
 2. Unzip it
 3. Quit OBS
 4. Double-click `Install-PPTBridge-SK.command`
@@ -81,7 +92,7 @@ PPTBridge SK for OBS is a native macOS OBS plugin that adds real PowerPoint sour
 
 ### Notes
 
-- current public build is macOS-focused
+- Apple Silicon was runtime-tested locally; Intel was cross-built against the Intel OBS app and needs feedback from real Intel Macs
 - package is currently unsigned and not notarized
 - presenter notes appear only when the `.pptx` actually contains PPTX notes pages
 - presenter source is PPTBridge's own presenter layout, not a direct capture of PowerPoint's native presenter window

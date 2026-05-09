@@ -1,5 +1,7 @@
 build/
+build-*/
 dist/
+dist-*/
 release/
 output/
 third_party/obs-studio/
