@@ -4,14 +4,12 @@
 
 This folder contains the native OBS plugin version of PPTBridge SK.
 
-The main public release path today is the stable macOS build:
+The main public release path today is the stable macOS ZIP:
 
-- [Download the latest stable macOS `.pkg` installer](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/PPTBridge-SK-for-OBS-Installer.pkg)
+- [Download the latest stable macOS ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-arm64.zip)
 - [Open the latest stable macOS release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
 
-Windows testing now lives in a separate beta release:
-
-- [Open the Windows beta preview release](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.0-beta1)
+Windows work is kept in the source tree, but the main public download is macOS-only right now to avoid confusing users.
 
 It is designed to show up inside OBS as real source types:
 
@@ -35,15 +33,14 @@ This native version is built around a practical conference workflow:
 
 - macOS: stable public release path, tested and packaged
 - Windows: first native backend is now in the source tree, with PowerPoint-driven slide export, embedded media extraction for fallback playback, presenter render, live slideshow control, and OBS-side live capture/audio attachment attempts
-- Windows beta preview now includes both a source pack and a Windows installer preview for real-machine validation before a stable installer release
-- Windows is not published as a stable installer release yet because it still needs real Windows runtime validation and packaging
-- PDF input is not enabled yet in the Windows beta path
+- Windows is not published as a stable release yet because it still needs real Windows runtime validation and packaging
+- PDF input is not enabled yet in the Windows development path
 
 ## Quick Platform Guide
 
-- `v0.2.0` = macOS stable release
-- `v0.2.0-beta1` = Windows beta preview release
-- If someone asks "which one should I install?", the safe answer today is: macOS users install `v0.2.0`, Windows users test `v0.2.0-beta1`
+- `v0.2.1` = macOS stable release
+- Windows = in development, not the main public download yet
+- If someone asks "which one should I install?", the safe answer today is: macOS Apple Silicon users install `v0.2.1`
 
 ## What Problem It Solves
 
@@ -117,14 +114,16 @@ The local install script copies the plugin into:
 Two installer options are included:
 
 1. `PPTBridge-Install.command`
-   - double-click installer for the current macOS user
+   - easiest double-click installer for the current macOS user
    - installs into `~/Library/Application Support/obs-studio/plugins`
+   - checks that OBS is closed before replacing the plugin
+   - opens OBS after a successful install
 2. `scripts/make-pkg.sh`
    - builds a distributable `.pkg` installer
    - installs into `/Library/Application Support/obs-studio/plugins`
 3. `scripts/make-release.sh`
    - builds a shareable release folder and zip for other laptops
-   - includes the `.pkg`, the user installer, the plugin bundle, and publishing docs
+   - includes `START-HERE-macOS.txt`, the `.pkg`, the user installer, `INSTALL-macOS.md`, the plugin bundle, and publishing docs
 
 Build the package:
 
@@ -136,9 +135,8 @@ Build the package:
 Result:
 
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
-- `release/PPTBridge-SK-for-OBS-v0.2.0-macOS.zip`
+- `release/PPTBridge-SK-for-OBS-v0.2.1-macOS.zip`
 - `release/pptbridge-obs-macos-arm64.zip`
-- `release/PPTBridge-SK-Windows-Beta-v0.2.0-beta1-source.zip`
 
 ## Public Launch Kit
 
@@ -153,14 +151,11 @@ If you want to publish this properly, these files are prepared for you:
 - `SIGNING-AND-NOTARIZATION.md`
 - `WINDOWS-BETA-RELEASE.md`
 
-## Windows Beta Preview
+## Windows Status
 
-The current Windows deliverable is still beta, but it now has two public validation paths:
+Windows work is still in development and is intentionally not part of the main public download yet.
 
-- a source pack for build-level testing
-- a Windows installer preview zip for faster testing on real OBS machines
-
-What the Windows beta is designed to do:
+What the Windows path is designed to do:
 
 - load a PowerPoint deck directly from source properties
 - expose `PPTBridge SK Slide` and `PPTBridge SK Presenter` in OBS
@@ -168,11 +163,6 @@ What the Windows beta is designed to do:
 - attach the live slideshow window into OBS when possible
 - attempt OBS-side PowerPoint audio attachment through the live window or process-audio fallback
 - fall back to exported slides plus extracted embedded media when live attachment is not ready
-
-Windows beta files:
-
-- `release/PPTBridge-SK-Windows-Beta-v0.2.0-beta1-source.zip`
-- Windows GitHub beta release also carries the current installer preview zip
 
 Validation guide:
 

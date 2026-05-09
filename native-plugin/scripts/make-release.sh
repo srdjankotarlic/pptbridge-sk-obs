@@ -36,9 +36,11 @@ mkdir -p "$RELEASE_DIR"
 
 cp -R "$BUNDLE_PATH" "$RELEASE_DIR/pptbridge-obs.plugin"
 cp "$PROJECT_DIR/PPTBridge-Install.command" "$RELEASE_DIR/$INSTALLER_NAME"
+cp "$PROJECT_DIR/START-HERE-macOS.txt" "$RELEASE_DIR/START-HERE-macOS.txt"
 cp "$PROJECT_DIR/scripts/cleanup-legacy-python.sh" "$RELEASE_DIR/cleanup-legacy-python.sh"
 cp "$PKG_PATH" "$RELEASE_DIR/"
 cp "$PROJECT_DIR/README.md" "$RELEASE_DIR/README.md"
+cp "$PROJECT_DIR/INSTALL-macOS.md" "$RELEASE_DIR/INSTALL-macOS.md"
 cp "$PROJECT_DIR/PUBLISHING.md" "$RELEASE_DIR/PUBLISHING.md"
 cp "$PROJECT_DIR/PRO-AUDIO-MODE.md" "$RELEASE_DIR/PRO-AUDIO-MODE.md"
 cp "$PROJECT_DIR/GITHUB-RELEASE.md" "$RELEASE_DIR/GITHUB-RELEASE.md"
@@ -60,9 +62,11 @@ Author: Srđan Kotarlić
 
 Included:
 - PPTBridge-SK-for-OBS-Installer.pkg
+- START-HERE-macOS.txt
 - $INSTALLER_NAME
 - pptbridge-obs.plugin
 - README.md
+- INSTALL-macOS.md
 - PUBLISHING.md
 - PRO-AUDIO-MODE.md
 - GITHUB-RELEASE.md
@@ -78,9 +82,11 @@ What should appear in OBS:
 - PPTBridge SK Presenter
 
 Install:
-1. Use the \`.pkg\` for the cleanest install on another Mac.
-2. If needed, use \`$INSTALLER_NAME\` for current-user install.
-3. Restart OBS and bind hotkeys in \`Settings > Hotkeys\`.
+1. Quit OBS.
+2. Double-click \`$INSTALLER_NAME\` for the easiest current-user install.
+3. The installer will copy the plugin and open OBS.
+4. Add \`PPTBridge SK Slide\` or \`PPTBridge SK Presenter\`.
+5. If macOS blocks the command, right-click it and choose \`Open\`.
 
 Runtime note:
 - If OBS starts in Safe Mode, third-party plugins are disabled.
@@ -92,8 +98,10 @@ EOF
   cd "$RELEASE_DIR"
   shasum -a 256 \
     "PPTBridge-SK-for-OBS-Installer.pkg" \
+    "START-HERE-macOS.txt" \
     "$INSTALLER_NAME" \
     "README.md" \
+    "INSTALL-macOS.md" \
     "PUBLISHING.md" \
     "PRO-AUDIO-MODE.md" \
     "GITHUB-RELEASE.md" \

@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS — Setup Guide
 
-**Created by Srđan Kotarlić** | v0.2.0
+**Created by Srđan Kotarlić** | v0.2.1
 
 ## What This Is
 
@@ -19,29 +19,35 @@ Use it when you want:
 
 You need:
 
-- OBS Studio on macOS
+- Apple Silicon Mac
+- OBS Studio on macOS 12 or newer
 - at least one `.pptx` file
-- either LibreOffice or Microsoft PowerPoint installed
+- Microsoft PowerPoint installed for `.pptx` live mode
 
 Recommended:
 
 - install Microsoft PowerPoint for the preferred true live mode
-- install LibreOffice as a compatibility fallback
 
 ## Install The Plugin
 
-### Option 1. Recommended
+### Recommended
 
-1. Open the release folder
-2. Run `PPTBridge-SK-for-OBS-Installer.pkg`
-3. Finish the macOS installer
-4. Restart OBS
+1. Download and unzip `pptbridge-obs-macos-arm64.zip`
+2. Quit OBS if it is open
+3. Open `START-HERE-macOS.txt`
+4. Double-click `Install-PPTBridge-SK.command`
+5. If macOS blocks the command, right-click it and choose `Open`
+6. Let the installer copy the plugin and open OBS
 
-### Option 2. Current User Only
+### Manual Fallback
 
-1. Run `Install-PPTBridge-SK.command`
-2. Let it copy the plugin into your user OBS plugins folder
-3. Restart OBS
+Copy `pptbridge-obs.plugin` into:
+
+```text
+~/Library/Application Support/obs-studio/plugins/
+```
+
+Then restart OBS.
 
 ## Add The Sources In OBS
 
@@ -102,7 +108,7 @@ Typical live workflow:
 |---|---|
 | Plugin does not appear in OBS | Restart OBS normally, not Safe Mode |
 | Slides do not load | Confirm the `.pptx` exists and try `Reload Presentation` |
-| Conversion fails | Install LibreOffice and/or Microsoft PowerPoint |
+| PowerPoint live mode does not start | Confirm Microsoft PowerPoint is installed and allowed to open the deck |
 | Clicker does not move slides | Rebind the hotkeys in OBS |
 | Notes are missing | Check whether presenter notes exist inside the original `.pptx` |
 
@@ -110,6 +116,6 @@ Typical live workflow:
 
 For public sharing, use the native plugin release assets in:
 
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.2.0-macOS`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.2.1-macOS`
 
 The legacy Python script remains in this repo only as historical reference.

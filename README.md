@@ -8,10 +8,9 @@ PPTBridge SK adds two native OBS source types:
 - `PPTBridge SK Slide` - clean audience/program output
 - `PPTBridge SK Presenter` - speaker view with notes, next slide, and timer
 
-[![macOS stable](https://img.shields.io/badge/macOS-v0.2.0_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
+[![macOS stable](https://img.shields.io/badge/macOS-v0.2.1_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
 [![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-arm64-000000?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
 [![Download macOS plugin](https://img.shields.io/badge/Download-macOS_plugin-2da44e?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-arm64.zip)
-[![Windows](https://img.shields.io/badge/Windows-beta_preview-6f42c1?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.0-beta1)
 [![License](https://img.shields.io/badge/License-see_LICENSE-lightgrey?style=flat-square)](#license)
 
 ## Download
@@ -19,22 +18,22 @@ PPTBridge SK adds two native OBS source types:
 | Platform | Status | Download | Notes |
 | --- | --- | --- | --- |
 | macOS Apple Silicon | Stable | [`pptbridge-obs-macos-arm64.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-arm64.zip) | Recommended public build |
-| Windows | Beta preview | [`v0.2.0-beta1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.0-beta1) | Real-machine testing release |
+| Windows | In development | Not published as the main download | Kept out of the stable release to avoid confusing users |
 
 The public macOS ZIP is the safest current path. A signed and notarized `.pkg` installer is tracked for v1.0 in [Issue #1](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/1).
 
 ## Install on macOS
 
 1. Download and unzip [`pptbridge-obs-macos-arm64.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-arm64.zip).
-2. Copy `pptbridge-obs.plugin` into:
+2. Quit OBS if it is open.
+3. Open `START-HERE-macOS.txt`.
+4. Double-click `Install-PPTBridge-SK.command`.
+5. The installer will copy the plugin and open OBS.
+6. Add `PPTBridge SK Slide` or `PPTBridge SK Presenter`.
 
-   ```text
-   ~/Library/Application Support/obs-studio/plugins/
-   ```
+If macOS blocks the command the first time, right-click it and choose `Open`.
 
-3. Restart OBS and add `PPTBridge SK Slide` or `PPTBridge SK Presenter`.
-
-For a fuller walkthrough, see [SETUP-GUIDE.md](SETUP-GUIDE.md).
+For a fuller walkthrough, see [native-plugin/INSTALL-macOS.md](native-plugin/INSTALL-macOS.md) and [SETUP-GUIDE.md](SETUP-GUIDE.md).
 
 ## What It Solves
 
@@ -76,8 +75,7 @@ Tested locally on macOS 15 Sequoia, macOS 26 Tahoe, and OBS 32.x. Intel Mac supp
 
 | Release | Status | Use it for |
 | --- | --- | --- |
-| [`v0.2.0`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.0) | macOS stable | Current Apple Silicon public build |
-| [`v0.2.0-beta1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.0-beta1) | Windows beta | Testing on real Windows OBS machines |
+| [`v0.2.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.1) | macOS stable | Current Apple Silicon public build with easier installer |
 | `v1.0.0` | Planned | Signed/notarized macOS release and wider public launch |
 
 The v1.0 checklist lives in [Issue #1](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/1).

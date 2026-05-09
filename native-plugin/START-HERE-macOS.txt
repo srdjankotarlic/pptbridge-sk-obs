@@ -1,0 +1,53 @@
+PPTBridge SK for OBS - macOS Apple Silicon
+Created by Srdjan Kotarlic
+
+FAST INSTALL
+
+1. Quit OBS if it is open.
+2. Double-click:
+
+   Install-PPTBridge-SK.command
+
+3. If macOS blocks it, right-click the file and choose Open.
+4. The installer will copy the plugin and open OBS.
+5. In OBS, add a new source:
+
+   PPTBridge SK Slide
+
+   or
+
+   PPTBridge SK Presenter
+
+HOTKEYS
+
+Open OBS Settings > Hotkeys and search for PPTBridge SK.
+
+Defaults:
+
+- Next Slide: 2 / Page Down / Right Arrow / Space
+- Previous Slide: 1 / Page Up / Left Arrow
+- Black Screen: B
+- First Slide: Home
+- Last Slide: End
+
+REQUIREMENTS
+
+- Apple Silicon Mac
+- macOS 12 or newer
+- OBS Studio 30 or newer
+- Microsoft PowerPoint for PPTX live mode
+
+PDF decks can be used without PowerPoint.
+
+IF IT DOES NOT SHOW UP
+
+1. Make sure OBS is not in Safe Mode.
+2. Restart OBS again.
+3. In OBS, open Help > Log Files > View Current Log.
+4. Search for:
+
+   PPTBridge SK
+
+If the log does not say "Native plugin loaded", send the OBS log with a bug report:
+
+https://github.com/srdjankotarlic/pptbridge-sk-obs/issues
