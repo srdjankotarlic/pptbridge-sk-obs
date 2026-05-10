@@ -29,7 +29,7 @@ if [ ! -d "$BUNDLE_PATH" ]; then
   echo "Built plugin bundle not found:"
   echo "$BUNDLE_PATH"
   echo ""
-  echo "Build the plugin first or ask Claude/Codex to rebuild it."
+  echo "Build the plugin first, then run this installer again."
   exit 1
 fi
 
