@@ -14,6 +14,8 @@ PPTBridge SK adds two native OBS source types:
 [![Intel Mac](https://img.shields.io/badge/Intel_Mac-supported-555555?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
 [![License](https://img.shields.io/badge/License-see_LICENSE-lightgrey?style=flat-square)](#license)
 
+![PPTBridge SK social preview](native-plugin/media/github/pptbridge-sk-social-preview.png)
+
 ## Download
 
 | Platform | Status | Download | Notes |

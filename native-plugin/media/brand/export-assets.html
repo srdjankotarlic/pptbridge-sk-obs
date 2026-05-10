@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PPTBridge SK brand asset export</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    html,
+    body,
+    #root {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    #root {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel">
+    const params = new URLSearchParams(window.location.search);
+    const kind = params.get("kind") || "icon";
+    const size = Number(params.get("size") || 512);
+    const surface = params.get("surface") || "dark";
+    const tone = params.get("tone") || "color";
+
+    function ExportAsset() {
+      if (kind === "social") {
+        return <PPTSocialBanner width={1280} height={640} />;
+      }
+
+      return <PPTTile size={size} variant="primary" surface={surface} tone={tone} />;
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<ExportAsset />);
+  </script>
+</body>
+</html>
