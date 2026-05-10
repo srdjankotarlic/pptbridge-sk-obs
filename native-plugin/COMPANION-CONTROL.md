@@ -149,7 +149,7 @@ This matches the stage-friendly hotkey routing, but it does not require OBS to b
 Example terminal test after enabling OSC in OBS:
 
 ```bash
-printf '/pptbridge/next\\0\\0\\0' | nc -u -w 1 127.0.0.1 57130
+native-plugin/scripts/send-osc.sh /pptbridge/next
 ```
 
 Companion can use a generic OSC action to send the same address to `127.0.0.1:57130`.
