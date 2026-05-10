@@ -35,7 +35,8 @@ This native version is built around a practical conference workflow:
 
 ## Quick Platform Guide
 
-- `v0.3.0` = macOS stable release
+- `v0.4.0` = macOS stable release with Companion/OSC control
+- `v0.3.0` = previous macOS stable release with presenter customization
 - `v0.2.2` = previous macOS stable release
 - If someone asks "which one should I install?", the safe answer today is: M-series Mac users install the Apple Silicon ZIP; older Intel Mac users install the Intel ZIP.
 
@@ -131,8 +132,8 @@ Build the package:
 Result:
 
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
-- `release/PPTBridge-SK-for-OBS-v0.3.0-macOS-Apple-Silicon.zip`
-- `release/PPTBridge-SK-for-OBS-v0.3.0-macOS-Intel.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.0-macOS-Apple-Silicon.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.0-macOS-Intel.zip`
 - `release/pptbridge-obs-macos-apple-silicon.zip`
 - `release/pptbridge-obs-macos-intel.zip`
 
@@ -174,6 +175,7 @@ That gives you a clean dual-output workflow:
 You can change slides in two native ways:
 
 - bind OBS hotkeys such as `2` for next and `1` for previous, or choose your own narrow clicker bindings
+- send local OSC commands from Companion or another show-control tool to `127.0.0.1:57130`
 - open source `Properties` and use the built-in buttons:
   - `Previous Slide`
   - `Next Slide`

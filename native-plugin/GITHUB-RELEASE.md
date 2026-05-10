@@ -1,4 +1,4 @@
-## PPTBridge SK for OBS v0.3.0
+## PPTBridge SK for OBS v0.4.0
 
 Created by **Srdjan Kotarlic**
 
@@ -14,15 +14,15 @@ It adds real OBS source types:
 - Apple Silicon Macs: `pptbridge-obs-macos-apple-silicon.zip`
 - Intel Macs: `pptbridge-obs-macos-intel.zip`
 
-### What is new in v0.3.0
+### What is new in v0.4.0
 
-- Presenter layout presets: balanced, large preview, large notes, compact, and confidence monitor
-- Presenter split control for resizing the main slide versus the right notes/next-slide panel
-- PDF/current-slide preview scaling controls: fit, fill, crop, scale, and X/Y position
-- Notes controls: font size, notes/next-slide split, notes zoom, and notes text position
-- Safer hotkey behavior: PPTBridge only acts on hotkeys while OBS is the active app
-- Narrow first-launch defaults: `2` for next slide and `1` for previous slide
-- Legacy default hotkey migration for older installs that had PageDown/Right/Space and PageUp/Left defaults
+- Local OSC listener for Bitfocus Companion, Stream Deck, and show-control workflows
+- OBS `Tools > PPTBridge SK: Toggle Local OSC Control` menu item
+- OSC commands for `/pptbridge/next`, `/previous`, `/first`, `/last`, `/black`, and `/reload`
+- OSC state stored in OBS app config so it survives OBS restarts
+- `send-osc.sh` helper for quick terminal testing against `127.0.0.1:57130`
+- Companion setup guide for Generic OSC and OBS WebSocket property-button control
+- Keeps v0.3.0 presenter customization, safer OBS-focused hotkeys, and confidence monitor polish
 
 ### What it does
 
@@ -31,6 +31,7 @@ It adds real OBS source types:
 - creates a clean slide source for program output
 - creates a presenter source with notes, next slide preview, and timer
 - routes slideshow audio into OBS through the slide source, with dedicated app-audio capture in live mode
+- supports Companion/OSC control without relying on keyboard focus
 - falls back to cached render mode when live mode is unavailable or disabled
 
 ### How to use it
@@ -46,6 +47,21 @@ It adds real OBS source types:
 7. Point both sources to the same `.pptx` or `.pdf`.
 8. In OBS Hotkeys, use `2` for next slide and `1` for previous slide, or choose your own bindings.
 
+### Companion / OSC quick setup
+
+1. In OBS, open `Tools > PPTBridge SK: Toggle Local OSC Control`.
+2. In Bitfocus Companion, add a `Generic OSC` connection:
+   - Host: `127.0.0.1`
+   - Port: `57130`
+   - Protocol: `UDP`
+3. Add button actions that send OSC paths such as:
+   - `/pptbridge/next`
+   - `/pptbridge/previous`
+   - `/pptbridge/first`
+   - `/pptbridge/last`
+   - `/pptbridge/black`
+   - `/pptbridge/reload`
+
 ### Included assets
 
 - `pptbridge-obs-macos-apple-silicon.zip`
@@ -58,10 +74,12 @@ Each ZIP includes:
 - `Install-PPTBridge-SK.command`
 - `pptbridge-obs.plugin`
 - `INSTALL-macOS.md`
+- `COMPANION-CONTROL.md`
+- `send-osc.sh`
 
 ### Notes
 
-- Apple Silicon was runtime-tested locally.
+- Apple Silicon was runtime-tested locally with OBS and Bitfocus Companion Generic OSC.
 - Intel is cross-built against the Intel OBS app and should be validated on a real Intel Mac.
 - The package is currently unsigned and not notarized.
 - Presenter notes appear only when the `.pptx` actually contains PPTX notes pages.

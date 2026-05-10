@@ -47,6 +47,7 @@ cp "$PKG_PATH" "$RELEASE_DIR/"
 cp "$PROJECT_DIR/README.md" "$RELEASE_DIR/README.md"
 cp "$PROJECT_DIR/INSTALL-macOS.md" "$RELEASE_DIR/INSTALL-macOS.md"
 cp "$PROJECT_DIR/PUBLISHING.md" "$RELEASE_DIR/PUBLISHING.md"
+cp "$PROJECT_DIR/COMPANION-CONTROL.md" "$RELEASE_DIR/COMPANION-CONTROL.md"
 cp "$PROJECT_DIR/PRO-AUDIO-MODE.md" "$RELEASE_DIR/PRO-AUDIO-MODE.md"
 cp "$PROJECT_DIR/GITHUB-RELEASE.md" "$RELEASE_DIR/GITHUB-RELEASE.md"
 cp "$PROJECT_DIR/GITHUB-REPO-METADATA.md" "$RELEASE_DIR/GITHUB-REPO-METADATA.md"
@@ -55,9 +56,11 @@ cp "$PROJECT_DIR/OBS-FORUM-POST.md" "$RELEASE_DIR/OBS-FORUM-POST.md"
 cp "$PROJECT_DIR/RELEASE-CHECKLIST.md" "$RELEASE_DIR/RELEASE-CHECKLIST.md"
 cp "$PROJECT_DIR/SCREENSHOT-SHOTLIST.md" "$RELEASE_DIR/SCREENSHOT-SHOTLIST.md"
 cp "$PROJECT_DIR/SIGNING-AND-NOTARIZATION.md" "$RELEASE_DIR/SIGNING-AND-NOTARIZATION.md"
+cp "$PROJECT_DIR/scripts/send-osc.sh" "$RELEASE_DIR/send-osc.sh"
 
 chmod +x "$RELEASE_DIR/$INSTALLER_NAME"
 chmod +x "$RELEASE_DIR/cleanup-legacy-python.sh"
+chmod +x "$RELEASE_DIR/send-osc.sh"
 
 cat > "$RELEASE_DIR/RELEASE-NOTES.md" <<EOF
 # PPTBridge SK for OBS
@@ -74,6 +77,7 @@ Included:
 - README.md
 - INSTALL-macOS.md
 - PUBLISHING.md
+- COMPANION-CONTROL.md
 - PRO-AUDIO-MODE.md
 - GITHUB-RELEASE.md
 - GITHUB-REPO-METADATA.md
@@ -82,6 +86,7 @@ Included:
 - RELEASE-CHECKLIST.md
 - SCREENSHOT-SHOTLIST.md
 - SIGNING-AND-NOTARIZATION.md
+- send-osc.sh
 
 What should appear in OBS:
 - PPTBridge SK Slide
@@ -99,6 +104,7 @@ Runtime note:
 - If OBS starts in Safe Mode, third-party plugins are disabled.
 - True live PowerPoint mode is the preferred path on macOS when Microsoft PowerPoint is installed.
 - If live mode is unavailable or disabled, PPTBridge falls back to cached render mode for compatibility.
+- Companion/OSC control can send /pptbridge/next, /previous, /first, /last, /black, and /reload to 127.0.0.1:57130.
 EOF
 
 (
@@ -110,6 +116,7 @@ EOF
     "README.md" \
     "INSTALL-macOS.md" \
     "PUBLISHING.md" \
+    "COMPANION-CONTROL.md" \
     "PRO-AUDIO-MODE.md" \
     "GITHUB-RELEASE.md" \
     "GITHUB-REPO-METADATA.md" \
@@ -119,6 +126,7 @@ EOF
     "RELEASE-NOTES.md" \
     "SCREENSHOT-SHOTLIST.md" \
     "SIGNING-AND-NOTARIZATION.md" \
+    "send-osc.sh" \
     > "$CHECKSUMS_PATH"
 )
 

@@ -11,11 +11,14 @@
   - `PPTBridge SK Presenter` appears
   - hotkeys work
   - a sample `.pptx` loads
+  - `Tools > PPTBridge SK: Toggle Local OSC Control` starts the local OSC listener
+  - `send-osc.sh /pptbridge/next` moves the active program deck
+  - Companion Generic OSC can send `/pptbridge/next` to `127.0.0.1:57130`
 
 ## Assets To Upload
 
-- `PPTBridge-SK-for-OBS-v0.3.0-macOS-Apple-Silicon.zip`
-- `PPTBridge-SK-for-OBS-v0.3.0-macOS-Intel.zip`
+- `PPTBridge-SK-for-OBS-v0.4.0-macOS-Apple-Silicon.zip`
+- `PPTBridge-SK-for-OBS-v0.4.0-macOS-Intel.zip`
 - `pptbridge-obs-macos-apple-silicon.zip`
 - `pptbridge-obs-macos-intel.zip`
 - `PPTBridge-SK-for-OBS-Installer.pkg`
@@ -24,7 +27,7 @@
 
 - create the repository
 - push the code
-- create tag `v0.3.0`
+- create tag `v0.4.0`
 - create a GitHub Release
 - paste the body from `GITHUB-RELEASE.md`
 - upload the release assets

@@ -53,6 +53,25 @@ Default bindings are:
 PPTBridge only moves slides from hotkeys while OBS is the active app.
 You can bind different keys in OBS Settings > Hotkeys if needed.
 
+## Companion / OSC Control
+
+For Stream Deck or Bitfocus Companion control without keyboard focus:
+
+1. In OBS, open `Tools > PPTBridge SK: Toggle Local OSC Control`.
+2. In Companion, add a `Generic OSC` connection:
+   - Host: `127.0.0.1`
+   - Port: `57130`
+   - Protocol: `UDP`
+3. Add Companion buttons that send OSC paths such as:
+   - `/pptbridge/next`
+   - `/pptbridge/previous`
+   - `/pptbridge/first`
+   - `/pptbridge/last`
+   - `/pptbridge/black`
+   - `/pptbridge/reload`
+
+The release ZIP also includes `COMPANION-CONTROL.md` and `send-osc.sh` for setup/testing.
+
 ## Requirements
 
 - macOS 12 or newer
