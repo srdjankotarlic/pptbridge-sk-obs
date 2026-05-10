@@ -39,8 +39,8 @@ It adds real OBS source types:
 1. Download and unzip the ZIP that matches your Mac:
    - Apple Silicon: `pptbridge-obs-macos-apple-silicon.zip`
    - Intel: `pptbridge-obs-macos-intel.zip`
-2. Quit OBS.
-3. Double-click `Install-PPTBridge-SK.command`.
+2. Double-click `1-Install-PPTBridge-SK.command`.
+3. If OBS is open, let the installer quit it and continue.
 4. Let the installer open OBS.
 5. Add `PPTBridge SK Slide` to your program scene.
 6. Add `PPTBridge SK Presenter` to your confidence or speaker scene.
@@ -71,7 +71,7 @@ It adds real OBS source types:
 Each ZIP includes:
 
 - `START-HERE-macOS.txt`
-- `Install-PPTBridge-SK.command`
+- `1-Install-PPTBridge-SK.command`
 - `pptbridge-obs.plugin`
 - `INSTALL-macOS.md`
 - `COMPANION-CONTROL.md`

@@ -113,14 +113,14 @@ Two installer options are included:
 1. `PPTBridge-Install.command`
    - easiest double-click installer for the current macOS user
    - installs into `~/Library/Application Support/obs-studio/plugins`
-   - checks that OBS is closed before replacing the plugin
+   - offers to quit OBS before replacing the plugin
    - opens OBS after a successful install
 2. `scripts/make-pkg.sh`
    - builds a distributable `.pkg` installer
    - installs into `/Library/Application Support/obs-studio/plugins`
 3. `scripts/make-release.sh`
    - builds a shareable release folder and zip for other laptops
-   - includes `START-HERE-macOS.txt`, the `.pkg`, the user installer, `INSTALL-macOS.md`, the plugin bundle, and publishing docs
+   - includes `START-HERE-macOS.txt`, `1-Install-PPTBridge-SK.command`, the `.pkg`, `INSTALL-macOS.md`, the plugin bundle, and publishing docs
 
 Build the package:
 

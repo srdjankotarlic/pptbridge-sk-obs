@@ -15,10 +15,11 @@ PPTBridge SK ships as separate macOS downloads for Apple Silicon and Intel Macs.
    <https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip>
 
 2. Unzip it.
-3. Quit OBS if it is open.
-4. Double-click `Install-PPTBridge-SK.command`.
+3. Double-click `1-Install-PPTBridge-SK.command`.
+4. If OBS is open, let the installer quit it and continue.
 5. The installer will copy the plugin and open OBS.
-6. Add one of these sources:
+6. If OBS asks about Safe Mode, choose normal launch so third-party plugins load.
+7. Add one of these sources:
 
    - `PPTBridge SK Slide`
    - `PPTBridge SK Presenter`

@@ -15,7 +15,7 @@ STABLE_ZIP_PATH="$PROJECT_DIR/release/$STABLE_ZIP_NAME"
 BUNDLE_PATH="${PPTBRIDGE_BUNDLE_PATH:-$PROJECT_DIR/build/bundle/pptbridge-obs.plugin}"
 DIST_DIR="${PPTBRIDGE_DIST_DIR:-$PROJECT_DIR/dist}"
 PKG_PATH="$DIST_DIR/PPTBridge-SK-for-OBS-Installer.pkg"
-INSTALLER_NAME="Install-PPTBridge-SK.command"
+INSTALLER_NAME="1-Install-PPTBridge-SK.command"
 CHECKSUMS_PATH="$RELEASE_DIR/SHA256SUMS.txt"
 ZIP_CHECKSUM_PATH="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-$RELEASE_SUFFIX.zip.sha256"
 STABLE_ZIP_CHECKSUM_PATH="$PROJECT_DIR/release/$STABLE_ZIP_NAME.sha256"
@@ -93,8 +93,8 @@ What should appear in OBS:
 - PPTBridge SK Presenter
 
 Install:
-1. Quit OBS.
-2. Double-click \`$INSTALLER_NAME\` for the easiest current-user install.
+1. Double-click \`$INSTALLER_NAME\` for the easiest current-user install.
+2. If OBS is open, allow the installer to quit it and continue.
 3. The installer will copy the plugin and open OBS.
 4. Add \`PPTBridge SK Slide\` or \`PPTBridge SK Presenter\`.
 5. If macOS blocks the command, right-click it and choose \`Open\`.

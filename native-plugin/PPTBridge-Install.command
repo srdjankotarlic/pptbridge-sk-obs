@@ -62,10 +62,37 @@ esac
 
 if pgrep -x "OBS" >/dev/null 2>&1; then
   echo "OBS is currently running."
-  echo "Please quit OBS before installing PPTBridge SK, then run this installer again."
   echo ""
-  read -r -p "Press Enter to close..."
-  exit 1
+  echo "PPTBridge SK needs OBS closed while the plugin is copied."
+  read -r -p "Quit OBS now and continue installing? [Y/n] " QUIT_OBS_REPLY
+  case "$QUIT_OBS_REPLY" in
+    ""|[Yy]|[Yy][Ee][Ss])
+      osascript -e 'tell application "OBS" to quit' >/dev/null 2>&1 || true
+      for _ in {1..30}; do
+        if ! pgrep -x "OBS" >/dev/null 2>&1; then
+          break
+        fi
+        sleep 1
+      done
+      if pgrep -x "OBS" >/dev/null 2>&1; then
+        echo ""
+        echo "OBS did not quit yet."
+        echo "Please quit OBS manually, then run this installer again."
+        echo ""
+        read -r -p "Press Enter to close..."
+        exit 1
+      fi
+      echo "OBS is closed. Continuing install..."
+      echo ""
+      ;;
+    *)
+      echo ""
+      echo "Install cancelled. Quit OBS and run this installer again when ready."
+      echo ""
+      read -r -p "Press Enter to close..."
+      exit 1
+      ;;
+  esac
 fi
 
 OBS_EXECUTABLE="/Applications/OBS.app/Contents/MacOS/OBS"
@@ -158,5 +185,7 @@ echo "   - PPTBridge SK Presenter"
 echo "2. Check Settings > Hotkeys:"
 echo "   - Next Slide defaults to 2 / PageDown / Right / Space"
 echo "   - Previous Slide defaults to 1 / PageUp / Left"
+echo ""
+echo "If OBS asks about Safe Mode, choose normal launch so third-party plugins load."
 echo ""
 read -r -p "Press Enter to close..."

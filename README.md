@@ -30,9 +30,9 @@ The public macOS ZIPs are the safest current path. A signed and notarized `.pkg`
 1. Download and unzip the ZIP that matches your Mac:
    - Apple Silicon: [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
    - Intel: [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
-2. Quit OBS if it is open.
-3. Open `START-HERE-macOS.txt`.
-4. Double-click `Install-PPTBridge-SK.command`.
+2. Open `START-HERE-macOS.txt`.
+3. Double-click `1-Install-PPTBridge-SK.command`.
+4. If OBS is open, let the installer quit it and continue.
 5. The installer will copy the plugin and open OBS.
 6. Add `PPTBridge SK Slide` or `PPTBridge SK Presenter`.
 

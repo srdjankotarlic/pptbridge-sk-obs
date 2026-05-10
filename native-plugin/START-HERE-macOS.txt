@@ -11,14 +11,15 @@ FAST INSTALL
    Intel Macs:
    pptbridge-obs-macos-intel.zip
 
-2. Quit OBS if it is open.
-3. Double-click:
+2. Double-click:
 
-   Install-PPTBridge-SK.command
+   1-Install-PPTBridge-SK.command
 
+3. If OBS is open, let the installer quit it and continue.
 4. If macOS blocks it, right-click the file and choose Open.
 5. The installer will copy the plugin and open OBS.
-6. In OBS, add a new source:
+6. If OBS asks about Safe Mode, choose normal launch.
+7. In OBS, add a new source:
 
    PPTBridge SK Slide
 
