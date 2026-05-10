@@ -115,7 +115,7 @@ When reporting a bug, include your macOS version, Mac type, OBS version, PowerPo
 
 ## Roadmap
 
-- Companion control via OBS WebSocket workflow is documented; native OSC listener remains a later release scope
+- Companion control via OBS WebSocket workflow is documented; experimental local OSC listener is available for testing
 - Later video remaining-time support where PPTBridge can reliably read media timing
 - Signed and notarized macOS `.pkg` installer
 - Second-Mac clean install verification

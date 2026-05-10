@@ -1,7 +1,8 @@
 # PPTBridge SK Companion Control
 
 This guide is for running PPTBridge SK from a control surface without relying on keyboard focus.
-It is the recommended first Companion workflow before adding a native OSC listener.
+The safest production path is OBS WebSocket through Companion.
+PPTBridge SK also includes an experimental local OSC listener for direct control.
 
 ## Why This Path
 
@@ -10,6 +11,9 @@ That protects the show operator from accidentally changing slides while typing i
 
 For Companion, use OBS WebSocket requests instead of keyboard hotkeys.
 The request targets one exact PPTBridge source by name and presses the built-in source property button.
+
+For direct OSC, enable PPTBridge's local listener from the OBS `Tools` menu.
+It listens only on `127.0.0.1`, so it is intended for a control app running on the same machine.
 
 ## Requirements
 
@@ -109,6 +113,45 @@ For multiple decks, use clear source names and create one Companion button set p
 The WebSocket request targets the source named in `inputName`.
 It does not depend on OBS keyboard focus and does not use the scene-aware hotkey router.
 
+## Native OSC Control
+
+PPTBridge SK can also listen for local OSC messages without going through keyboard hotkeys.
+
+In OBS, use:
+
+`Tools > PPTBridge SK: Toggle Local OSC Control`
+
+Default listener:
+
+- Host: `127.0.0.1`
+- Port: `57130`
+- Protocol: UDP OSC
+
+Supported OSC addresses:
+
+| Action | OSC address |
+| --- | --- |
+| Previous slide | `/pptbridge/previous` |
+| Previous slide alias | `/pptbridge/prev` |
+| Next slide | `/pptbridge/next` |
+| First slide | `/pptbridge/first` |
+| Last slide | `/pptbridge/last` |
+| Toggle black screen | `/pptbridge/black` |
+| Toggle black screen alias | `/pptbridge/blank` |
+| Reload presentation | `/pptbridge/reload` |
+
+The OSC listener routes commands to the PPTBridge source in the current OBS program scene.
+If no PPTBridge source is in Program, it falls back to the last active PPTBridge document.
+This matches the stage-friendly hotkey routing, but it does not require OBS to be the focused app.
+
+Example terminal test after enabling OSC in OBS:
+
+```bash
+printf '/pptbridge/next\\0\\0\\0' | nc -u -w 1 127.0.0.1 57130
+```
+
+Companion can use a generic OSC action to send the same address to `127.0.0.1:57130`.
+
 ## Test Checklist
 
 1. Open OBS.
@@ -121,19 +164,15 @@ It does not depend on OBS keyboard focus and does not use the scene-aware hotkey
 8. Press the Companion `Next` button again.
 9. Confirm Companion still moves the chosen PPTBridge source.
 
-## Next Native OSC Phase
+## Next OSC Phase
 
-This WebSocket workflow is the low-risk first step for Companion.
-The next native phase can add an OSC listener inside PPTBridge SK, with addresses such as:
+The current native OSC listener is intentionally small and local-only.
+The next OSC phase can add:
 
-- `/pptbridge/next`
-- `/pptbridge/previous`
-- `/pptbridge/first`
-- `/pptbridge/last`
-- `/pptbridge/black`
-- `/pptbridge/reload`
-
-That should be implemented separately from v0.3.0 presenter customization and tested as its own release scope.
+- configurable port and bind address
+- status feedback/output
+- richer deck selection for multi-room shows
+- packaged Companion button templates
 
 ## References
 

@@ -47,6 +47,7 @@ configure_file(
 )
 
 set(PPTBRIDGE_SOURCES
+  src/pptbridge_osc_server.cpp
   src/pptbridge_registry.cpp
 )
 
@@ -146,6 +147,7 @@ elseif(WIN32)
   target_link_libraries(pptbridge-obs PRIVATE
     ${OBS_LIBOBS_LIBRARY}
     ${OBS_FRONTEND_LIBRARY}
+    ws2_32
     gdiplus
     ole32
     shell32

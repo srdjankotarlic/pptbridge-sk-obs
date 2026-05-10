@@ -194,6 +194,7 @@ Quick setup for stage control:
 After that, the speaker can drive the deck from OBS with the clicker and the active PPTBridge source will move forward/back.
 PPTBridge ignores hotkey callbacks while OBS is not the active app, so typing in another app will not move the presentation.
 For Stream Deck or Bitfocus Companion control that must work while another app is focused, use the OBS WebSocket workflow in `COMPANION-CONTROL.md` instead of keyboard hotkeys.
+For direct local OSC, enable `Tools > PPTBridge SK: Toggle Local OSC Control` and send OSC messages such as `/pptbridge/next` to `127.0.0.1:57130`.
 
 This plugin does not require the old `pptbridge_obs.py` workflow.
 The included installers also remove legacy PPTBridge Python script entries from OBS scene collections.

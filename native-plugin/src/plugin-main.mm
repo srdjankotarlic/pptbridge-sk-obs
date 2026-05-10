@@ -4,11 +4,14 @@
 #include <obs-frontend-api.h>
 
 #include <cstring>
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <unordered_set>
 #include <vector>
 
 #include "presentation_document.hpp"
+#include "pptbridge_osc_server.hpp"
 #include "pptbridge_registry.hpp"
 
 OBS_MODULE_USE_DEFAULT_LOCALE("pptbridge-obs", "en-US")
@@ -23,6 +26,9 @@ static obs_hotkey_id g_black_hotkey = OBS_INVALID_HOTKEY_ID;
 static obs_hotkey_id g_first_hotkey = OBS_INVALID_HOTKEY_ID;
 static obs_hotkey_id g_last_hotkey = OBS_INVALID_HOTKEY_ID;
 static bool g_default_hotkeys_checked = false;
+constexpr uint16_t kDefaultOscPort = 57130;
+static bool g_osc_enabled = false;
+static uint16_t g_osc_port = kDefaultOscPort;
 
 }  // namespace
 
@@ -54,6 +60,7 @@ enum class HotkeyAction {
   Black,
   First,
   Last,
+  Reload,
 };
 
 HotkeyAction kNext = HotkeyAction::Next;
@@ -61,6 +68,19 @@ HotkeyAction kPrevious = HotkeyAction::Previous;
 HotkeyAction kBlack = HotkeyAction::Black;
 HotkeyAction kFirst = HotkeyAction::First;
 HotkeyAction kLast = HotkeyAction::Last;
+
+const char *action_label(HotkeyAction action)
+{
+  switch (action) {
+  case HotkeyAction::Next:     return "next slide";
+  case HotkeyAction::Previous: return "previous slide";
+  case HotkeyAction::Black:    return "toggle black";
+  case HotkeyAction::First:    return "first slide";
+  case HotkeyAction::Last:     return "last slide";
+  case HotkeyAction::Reload:   return "reload presentation";
+  }
+  return "?";
+}
 
 bool obs_application_is_active()
 {
@@ -164,31 +184,19 @@ std::vector<std::shared_ptr<pptbridge::PresentationDocument>> resolve_target_doc
   return documents;
 }
 
-void hotkey_router(void *data, obs_hotkey_id, obs_hotkey_t *, bool pressed)
+void dispatch_action_to_documents(HotkeyAction action, const char *control_source)
 {
-  if (!pressed || !data) {
-    return;
-  }
-  if (!obs_application_is_active()) {
-    return;
-  }
-
   auto documents = resolve_target_documents();
   if (documents.empty()) {
-    blog(LOG_WARNING, "[PPTBridge SK] Hotkey pressed, but no PPTBridge source is in the current scene");
+    blog(LOG_WARNING, "[PPTBridge SK] %s control received, but no PPTBridge source is in the current scene",
+         control_source ? control_source : "Remote");
     return;
   }
 
-  const auto action = *static_cast<HotkeyAction *>(data);
-  const char *label = "?";
-  switch (action) {
-  case HotkeyAction::Next:     label = "next slide";      break;
-  case HotkeyAction::Previous: label = "previous slide";  break;
-  case HotkeyAction::Black:    label = "toggle black";    break;
-  case HotkeyAction::First:    label = "first slide";     break;
-  case HotkeyAction::Last:     label = "last slide";      break;
-  }
-  blog(LOG_INFO, "[PPTBridge SK] Hotkey: %s (targets=%zu)", label, documents.size());
+  blog(LOG_INFO, "[PPTBridge SK] %s: %s (targets=%zu)",
+       control_source ? control_source : "Remote",
+       action_label(action),
+       documents.size());
 
   for (const auto &document : documents) {
     if (!document) {
@@ -200,8 +208,102 @@ void hotkey_router(void *data, obs_hotkey_id, obs_hotkey_t *, bool pressed)
     case HotkeyAction::Black:    document->ToggleBlackScreen(); break;
     case HotkeyAction::First:    document->First();            break;
     case HotkeyAction::Last:     document->Last();             break;
+    case HotkeyAction::Reload:   document->ReloadAsync();      break;
     }
   }
+}
+
+void hotkey_router(void *data, obs_hotkey_id, obs_hotkey_t *, bool pressed)
+{
+  if (!pressed || !data) {
+    return;
+  }
+  if (!obs_application_is_active()) {
+    return;
+  }
+
+  dispatch_action_to_documents(*static_cast<HotkeyAction *>(data), "Hotkey");
+}
+
+HotkeyAction hotkey_action_from_osc(pptbridge::OscAction action)
+{
+  switch (action) {
+  case pptbridge::OscAction::Next:     return HotkeyAction::Next;
+  case pptbridge::OscAction::Previous: return HotkeyAction::Previous;
+  case pptbridge::OscAction::Black:    return HotkeyAction::Black;
+  case pptbridge::OscAction::First:    return HotkeyAction::First;
+  case pptbridge::OscAction::Last:     return HotkeyAction::Last;
+  case pptbridge::OscAction::Reload:   return HotkeyAction::Reload;
+  }
+  return HotkeyAction::Next;
+}
+
+void queued_osc_action_task(void *param)
+{
+  std::unique_ptr<HotkeyAction> action(static_cast<HotkeyAction *>(param));
+  if (!action) {
+    return;
+  }
+  dispatch_action_to_documents(*action, "OSC");
+}
+
+void osc_action_callback(pptbridge::OscAction action)
+{
+  auto *queued = new HotkeyAction(hotkey_action_from_osc(action));
+  obs_queue_task(OBS_TASK_UI, queued_osc_action_task, queued, false);
+}
+
+void set_osc_enabled(bool enabled)
+{
+  if (enabled) {
+    if (pptbridge::StartOscServer(g_osc_port, osc_action_callback)) {
+      g_osc_enabled = true;
+    } else {
+      g_osc_enabled = false;
+    }
+    return;
+  }
+
+  if (pptbridge::OscServerRunning()) {
+    pptbridge::StopOscServer();
+  }
+  g_osc_enabled = false;
+}
+
+void toggle_osc_menu(void *)
+{
+  set_osc_enabled(!g_osc_enabled);
+  blog(LOG_INFO, "[PPTBridge SK] OSC control is now %s", g_osc_enabled ? "enabled" : "disabled");
+  obs_frontend_save();
+}
+
+void save_pptbridge_data(obs_data_t *save_data, bool saving, void *)
+{
+  constexpr const char *kConfigKey = "pptbridge_sk";
+  if (saving) {
+    obs_data_t *obj = obs_data_create();
+    obs_data_set_bool(obj, "osc_enabled", g_osc_enabled);
+    obs_data_set_int(obj, "osc_port", g_osc_port);
+    obs_data_set_obj(save_data, kConfigKey, obj);
+    obs_data_release(obj);
+    return;
+  }
+
+  obs_data_t *obj = obs_data_get_obj(save_data, kConfigKey);
+  if (!obj) {
+    g_osc_port = kDefaultOscPort;
+    set_osc_enabled(false);
+    return;
+  }
+
+  obs_data_set_default_int(obj, "osc_port", kDefaultOscPort);
+  const int64_t saved_port = obs_data_get_int(obj, "osc_port");
+  g_osc_port = saved_port > 0 && saved_port <= 65535
+    ? static_cast<uint16_t>(saved_port)
+    : kDefaultOscPort;
+  const bool enabled = obs_data_get_bool(obj, "osc_enabled");
+  obs_data_release(obj);
+  set_osc_enabled(enabled);
 }
 
 void apply_default_bindings_if_empty(obs_hotkey_id id, const std::vector<obs_key_t> &keys, const char *log_label)
@@ -397,6 +499,8 @@ bool obs_module_load(void)
     &kLast);
 
   obs_frontend_add_event_callback(frontend_event_callback, nullptr);
+  obs_frontend_add_save_callback(save_pptbridge_data, nullptr);
+  obs_frontend_add_tools_menu_item("PPTBridge SK: Toggle Local OSC Control", toggle_osc_menu, nullptr);
 
   blog(LOG_INFO, "[PPTBridge SK] Native plugin loaded");
   return true;
@@ -404,5 +508,7 @@ bool obs_module_load(void)
 
 void obs_module_unload(void)
 {
+  set_osc_enabled(false);
+  obs_frontend_remove_save_callback(save_pptbridge_data, nullptr);
   obs_frontend_remove_event_callback(frontend_event_callback, nullptr);
 }
