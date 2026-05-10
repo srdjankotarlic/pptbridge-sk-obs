@@ -121,6 +121,8 @@ In OBS, use:
 
 `Tools > PPTBridge SK: Toggle Local OSC Control`
 
+The enabled/disabled state and port are stored in OBS app configuration, not in a scene collection.
+
 Default listener:
 
 - Host: `127.0.0.1`

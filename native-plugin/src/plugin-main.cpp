@@ -1,5 +1,6 @@
 #include <obs-module.h>
 #include <obs-frontend-api.h>
+#include <util/config-file.h>
 
 #include <windows.h>
 
@@ -26,6 +27,9 @@ static obs_hotkey_id g_first_hotkey = OBS_INVALID_HOTKEY_ID;
 static obs_hotkey_id g_last_hotkey = OBS_INVALID_HOTKEY_ID;
 static bool g_default_hotkeys_checked = false;
 constexpr uint16_t kDefaultOscPort = 57130;
+constexpr const char *kOscConfigSection = "PPTBridgeSK";
+constexpr const char *kOscEnabledConfigKey = "OscEnabled";
+constexpr const char *kOscPortConfigKey = "OscPort";
 static bool g_osc_enabled = false;
 static uint16_t g_osc_port = kDefaultOscPort;
 
@@ -188,40 +192,41 @@ void set_osc_enabled(bool enabled)
   g_osc_enabled = false;
 }
 
+void load_osc_settings_from_config()
+{
+  config_t *config = obs_frontend_get_app_config();
+  if (!config) {
+    return;
+  }
+
+  config_set_default_bool(config, kOscConfigSection, kOscEnabledConfigKey, false);
+  config_set_default_int(config, kOscConfigSection, kOscPortConfigKey, kDefaultOscPort);
+
+  const int64_t saved_port = config_get_int(config, kOscConfigSection, kOscPortConfigKey);
+  g_osc_port = saved_port > 0 && saved_port <= 65535
+    ? static_cast<uint16_t>(saved_port)
+    : kDefaultOscPort;
+
+  set_osc_enabled(config_get_bool(config, kOscConfigSection, kOscEnabledConfigKey));
+}
+
+void save_osc_settings_to_config()
+{
+  config_t *config = obs_frontend_get_app_config();
+  if (!config) {
+    return;
+  }
+
+  config_set_bool(config, kOscConfigSection, kOscEnabledConfigKey, g_osc_enabled);
+  config_set_int(config, kOscConfigSection, kOscPortConfigKey, g_osc_port);
+  config_save_safe(config, "tmp", nullptr);
+}
+
 void toggle_osc_menu(void *)
 {
   set_osc_enabled(!g_osc_enabled);
   blog(LOG_INFO, "[PPTBridge SK] OSC control is now %s", g_osc_enabled ? "enabled" : "disabled");
-  obs_frontend_save();
-}
-
-void save_pptbridge_data(obs_data_t *save_data, bool saving, void *)
-{
-  constexpr const char *kConfigKey = "pptbridge_sk";
-  if (saving) {
-    obs_data_t *obj = obs_data_create();
-    obs_data_set_bool(obj, "osc_enabled", g_osc_enabled);
-    obs_data_set_int(obj, "osc_port", g_osc_port);
-    obs_data_set_obj(save_data, kConfigKey, obj);
-    obs_data_release(obj);
-    return;
-  }
-
-  obs_data_t *obj = obs_data_get_obj(save_data, kConfigKey);
-  if (!obj) {
-    g_osc_port = kDefaultOscPort;
-    set_osc_enabled(false);
-    return;
-  }
-
-  obs_data_set_default_int(obj, "osc_port", kDefaultOscPort);
-  const int64_t saved_port = obs_data_get_int(obj, "osc_port");
-  g_osc_port = saved_port > 0 && saved_port <= 65535
-    ? static_cast<uint16_t>(saved_port)
-    : kDefaultOscPort;
-  const bool enabled = obs_data_get_bool(obj, "osc_enabled");
-  obs_data_release(obj);
-  set_osc_enabled(enabled);
+  save_osc_settings_to_config();
 }
 
 void apply_default_bindings_if_empty(obs_hotkey_id id, const std::vector<obs_key_t> &keys, const char *log_label)
@@ -372,6 +377,7 @@ void apply_default_hotkeys_if_needed()
 void frontend_event_callback(enum obs_frontend_event event, void *)
 {
   if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING) {
+    load_osc_settings_from_config();
     apply_default_hotkeys_if_needed();
   }
 }
@@ -415,7 +421,6 @@ bool obs_module_load(void)
     &kLast);
 
   obs_frontend_add_event_callback(frontend_event_callback, nullptr);
-  obs_frontend_add_save_callback(save_pptbridge_data, nullptr);
   obs_frontend_add_tools_menu_item("PPTBridge SK: Toggle Local OSC Control", toggle_osc_menu, nullptr);
 
   blog(LOG_INFO, "[PPTBridge SK] Native plugin loaded");
@@ -425,6 +430,5 @@ bool obs_module_load(void)
 void obs_module_unload(void)
 {
   set_osc_enabled(false);
-  obs_frontend_remove_save_callback(save_pptbridge_data, nullptr);
   obs_frontend_remove_event_callback(frontend_event_callback, nullptr);
 }
