@@ -30,6 +30,33 @@ struct EmbeddedMedia {
   bool loop = false;
 };
 
+enum class PresenterLayoutPreset {
+  Balanced,
+  LargePreview,
+  LargeNotes,
+  Compact,
+  ConfidenceMonitor,
+};
+
+enum class PresenterPreviewScaleMode {
+  Fit,
+  Fill,
+  Crop,
+};
+
+struct PresenterRenderOptions {
+  PresenterLayoutPreset layout = PresenterLayoutPreset::Balanced;
+  PresenterPreviewScaleMode preview_scale_mode = PresenterPreviewScaleMode::Fit;
+  double preview_scale_percent = 100.0;
+  double preview_position_x = 0.0;
+  double preview_position_y = 0.0;
+  double side_panel_width_percent = 100.0;
+  double notes_font_size = 16.0;
+  double notes_area_percent = 100.0;
+  double notes_zoom_percent = 100.0;
+  double notes_position_y = 0.0;
+};
+
 class PresentationDocument : public std::enable_shared_from_this<PresentationDocument> {
 public:
   explicit PresentationDocument(std::string pptx_path);
@@ -80,7 +107,8 @@ public:
     uint32_t width,
     uint32_t height,
     std::vector<uint8_t> &out_pixels,
-    uint32_t &out_stride
+    uint32_t &out_stride,
+    const PresenterRenderOptions &options
   ) const;
 
 private:

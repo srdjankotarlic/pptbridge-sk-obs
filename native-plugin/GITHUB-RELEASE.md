@@ -1,4 +1,4 @@
-## PPTBridge SK for OBS v0.2.2
+## PPTBridge SK for OBS v0.3.0
 
 Created by **Srdjan Kotarlic**
 
@@ -14,67 +14,37 @@ It adds real OBS source types:
 - Apple Silicon Macs: `pptbridge-obs-macos-apple-silicon.zip`
 - Intel Macs: `pptbridge-obs-macos-intel.zip`
 
+### What is new in v0.3.0
+
+- Presenter layout presets: balanced, large preview, large notes, compact, and confidence monitor
+- Presenter split control for resizing the main slide versus the right notes/next-slide panel
+- PDF/current-slide preview scaling controls: fit, fill, crop, scale, and X/Y position
+- Notes controls: font size, notes/next-slide split, notes zoom, and notes text position
+- Safer hotkey behavior: PPTBridge only acts on hotkeys while OBS is the active app
+- Narrow first-launch defaults: `2` for next slide and `1` for previous slide
+- Legacy default hotkey migration for older installs that had PageDown/Right/Space and PageUp/Left defaults
+
 ### What it does
 
-- loads a `.pptx` directly from OBS source properties
+- loads a `.pptx` or `.pdf` directly from OBS source properties
 - defaults to true live PowerPoint playback on macOS when Microsoft PowerPoint is installed
 - creates a clean slide source for program output
 - creates a presenter source with notes, next slide preview, and timer
-- supports clicker-friendly OBS hotkeys
 - routes slideshow audio into OBS through the slide source, with dedicated app-audio capture in live mode
 - falls back to cached render mode when live mode is unavailable or disabled
-
-### What is better in v0.2.2
-
-- separate Apple Silicon and Intel macOS ZIP downloads
-- installer checks that the downloaded package matches the user's Mac architecture
-- installer checks that installed OBS matches the plugin architecture before replacing the old plugin
-- GitHub README now makes the correct download obvious for M-series and Intel Macs
-
-### What was better in v0.2.1
-
-- easier install on a second Mac through `Install-PPTBridge-SK.command`
-- `START-HERE-macOS.txt` added to the release zip
-- installer asks the user to quit OBS before replacing the plugin, clears quarantine, validates the executable, and opens OBS after a successful install
-- README install steps now match the public ZIP package
-- release zip includes a focused macOS install guide
-
-### What was added in v0.2.0
-
-- multi-deck scene routing for shows with different decks per scene
-- native multi-page PDF support on macOS
-- Logitech Spotlight-friendly background hotkey defaults
-- windowed PowerPoint slideshow mode with automatic title-bar crop
-- deck cache moved into `~/Library/Application Support/PPTBridge SK/cache` for macOS 26 compatibility
-- faster live-session attach when PowerPoint is already running the deck
-- dedicated app-audio capture path in live mode
-
-### How it works now
-
-- `PPTBridge SK Slide` is the main live show source
-- in true live mode, Microsoft PowerPoint runs the slideshow and PPTBridge captures it into OBS
-- `PPTBridge SK Presenter` shows PPTBridge's own presenter layout with notes, next slide preview, and timer
-- OBS hotkeys move the active presentation
 
 ### How to use it
 
 1. Download and unzip the ZIP that matches your Mac:
    - Apple Silicon: `pptbridge-obs-macos-apple-silicon.zip`
    - Intel: `pptbridge-obs-macos-intel.zip`
-2. Quit OBS
-3. Double-click `Install-PPTBridge-SK.command`
-4. Let the installer open OBS
-5. Add `PPTBridge SK Slide` to your program scene
-6. Add `PPTBridge SK Presenter` to your confidence or speaker scene
-7. Point both sources to the same `.pptx`
-8. In `PPTBridge SK Slide`, keep `Use True Live PowerPoint Mode` enabled
-
-### Best use case
-
-- conferences
-- church / live event productions
-- keynote-style presentations
-- stage confidence monitor workflows
+2. Quit OBS.
+3. Double-click `Install-PPTBridge-SK.command`.
+4. Let the installer open OBS.
+5. Add `PPTBridge SK Slide` to your program scene.
+6. Add `PPTBridge SK Presenter` to your confidence or speaker scene.
+7. Point both sources to the same `.pptx` or `.pdf`.
+8. In OBS Hotkeys, use `2` for next slide and `1` for previous slide, or choose your own bindings.
 
 ### Included assets
 
@@ -89,21 +59,14 @@ Each ZIP includes:
 - `pptbridge-obs.plugin`
 - `INSTALL-macOS.md`
 
-### Install
-
-1. Download the right macOS ZIP for your Mac
-2. Unzip it
-3. Quit OBS
-4. Double-click `Install-PPTBridge-SK.command`
-5. Add `PPTBridge SK Slide` and `PPTBridge SK Presenter`
-
 ### Notes
 
-- Apple Silicon was runtime-tested locally; Intel was cross-built against the Intel OBS app and needs feedback from real Intel Macs
-- package is currently unsigned and not notarized
-- presenter notes appear only when the `.pptx` actually contains PPTX notes pages
-- presenter source is PPTBridge's own presenter layout, not a direct capture of PowerPoint's native presenter window
-- if you need strict OBS control over locally monitored PowerPoint audio, use the `PRO-AUDIO-MODE.md` guide with BlackHole or Loopback
+- Apple Silicon was runtime-tested locally.
+- Intel is cross-built against the Intel OBS app and should be validated on a real Intel Mac.
+- The package is currently unsigned and not notarized.
+- Presenter notes appear only when the `.pptx` actually contains PPTX notes pages.
+- Presenter source is PPTBridge's own presenter layout, not a direct capture of PowerPoint's native presenter window.
+- If you need strict OBS control over locally monitored PowerPoint audio, use the `PRO-AUDIO-MODE.md` guide with BlackHole or Loopback.
 
 ### Author
 

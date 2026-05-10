@@ -30,7 +30,7 @@ constexpr const char *kHotkeyHelp =
   "1. First launch default: key 2 = next slide, key 1 = previous slide\n"
   "2. Open Settings > Hotkeys\n"
   "3. Bind or change PPTBridge SK: Next Slide / Previous Slide\n"
-  "4. For a clicker, use Right Arrow or Page Down for next, Left Arrow or Page Up for previous\n"
+  "4. PPTBridge only acts on hotkeys while OBS is the active app, so typing in another window will not move slides\n"
   "5. Use Add Existing across scenes so one shared source owns state, media, and audio\n"
   "6. Use the buttons below for quick testing inside OBS";
 
@@ -55,6 +55,121 @@ constexpr auto kLiveSyncIntervalActive = std::chrono::milliseconds(250);
 constexpr auto kLiveSyncIntervalIdle = std::chrono::seconds(1);
 constexpr int kWindowCaptureMethodAuto = 0;
 constexpr int kWindowPriorityTitle = 1;
+
+PresenterLayoutPreset presenter_layout_from_setting(const char *value)
+{
+  const std::string setting = value ? value : "";
+  if (setting == "large_preview") {
+    return PresenterLayoutPreset::LargePreview;
+  }
+  if (setting == "large_notes") {
+    return PresenterLayoutPreset::LargeNotes;
+  }
+  if (setting == "compact") {
+    return PresenterLayoutPreset::Compact;
+  }
+  if (setting == "confidence_monitor") {
+    return PresenterLayoutPreset::ConfidenceMonitor;
+  }
+  return PresenterLayoutPreset::Balanced;
+}
+
+PresenterPreviewScaleMode presenter_preview_scale_from_setting(const char *value)
+{
+  const std::string setting = value ? value : "";
+  if (setting == "fill") {
+    return PresenterPreviewScaleMode::Fill;
+  }
+  if (setting == "crop") {
+    return PresenterPreviewScaleMode::Crop;
+  }
+  return PresenterPreviewScaleMode::Fit;
+}
+
+double clamp_setting(double value, double minimum, double maximum, double fallback)
+{
+  if (value < minimum || value > maximum) {
+    value = value <= 0.0 ? fallback : value;
+  }
+  return std::clamp(value, minimum, maximum);
+}
+
+PresenterRenderOptions presenter_options_from_settings(obs_data_t *settings)
+{
+  PresenterRenderOptions options;
+  if (!settings) {
+    return options;
+  }
+
+  options.layout = presenter_layout_from_setting(obs_data_get_string(settings, "presenter_layout"));
+  options.preview_scale_mode =
+    presenter_preview_scale_from_setting(obs_data_get_string(settings, "presenter_preview_scale_mode"));
+  options.preview_scale_percent =
+    clamp_setting(obs_data_get_double(settings, "presenter_preview_scale_percent"), 25.0, 300.0, 100.0);
+  options.preview_position_x =
+    clamp_setting(obs_data_get_double(settings, "presenter_preview_position_x"), -100.0, 100.0, 0.0);
+  options.preview_position_y =
+    clamp_setting(obs_data_get_double(settings, "presenter_preview_position_y"), -100.0, 100.0, 0.0);
+  options.side_panel_width_percent =
+    clamp_setting(obs_data_get_double(settings, "presenter_side_panel_width_percent"), 50.0, 220.0, 100.0);
+  options.notes_font_size =
+    clamp_setting(obs_data_get_double(settings, "presenter_notes_font_size"), 10.0, 42.0, 16.0);
+  options.notes_area_percent =
+    clamp_setting(obs_data_get_double(settings, "presenter_notes_area_percent"), 60.0, 180.0, 100.0);
+  options.notes_zoom_percent =
+    clamp_setting(obs_data_get_double(settings, "presenter_notes_zoom_percent"), 50.0, 200.0, 100.0);
+  options.notes_position_y =
+    clamp_setting(obs_data_get_double(settings, "presenter_notes_position_y"), -100.0, 100.0, 0.0);
+  return options;
+}
+
+bool presenter_options_equal(const PresenterRenderOptions &left, const PresenterRenderOptions &right)
+{
+  return left.layout == right.layout &&
+         left.preview_scale_mode == right.preview_scale_mode &&
+         left.preview_scale_percent == right.preview_scale_percent &&
+         left.preview_position_x == right.preview_position_x &&
+         left.preview_position_y == right.preview_position_y &&
+         left.side_panel_width_percent == right.side_panel_width_percent &&
+         left.notes_font_size == right.notes_font_size &&
+         left.notes_area_percent == right.notes_area_percent &&
+         left.notes_zoom_percent == right.notes_zoom_percent &&
+         left.notes_position_y == right.notes_position_y;
+}
+
+void add_presenter_customization_properties(obs_properties_t *props)
+{
+  obs_property_t *layout = obs_properties_add_list(
+    props,
+    "presenter_layout",
+    "Presenter Layout",
+    OBS_COMBO_TYPE_LIST,
+    OBS_COMBO_FORMAT_STRING);
+  obs_property_list_add_string(layout, "Balanced", "balanced");
+  obs_property_list_add_string(layout, "Large Preview", "large_preview");
+  obs_property_list_add_string(layout, "Large Notes", "large_notes");
+  obs_property_list_add_string(layout, "Compact", "compact");
+  obs_property_list_add_string(layout, "Confidence Monitor", "confidence_monitor");
+
+  obs_property_t *scale_mode = obs_properties_add_list(
+    props,
+    "presenter_preview_scale_mode",
+    "Preview Scale Mode",
+    OBS_COMBO_TYPE_LIST,
+    OBS_COMBO_FORMAT_STRING);
+  obs_property_list_add_string(scale_mode, "Fit", "fit");
+  obs_property_list_add_string(scale_mode, "Fill", "fill");
+  obs_property_list_add_string(scale_mode, "Crop", "crop");
+
+  obs_properties_add_float_slider(props, "presenter_preview_scale_percent", "Preview Scale (%)", 25.0, 300.0, 1.0);
+  obs_properties_add_float_slider(props, "presenter_preview_position_x", "Preview Position X", -100.0, 100.0, 1.0);
+  obs_properties_add_float_slider(props, "presenter_preview_position_y", "Preview Position Y", -100.0, 100.0, 1.0);
+  obs_properties_add_float_slider(props, "presenter_side_panel_width_percent", "Right Panel Width (%)", 50.0, 220.0, 1.0);
+  obs_properties_add_float_slider(props, "presenter_notes_font_size", "Notes Font Size", 10.0, 42.0, 1.0);
+  obs_properties_add_float_slider(props, "presenter_notes_area_percent", "Notes / Next Slide Split (%)", 60.0, 180.0, 1.0);
+  obs_properties_add_float_slider(props, "presenter_notes_zoom_percent", "Notes Zoom (%)", 50.0, 200.0, 1.0);
+  obs_properties_add_float_slider(props, "presenter_notes_position_y", "Notes Text Position Y", -100.0, 100.0, 1.0);
+}
 
 struct MediaPlaybackSnapshot {
   obs_source_t *source = nullptr;
@@ -1009,7 +1124,8 @@ void refresh_texture_if_needed(SourceContext *context)
       context->width,
       context->height,
       context->pixels,
-      context->stride);
+      context->stride,
+      context->presenter_options);
   } else {
     ok = context->document->RenderSlideBGRA(
       context->width,
@@ -1119,6 +1235,16 @@ void source_defaults(obs_data_t *settings)
   obs_data_set_default_bool(settings, "use_live_app_audio", true);
   obs_data_set_default_bool(settings, "auto_recover_live", true);
   obs_data_set_default_double(settings, "audio_gain_db", 0.0);
+  obs_data_set_default_string(settings, "presenter_layout", "balanced");
+  obs_data_set_default_string(settings, "presenter_preview_scale_mode", "fit");
+  obs_data_set_default_double(settings, "presenter_preview_scale_percent", 100.0);
+  obs_data_set_default_double(settings, "presenter_preview_position_x", 0.0);
+  obs_data_set_default_double(settings, "presenter_preview_position_y", 0.0);
+  obs_data_set_default_double(settings, "presenter_side_panel_width_percent", 100.0);
+  obs_data_set_default_double(settings, "presenter_notes_font_size", 16.0);
+  obs_data_set_default_double(settings, "presenter_notes_area_percent", 100.0);
+  obs_data_set_default_double(settings, "presenter_notes_zoom_percent", 100.0);
+  obs_data_set_default_double(settings, "presenter_notes_position_y", 0.0);
 }
 
 obs_properties_t *source_properties(SourceContext *context)
@@ -1133,6 +1259,9 @@ obs_properties_t *source_properties(SourceContext *context)
     nullptr);
   obs_properties_add_int(props, "canvas_width", "Canvas Width", 320, 7680, 1);
   obs_properties_add_int(props, "canvas_height", "Canvas Height", 240, 4320, 1);
+  if (context && context->mode == ViewMode::Presenter) {
+    add_presenter_customization_properties(props);
+  }
   if (context && context->mode == ViewMode::Slide) {
     obs_properties_add_bool(props, "use_live_powerpoint", "Use True Live PowerPoint Mode");
     obs_properties_add_bool(props, "audio_enabled", "Enable PPTBridge Audio Output");
@@ -1190,11 +1319,13 @@ void source_update(SourceContext *context, obs_data_t *settings)
   const bool use_live_app_audio = obs_data_get_bool(settings, "use_live_app_audio");
   const bool auto_recover_live = obs_data_get_bool(settings, "auto_recover_live");
   const double audio_gain_db = obs_data_get_double(settings, "audio_gain_db");
+  const PresenterRenderOptions presenter_options = presenter_options_from_settings(settings);
 
   const bool path_changed = context->pptx_path != (path ? path : "");
   const bool size_changed = context->width != width || context->height != height;
   const bool live_mode_changed = context->use_live_powerpoint != use_live_powerpoint;
   const bool live_audio_mode_changed = context->use_live_app_audio != use_live_app_audio;
+  const bool presenter_options_changed = !presenter_options_equal(context->presenter_options, presenter_options);
 
   context->pptx_path = path ? path : "";
   context->width = width;
@@ -1204,6 +1335,7 @@ void source_update(SourceContext *context, obs_data_t *settings)
   context->use_live_app_audio = use_live_app_audio;
   context->auto_recover_live = auto_recover_live;
   context->audio_gain_db = audio_gain_db;
+  context->presenter_options = presenter_options;
 
   if (!context->pptx_path.empty()) {
     Registry::Instance().AttachSource(
@@ -1247,7 +1379,7 @@ void source_update(SourceContext *context, obs_data_t *settings)
     }
   }
 
-  if (path_changed || size_changed || live_mode_changed) {
+  if (path_changed || size_changed || live_mode_changed || presenter_options_changed) {
     source_destroy_texture(context);
   }
 

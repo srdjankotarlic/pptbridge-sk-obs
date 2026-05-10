@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS — Setup Guide
 
-**Created by Srđan Kotarlić** | v0.2.2
+**Created by Srđan Kotarlić** | v0.3.0
 
 ## What This Is
 
@@ -76,10 +76,14 @@ Recommended setup:
    - `PPTBridge SK: Toggle Black Screen`
    - optional `First Slide` and `Last Slide`
 
-Recommended clicker mapping:
+Safe default mapping:
 
-- next = `Right Arrow` or `Page Down`
-- previous = `Left Arrow` or `Page Up`
+- next = `2`
+- previous = `1`
+
+PPTBridge only acts on those hotkeys while OBS is the active app. You can bind
+different keys or a clicker in OBS, but typing in another app will not move the
+presentation.
 
 ## Presenter Workflow
 
@@ -97,6 +101,15 @@ Typical live workflow:
 - presenter notes
 - running timer
 - black screen badge when enabled
+
+## Presenter Customization
+
+`PPTBridge SK Presenter` source properties include layout presets for balanced,
+large-preview, large-notes, compact, and confidence-monitor views. You can also
+adjust the split between the main slide and the right presenter panel, slide
+preview fit/fill/crop behavior, preview scale and position, notes font size,
+notes zoom, notes text position, and the split between next-slide preview and
+notes.
 
 ## Current Limitations
 
@@ -118,7 +131,7 @@ Typical live workflow:
 
 For public sharing, use the native plugin release assets in:
 
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.2.2-macOS-Apple-Silicon`
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.2.2-macOS-Intel`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.3.0-macOS-Apple-Silicon`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.3.0-macOS-Intel`
 
 The legacy Python script remains in this repo only as historical reference.

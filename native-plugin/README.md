@@ -25,6 +25,7 @@ This native version is built around a practical conference workflow:
 - route slideshow audio into the OBS mixer through the slide source, with a built-in gain trim and dedicated PowerPoint app-audio capture in live mode
 - expose a clean audience source and a presenter source
 - render presenter notes, next-slide preview, and timer in a dedicated PPTBridge presenter layout
+- customize the presenter layout, presenter split, preview scaling, preview position, notes font size, notes zoom, notes text position, and notes area
 - control slide navigation through OBS frontend hotkeys
 - fall back to cached render mode with PDF thumbnails and best-effort media handling when live mode is unavailable or disabled
 
@@ -34,7 +35,8 @@ This native version is built around a practical conference workflow:
 
 ## Quick Platform Guide
 
-- `v0.2.2` = macOS stable release
+- `v0.3.0` = macOS stable release
+- `v0.2.2` = previous macOS stable release
 - If someone asks "which one should I install?", the safe answer today is: M-series Mac users install the Apple Silicon ZIP; older Intel Mac users install the Intel ZIP.
 
 ## What Problem It Solves
@@ -129,8 +131,8 @@ Build the package:
 Result:
 
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
-- `release/PPTBridge-SK-for-OBS-v0.2.2-macOS-Apple-Silicon.zip`
-- `release/PPTBridge-SK-for-OBS-v0.2.2-macOS-Intel.zip`
+- `release/PPTBridge-SK-for-OBS-v0.3.0-macOS-Apple-Silicon.zip`
+- `release/PPTBridge-SK-for-OBS-v0.3.0-macOS-Intel.zip`
 - `release/pptbridge-obs-macos-apple-silicon.zip`
 - `release/pptbridge-obs-macos-intel.zip`
 
@@ -159,7 +161,7 @@ Recommended workflow:
 3. Point both to the same `.pptx`
 4. Open `Settings > Hotkeys`
 5. Bind `PPTBridge SK: Next Slide` and `PPTBridge SK: Previous Slide`
-6. Let the speaker drive slides with a Spotlight-style clicker
+6. Let the speaker drive slides with OBS-focused hotkeys
 
 That gives you a clean dual-output workflow:
 
@@ -170,7 +172,7 @@ That gives you a clean dual-output workflow:
 
 You can change slides in two native ways:
 
-- bind OBS hotkeys such as `Right Arrow` / `Page Down` for next and `Left Arrow` / `Page Up` for previous
+- bind OBS hotkeys such as `2` for next and `1` for previous, or choose your own narrow clicker bindings
 - open source `Properties` and use the built-in buttons:
   - `Previous Slide`
   - `Next Slide`
@@ -179,16 +181,17 @@ You can change slides in two native ways:
   - `Toggle Black Screen`
   - `Reload Presentation`
 
-Quick setup for a Spotlight-style clicker:
+Quick setup for stage control:
 
 1. In OBS, open `Settings > Hotkeys`
 2. Search for `PPTBridge SK`
-3. On first launch, PPTBridge SK now defaults to `2` for next slide and `1` for previous slide if you have not set your own bindings yet
-4. Optionally change `PPTBridge SK: Next Slide` to the key your clicker sends for next, usually `Right Arrow` or `Page Down`
-5. Optionally change `PPTBridge SK: Previous Slide` to the key your clicker sends for previous, usually `Left Arrow` or `Page Up`
+3. On first launch, PPTBridge SK defaults to `2` for next slide and `1` for previous slide if you have not set your own bindings yet
+4. Optionally change `PPTBridge SK: Next Slide` to the key your clicker sends for next
+5. Optionally change `PPTBridge SK: Previous Slide` to the key your clicker sends for previous
 6. Click `Apply`
 
-After that, the speaker can drive the deck from the stage with the clicker and the active PPTBridge source will move forward/back.
+After that, the speaker can drive the deck from OBS with the clicker and the active PPTBridge source will move forward/back.
+PPTBridge ignores hotkey callbacks while OBS is not the active app, so typing in another app will not move the presentation.
 
 This plugin does not require the old `pptbridge_obs.py` workflow.
 The included installers also remove legacy PPTBridge Python script entries from OBS scene collections.
@@ -199,6 +202,7 @@ This native pass is focused on the installable OBS source workflow and rendering
 It is designed to run as a real plugin bundle, without requiring the old Python PPTBridge script to stay loaded in OBS.
 On macOS with Microsoft PowerPoint installed, `PPTBridge SK Slide` defaults to true live mode and lets PowerPoint itself handle slideshow builds, animations, and embedded media.
 `PPTBridge SK Presenter` is PPTBridge's own presenter layout, synchronized with the deck and fed by PPTX notes pages and slide thumbnails.
+The presenter source exposes balanced, large-preview, large-notes, compact, and confidence-monitor layout presets, plus presenter split, preview scale/position, notes zoom, notes text position, and notes sizing controls.
 Presenter notes will only appear when the `.pptx` really contains notes pages for those slides.
 If live mode is unavailable or disabled, PPTBridge falls back to cached render mode for compatibility.
 If you want strict OBS control over local PowerPoint audio during a live show, see `PRO-AUDIO-MODE.md` for the BlackHole and Loopback routing setups.

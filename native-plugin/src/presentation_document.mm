@@ -1530,6 +1530,65 @@ NSRect AspectFitRect(NSSize content_size, NSRect bounds)
     fitted.height);
 }
 
+CGFloat ClampCGFloat(CGFloat value, CGFloat minimum, CGFloat maximum)
+{
+  return std::min(std::max(value, minimum), maximum);
+}
+
+void SplitVerticalPanelHeights(
+  CGFloat available_height,
+  CGFloat gap,
+  CGFloat notes_ratio,
+  CGFloat &next_height,
+  CGFloat &notes_height)
+{
+  const CGFloat panel_height = std::max<CGFloat>(1.0, available_height - gap);
+  const CGFloat min_next = std::min<CGFloat>(90.0, panel_height * 0.45);
+  const CGFloat min_notes = std::min<CGFloat>(80.0, std::max<CGFloat>(0.0, panel_height - min_next));
+  notes_height = ClampCGFloat(panel_height * notes_ratio, min_notes, panel_height - min_next);
+  next_height = panel_height - notes_height;
+}
+
+void SplitConfidenceHeights(
+  CGFloat available_height,
+  CGFloat gap,
+  CGFloat strip_ratio,
+  CGFloat &preview_height,
+  CGFloat &strip_height)
+{
+  const CGFloat panel_height = std::max<CGFloat>(1.0, available_height - gap);
+  const CGFloat min_strip = std::min<CGFloat>(112.0, panel_height * 0.30);
+  const CGFloat max_strip = std::max<CGFloat>(min_strip, panel_height * 0.42);
+  strip_height = ClampCGFloat(available_height * 0.22 * strip_ratio, min_strip, max_strip);
+  preview_height = panel_height - strip_height;
+}
+
+NSRect PositionedPreviewRect(NSSize content_size, NSRect bounds, const PresenterRenderOptions &options)
+{
+  if (content_size.width <= 0 || content_size.height <= 0 ||
+      bounds.size.width <= 0 || bounds.size.height <= 0) {
+    return bounds;
+  }
+
+  const CGFloat fit_scale = std::min(bounds.size.width / content_size.width, bounds.size.height / content_size.height);
+  const CGFloat fill_scale = std::max(bounds.size.width / content_size.width, bounds.size.height / content_size.height);
+  CGFloat scale = options.preview_scale_mode == PresenterPreviewScaleMode::Fit ? fit_scale : fill_scale;
+  CGFloat user_scale = ClampCGFloat(static_cast<CGFloat>(options.preview_scale_percent) / 100.0, 0.25, 3.0);
+  if (options.preview_scale_mode == PresenterPreviewScaleMode::Crop) {
+    user_scale = std::max<CGFloat>(1.0, user_scale);
+  }
+  scale *= user_scale;
+
+  const NSSize draw_size = NSMakeSize(content_size.width * scale, content_size.height * scale);
+  const CGFloat x_weight = (ClampCGFloat(static_cast<CGFloat>(options.preview_position_x), -100.0, 100.0) + 100.0) / 200.0;
+  const CGFloat y_weight = (ClampCGFloat(static_cast<CGFloat>(options.preview_position_y), -100.0, 100.0) + 100.0) / 200.0;
+  return NSMakeRect(
+    bounds.origin.x + ((bounds.size.width - draw_size.width) * x_weight),
+    bounds.origin.y + ((bounds.size.height - draw_size.height) * y_weight),
+    draw_size.width,
+    draw_size.height);
+}
+
 void FillRect(NSRect rect, NSColor *color)
 {
   [color setFill];
@@ -1580,6 +1639,31 @@ void DrawPageThumbnail(PDFDocument *document, std::size_t index, NSRect rect)
   }
   NSRect destination = AspectFitRect(thumbnail.size, rect);
   [thumbnail drawInRect:destination];
+}
+
+void DrawPagePreview(PDFDocument *document, std::size_t index, NSRect rect, const PresenterRenderOptions &options)
+{
+  FillRect(rect, [NSColor blackColor]);
+  if (!document || index >= static_cast<std::size_t>(document.pageCount)) {
+    return;
+  }
+
+  PDFPage *page = [document pageAtIndex:static_cast<NSInteger>(index)];
+  if (!page) {
+    return;
+  }
+
+  const NSRect page_bounds = [page boundsForBox:kPDFDisplayBoxMediaBox];
+  const NSRect destination = PositionedPreviewRect(page_bounds.size, rect, options);
+  NSImage *thumbnail = [page thumbnailOfSize:destination.size forBox:kPDFDisplayBoxMediaBox];
+  if (!thumbnail) {
+    return;
+  }
+
+  [NSGraphicsContext saveGraphicsState];
+  [[NSBezierPath bezierPathWithRect:rect] addClip];
+  [thumbnail drawInRect:destination];
+  [NSGraphicsContext restoreGraphicsState];
 }
 
 std::string FormatTimer(uint64_t seconds)
@@ -2283,7 +2367,8 @@ bool PresentationDocument::RenderPresenterBGRA(
   uint32_t width,
   uint32_t height,
   std::vector<uint8_t> &out_pixels,
-  uint32_t &out_stride) const
+  uint32_t &out_stride,
+  const PresenterRenderOptions &options) const
 {
   @autoreleasepool {
     PDFDocument *document = nil;
@@ -2328,11 +2413,31 @@ bool PresentationDocument::RenderPresenterBGRA(
     NSRect canvas = NSMakeRect(0, 0, width, height);
     FillRect(canvas, [NSColor colorWithCalibratedRed:0.05 green:0.07 blue:0.10 alpha:1.0]);
 
-    NSRect top_bar = NSMakeRect(0, height - 56, width, 56);
-    FillRect(top_bar, [NSColor colorWithCalibratedRed:0.07 green:0.10 blue:0.13 alpha:1.0]);
-    DrawLabel(@"PPTBridge SK Presenter", NSMakeRect(24, height - 40, 320, 24), [NSColor whiteColor], [NSFont boldSystemFontOfSize:20]);
-    DrawLabel(ToNSString(name), NSMakeRect(24, height - 62, width - 320, 18), [NSColor colorWithWhite:0.65 alpha:1.0], [NSFont systemFontOfSize:12 weight:NSFontWeightRegular]);
-    DrawLabel(ToNSString(FormatTimer(timer_seconds)), NSMakeRect(width - 120, height - 40, 96, 24), [NSColor whiteColor], [NSFont monospacedDigitSystemFontOfSize:20 weight:NSFontWeightSemibold]);
+    const bool confidence_layout = options.layout == PresenterLayoutPreset::ConfidenceMonitor;
+    const bool compact_layout = options.layout == PresenterLayoutPreset::Compact;
+    const CGFloat top_bar_height = confidence_layout ? 0.0 : (compact_layout ? 44.0 : 56.0);
+
+    if (top_bar_height > 0.0) {
+      NSRect top_bar = NSMakeRect(0, height - top_bar_height, width, top_bar_height);
+      FillRect(top_bar, [NSColor colorWithCalibratedRed:0.07 green:0.10 blue:0.13 alpha:1.0]);
+      DrawLabel(
+        @"PPTBridge SK Presenter",
+        NSMakeRect(24, height - (compact_layout ? 32 : 40), 320, 24),
+        [NSColor whiteColor],
+        [NSFont boldSystemFontOfSize:(compact_layout ? 16 : 20)]);
+      if (!compact_layout) {
+        DrawLabel(
+          ToNSString(name),
+          NSMakeRect(24, height - 62, width - 320, 18),
+          [NSColor colorWithWhite:0.65 alpha:1.0],
+          [NSFont systemFontOfSize:12 weight:NSFontWeightRegular]);
+      }
+      DrawLabel(
+        ToNSString(FormatTimer(timer_seconds)),
+        NSMakeRect(width - 120, height - (compact_layout ? 32 : 40), 96, 24),
+        [NSColor whiteColor],
+        [NSFont monospacedDigitSystemFontOfSize:(compact_layout ? 16 : 20) weight:NSFontWeightSemibold]);
+    }
 
     if (black) {
       NSRect badge = NSMakeRect(width - 260, height - 45, 120, 28);
@@ -2354,7 +2459,7 @@ bool PresentationDocument::RenderPresenterBGRA(
       } else {
         subtitle = error.empty() ? @"Choose a .pptx in source properties" : ToNSString(error);
       }
-      DrawCenteredMessage(@"PPTBridge SK", subtitle, NSMakeRect(0, 0, width, height - 56));
+      DrawCenteredMessage(@"PPTBridge SK", subtitle, NSMakeRect(0, 0, width, height - top_bar_height));
       [NSGraphicsContext restoreGraphicsState];
       out_stride = static_cast<uint32_t>(bitmap.bytesPerRow);
       CopyBitmapToBGRA(bitmap, height, out_pixels);
@@ -2363,7 +2468,7 @@ bool PresentationDocument::RenderPresenterBGRA(
 
     const std::size_t pdf_slide_count = document ? static_cast<std::size_t>(document.pageCount) : 0;
     if (pdf_slide_count == 0) {
-      DrawCenteredMessage(@"PPTBridge SK", @"Presenter thumbnails are not available for this deck yet.", NSMakeRect(0, 0, width, height - 56));
+      DrawCenteredMessage(@"PPTBridge SK", @"Presenter thumbnails are not available for this deck yet.", NSMakeRect(0, 0, width, height - top_bar_height));
       [NSGraphicsContext restoreGraphicsState];
       out_stride = static_cast<uint32_t>(bitmap.bytesPerRow);
       CopyBitmapToBGRA(bitmap, height, out_pixels);
@@ -2373,15 +2478,73 @@ bool PresentationDocument::RenderPresenterBGRA(
     current = std::min(current, pdf_slide_count - 1);
     const std::size_t shown_slide_count = slide_count > 0 ? slide_count : pdf_slide_count;
 
-    CGFloat margin = 18.0;
-    CGFloat right_width = std::max<CGFloat>(320.0, width * 0.28);
-    NSRect left = NSMakeRect(margin, margin + 60, width - right_width - margin * 3, height - 56 - margin * 2 - 60);
-    NSRect right = NSMakeRect(NSMaxX(left) + margin, margin + 60, right_width, height - 56 - margin * 2 - 60);
+    const CGFloat margin = compact_layout ? 10.0 : 18.0;
+    const CGFloat gap = compact_layout ? 10.0 : 16.0;
+    const CGFloat footer_height = compact_layout ? 42.0 : 54.0;
+    const CGFloat content_bottom = margin + footer_height;
+    const CGFloat content_top = height - top_bar_height - margin;
+    const CGFloat content_height = std::max<CGFloat>(1.0, content_top - content_bottom);
+    const CGFloat content_width = std::max<CGFloat>(120.0, width - (margin * 2.0));
 
-    FillRect(left, [NSColor blackColor]);
-    DrawPageThumbnail(document, current, left);
+    CGFloat right_ratio = 0.28;
+    CGFloat notes_base_ratio = 0.62;
+    if (options.layout == PresenterLayoutPreset::LargePreview) {
+      right_ratio = 0.22;
+      notes_base_ratio = 0.56;
+    } else if (options.layout == PresenterLayoutPreset::LargeNotes) {
+      right_ratio = 0.36;
+      notes_base_ratio = 0.76;
+    } else if (compact_layout) {
+      right_ratio = 0.24;
+      notes_base_ratio = 0.58;
+    }
 
-    NSRect slide_count_rect = NSMakeRect(left.origin.x, 18, 180, 30);
+    NSRect left = NSZeroRect;
+    NSRect right = NSZeroRect;
+    NSRect next_box = NSZeroRect;
+    NSRect notes_box = NSZeroRect;
+
+    if (confidence_layout) {
+      const CGFloat strip_ratio =
+        ClampCGFloat(static_cast<CGFloat>(options.notes_area_percent) / 100.0, 0.60, 1.80);
+      CGFloat preview_height = 0.0;
+      CGFloat strip_height = 0.0;
+      SplitConfidenceHeights(content_height, gap, strip_ratio, preview_height, strip_height);
+      left = NSMakeRect(
+        margin,
+        content_bottom + strip_height + gap,
+        content_width,
+        preview_height);
+      right = NSMakeRect(margin, content_bottom, content_width, strip_height);
+      const CGFloat next_width = ClampCGFloat(right.size.width * 0.28, 120.0, right.size.width * 0.42);
+      next_box = NSMakeRect(right.origin.x, right.origin.y, next_width, right.size.height);
+      notes_box = NSMakeRect(
+        NSMaxX(next_box) + gap,
+        right.origin.y,
+        std::max<CGFloat>(80.0, right.size.width - next_box.size.width - gap),
+        right.size.height);
+    } else {
+      const CGFloat minimum_right = compact_layout ? 240.0 : 300.0;
+      const CGFloat maximum_right = std::max<CGFloat>(180.0, content_width - 220.0 - gap);
+      const CGFloat right_panel_scale =
+        ClampCGFloat(static_cast<CGFloat>(options.side_panel_width_percent) / 100.0, 0.50, 2.20);
+      const CGFloat right_width = ClampCGFloat(width * right_ratio * right_panel_scale, minimum_right, maximum_right);
+      left = NSMakeRect(margin, content_bottom, content_width - right_width - gap, content_height);
+      right = NSMakeRect(NSMaxX(left) + gap, content_bottom, right_width, content_height);
+
+      const CGFloat notes_multiplier =
+        ClampCGFloat(static_cast<CGFloat>(options.notes_area_percent) / 100.0, 0.60, 1.80);
+      CGFloat notes_ratio = ClampCGFloat(notes_base_ratio * notes_multiplier, 0.38, 0.86);
+      CGFloat next_height = 0.0;
+      CGFloat notes_height = 0.0;
+      SplitVerticalPanelHeights(right.size.height, gap, notes_ratio, next_height, notes_height);
+      next_box = NSMakeRect(right.origin.x, NSMaxY(right) - next_height, right.size.width, next_height);
+      notes_box = NSMakeRect(right.origin.x, right.origin.y, right.size.width, notes_height);
+    }
+
+    DrawPagePreview(document, current, left, options);
+
+    NSRect slide_count_rect = NSMakeRect(left.origin.x, compact_layout ? 10 : 18, 210, 30);
     DrawLabel(
       [NSString stringWithFormat:@"Slide %lu / %lu",
         static_cast<unsigned long>(current + 1),
@@ -2390,31 +2553,48 @@ bool PresentationDocument::RenderPresenterBGRA(
       [NSColor colorWithWhite:0.75 alpha:1.0],
       [NSFont monospacedDigitSystemFontOfSize:15 weight:NSFontWeightMedium]);
 
-    NSRect next_box = NSMakeRect(right.origin.x, right.origin.y + right.size.height - 220, right.size.width, 200);
     [[NSColor colorWithCalibratedRed:0.08 green:0.11 blue:0.15 alpha:1.0] setFill];
-    [[NSBezierPath bezierPathWithRoundedRect:next_box xRadius:18 yRadius:18] fill];
-    DrawLabel(@"Next Slide", NSMakeRect(next_box.origin.x + 16, NSMaxY(next_box) - 28, 200, 18), [NSColor colorWithWhite:0.78 alpha:1.0], [NSFont boldSystemFontOfSize:13]);
+    [[NSBezierPath bezierPathWithRoundedRect:next_box xRadius:8 yRadius:8] fill];
+    DrawLabel(@"Next Slide", NSMakeRect(next_box.origin.x + 14, NSMaxY(next_box) - 26, 200, 18), [NSColor colorWithWhite:0.78 alpha:1.0], [NSFont boldSystemFontOfSize:13]);
     if (current + 1 < pdf_slide_count) {
-      DrawPageThumbnail(document, current + 1, NSInsetRect(next_box, 14, 18));
+      NSRect next_preview_rect = NSMakeRect(
+        next_box.origin.x + 12.0,
+        next_box.origin.y + 12.0,
+        std::max<CGFloat>(1.0, next_box.size.width - 24.0),
+        std::max<CGFloat>(1.0, next_box.size.height - 48.0));
+      DrawPagePreview(document, current + 1, next_preview_rect, options);
     } else {
       DrawCenteredMessage(@"End", @"No next slide", next_box);
     }
 
-    NSRect notes_box = NSMakeRect(right.origin.x, right.origin.y, right.size.width, right.size.height - 236);
     [[NSColor colorWithCalibratedRed:0.08 green:0.11 blue:0.15 alpha:1.0] setFill];
-    [[NSBezierPath bezierPathWithRoundedRect:notes_box xRadius:18 yRadius:18] fill];
-    DrawLabel(@"Presenter Notes", NSMakeRect(notes_box.origin.x + 16, NSMaxY(notes_box) - 28, 240, 18), [NSColor colorWithWhite:0.78 alpha:1.0], [NSFont boldSystemFontOfSize:13]);
+    [[NSBezierPath bezierPathWithRoundedRect:notes_box xRadius:8 yRadius:8] fill];
+    DrawLabel(@"Presenter Notes", NSMakeRect(notes_box.origin.x + 14, NSMaxY(notes_box) - 26, 240, 18), [NSColor colorWithWhite:0.78 alpha:1.0], [NSFont boldSystemFontOfSize:13]);
 
     std::string notes;
     if (current < slides.size()) {
       notes = slides[current].notes;
     }
     NSString *notes_text = notes.empty() ? @"No presenter notes found in the PPTX notes page for this slide." : ToNSString(notes);
+    const CGFloat notes_zoom =
+      ClampCGFloat(static_cast<CGFloat>(options.notes_zoom_percent) / 100.0, 0.50, 2.00);
+    const CGFloat notes_font_size =
+      ClampCGFloat(static_cast<CGFloat>(options.notes_font_size) * notes_zoom, 8.0, 64.0);
     NSDictionary *notes_attrs = @{
       NSForegroundColorAttributeName : notes.empty() ? [NSColor colorWithWhite:0.55 alpha:1.0] : [NSColor colorWithWhite:0.95 alpha:1.0],
-      NSFontAttributeName : [NSFont monospacedSystemFontOfSize:16 weight:NSFontWeightRegular],
+      NSFontAttributeName : [NSFont monospacedSystemFontOfSize:notes_font_size weight:NSFontWeightRegular],
     };
-    [notes_text drawInRect:NSInsetRect(notes_box, 16, 20) withAttributes:notes_attrs];
+    NSRect notes_text_rect = NSMakeRect(
+      notes_box.origin.x + 14.0,
+      notes_box.origin.y + 14.0,
+      std::max<CGFloat>(1.0, notes_box.size.width - 28.0),
+      std::max<CGFloat>(1.0, notes_box.size.height - 50.0));
+    const CGFloat notes_offset_y =
+      (ClampCGFloat(static_cast<CGFloat>(options.notes_position_y), -100.0, 100.0) / 100.0) *
+      notes_text_rect.size.height *
+      0.35;
+    notes_text_rect.origin.y -= notes_offset_y;
+    [notes_text drawInRect:notes_text_rect withAttributes:notes_attrs];
 
     [NSGraphicsContext restoreGraphicsState];
 

@@ -71,11 +71,11 @@ cd native-plugin
 ./scripts/make-release.sh
 ```
 
-Expected outputs:
+Expected outputs for the current development version:
 
 ```text
 native-plugin/dist/PPTBridge-SK-for-OBS-Installer.pkg
-native-plugin/release/PPTBridge-SK-for-OBS-v0.2.0-macOS.zip
+native-plugin/release/PPTBridge-SK-for-OBS-v0.3.0-macOS-Apple-Silicon.zip
 native-plugin/release/pptbridge-obs-macos-apple-silicon.zip
 native-plugin/release/pptbridge-obs-macos-intel.zip
 ```

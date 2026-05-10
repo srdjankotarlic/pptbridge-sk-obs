@@ -47,11 +47,11 @@ Open `Settings > Hotkeys` in OBS and search for `PPTBridge SK`.
 
 Default bindings are:
 
-- Next Slide: `2`, `Page Down`, `Right Arrow`, `Space`
-- Previous Slide: `1`, `Page Up`, `Left Arrow`
-- Toggle Black Screen: `B`
-- First Slide: `Home`
-- Last Slide: `End`
+- Next Slide: `2`
+- Previous Slide: `1`
+
+PPTBridge only moves slides from hotkeys while OBS is the active app.
+You can bind different keys in OBS Settings > Hotkeys if needed.
 
 ## Requirements
 

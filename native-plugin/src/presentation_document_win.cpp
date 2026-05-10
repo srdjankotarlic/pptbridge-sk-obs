@@ -1296,6 +1296,65 @@ RectF FitRect(float container_x, float container_y, float container_width, float
   return RectF(draw_x, draw_y, draw_width, draw_height);
 }
 
+float ClampFloat(float value, float minimum, float maximum)
+{
+  return std::min(std::max(value, minimum), maximum);
+}
+
+void SplitVerticalPanelHeights(
+  float available_height,
+  float gap,
+  float notes_ratio,
+  float &next_height,
+  float &notes_height)
+{
+  const float panel_height = std::max(1.0f, available_height - gap);
+  const float min_next = std::min(90.0f, panel_height * 0.45f);
+  const float min_notes = std::min(80.0f, std::max(0.0f, panel_height - min_next));
+  notes_height = ClampFloat(panel_height * notes_ratio, min_notes, panel_height - min_next);
+  next_height = panel_height - notes_height;
+}
+
+void SplitConfidenceHeights(
+  float available_height,
+  float gap,
+  float strip_ratio,
+  float &preview_height,
+  float &strip_height)
+{
+  const float panel_height = std::max(1.0f, available_height - gap);
+  const float min_strip = std::min(112.0f, panel_height * 0.30f);
+  const float max_strip = std::max(min_strip, panel_height * 0.42f);
+  strip_height = ClampFloat(available_height * 0.22f * strip_ratio, min_strip, max_strip);
+  preview_height = panel_height - strip_height;
+}
+
+RectF PositionedPreviewRect(const RectF &container, float image_width, float image_height, const PresenterRenderOptions &options)
+{
+  if (image_width <= 0.0f || image_height <= 0.0f || container.Width <= 0.0f || container.Height <= 0.0f) {
+    return container;
+  }
+
+  const float fit_scale = std::min(container.Width / image_width, container.Height / image_height);
+  const float fill_scale = std::max(container.Width / image_width, container.Height / image_height);
+  float scale = options.preview_scale_mode == PresenterPreviewScaleMode::Fit ? fit_scale : fill_scale;
+  float user_scale = ClampFloat(static_cast<float>(options.preview_scale_percent) / 100.0f, 0.25f, 3.0f);
+  if (options.preview_scale_mode == PresenterPreviewScaleMode::Crop) {
+    user_scale = std::max(1.0f, user_scale);
+  }
+  scale *= user_scale;
+
+  const float draw_width = image_width * scale;
+  const float draw_height = image_height * scale;
+  const float x_weight = (ClampFloat(static_cast<float>(options.preview_position_x), -100.0f, 100.0f) + 100.0f) / 200.0f;
+  const float y_weight = (ClampFloat(static_cast<float>(options.preview_position_y), -100.0f, 100.0f) + 100.0f) / 200.0f;
+  return RectF(
+    container.X + ((container.Width - draw_width) * x_weight),
+    container.Y + ((container.Height - draw_height) * y_weight),
+    draw_width,
+    draw_height);
+}
+
 void DrawCenteredMessage(Graphics &graphics, uint32_t width, uint32_t height, const std::wstring &title, const std::wstring &subtitle)
 {
   SolidBrush background(Color(255, 11, 14, 20));
@@ -1354,6 +1413,31 @@ bool DrawImageFile(Graphics &graphics, const std::wstring &path, const RectF &de
   const auto draw_rect = FitRect(destination.X, destination.Y, destination.Width, destination.Height,
                                  static_cast<float>(image.GetWidth()), static_cast<float>(image.GetHeight()));
   graphics.DrawImage(&image, draw_rect);
+  return true;
+}
+
+bool DrawImagePreview(Graphics &graphics, const std::wstring &path, const RectF &destination, const PresenterRenderOptions &options)
+{
+  if (path.empty() || !fs::exists(fs::path(path))) {
+    return false;
+  }
+
+  Bitmap image(path.c_str());
+  if (image.GetLastStatus() != Ok || image.GetWidth() == 0 || image.GetHeight() == 0) {
+    return false;
+  }
+
+  const auto draw_rect = PositionedPreviewRect(
+    destination,
+    static_cast<float>(image.GetWidth()),
+    static_cast<float>(image.GetHeight()),
+    options);
+
+  Region previous_clip;
+  graphics.GetClip(&previous_clip);
+  graphics.SetClip(destination);
+  graphics.DrawImage(&image, draw_rect);
+  graphics.SetClip(&previous_clip, CombineModeReplace);
   return true;
 }
 
@@ -1907,7 +1991,8 @@ bool PresentationDocument::RenderPresenterBGRA(
   uint32_t width,
   uint32_t height,
   std::vector<uint8_t> &out_pixels,
-  uint32_t &out_stride) const
+  uint32_t &out_stride,
+  const PresenterRenderOptions &options) const
 {
   GlobalGdiPlus();
 
@@ -1987,56 +2072,134 @@ bool PresentationDocument::RenderPresenterBGRA(
   SolidBrush footer_fill(Color(255, 14, 18, 25));
   Pen border(Color(255, 42, 48, 64), 2.0f);
 
+  const bool confidence_layout = options.layout == PresenterLayoutPreset::ConfidenceMonitor;
+  const bool compact_layout = options.layout == PresenterLayoutPreset::Compact;
+  const float top_bar_height = confidence_layout ? 0.0f : (compact_layout ? 44.0f : 56.0f);
+  const float margin = compact_layout ? 10.0f : 18.0f;
+  const float gap = compact_layout ? 10.0f : 16.0f;
+  const float footer_height = compact_layout ? 42.0f : 54.0f;
+  const float content_y = top_bar_height + margin;
+  const float content_bottom = static_cast<float>(height) - footer_height - margin;
+  const float content_height = std::max(1.0f, content_bottom - content_y);
+  const float content_width = std::max(120.0f, static_cast<float>(width) - (margin * 2.0f));
+
+  float right_ratio = 0.28f;
+  float notes_base_ratio = 0.62f;
+  if (options.layout == PresenterLayoutPreset::LargePreview) {
+    right_ratio = 0.22f;
+    notes_base_ratio = 0.56f;
+  } else if (options.layout == PresenterLayoutPreset::LargeNotes) {
+    right_ratio = 0.36f;
+    notes_base_ratio = 0.76f;
+  } else if (compact_layout) {
+    right_ratio = 0.24f;
+    notes_base_ratio = 0.58f;
+  }
+
+  RectF current_rect;
+  RectF right_rect;
+  RectF next_rect;
+  RectF notes_rect;
+  if (confidence_layout) {
+    const float strip_ratio = ClampFloat(static_cast<float>(options.notes_area_percent) / 100.0f, 0.60f, 1.80f);
+    float preview_height = 0.0f;
+    float strip_height = 0.0f;
+    SplitConfidenceHeights(content_height, gap, strip_ratio, preview_height, strip_height);
+    current_rect = RectF(
+      margin,
+      content_y,
+      content_width,
+      preview_height);
+    right_rect = RectF(margin, current_rect.Y + current_rect.Height + gap, content_width, strip_height);
+    const float next_width = ClampFloat(right_rect.Width * 0.28f, 120.0f, right_rect.Width * 0.42f);
+    next_rect = RectF(right_rect.X, right_rect.Y, next_width, right_rect.Height);
+    notes_rect = RectF(
+      next_rect.X + next_rect.Width + gap,
+      right_rect.Y,
+      std::max(80.0f, right_rect.Width - next_rect.Width - gap),
+      right_rect.Height);
+  } else {
+    const float minimum_right = compact_layout ? 240.0f : 300.0f;
+    const float maximum_right = std::max(180.0f, content_width - 220.0f - gap);
+    const float right_panel_scale =
+      ClampFloat(static_cast<float>(options.side_panel_width_percent) / 100.0f, 0.50f, 2.20f);
+    const float right_width = ClampFloat(static_cast<float>(width) * right_ratio * right_panel_scale, minimum_right, maximum_right);
+    current_rect = RectF(margin, content_y, content_width - right_width - gap, content_height);
+    right_rect = RectF(current_rect.X + current_rect.Width + gap, content_y, right_width, content_height);
+
+    const float notes_multiplier = ClampFloat(static_cast<float>(options.notes_area_percent) / 100.0f, 0.60f, 1.80f);
+    const float notes_ratio = ClampFloat(notes_base_ratio * notes_multiplier, 0.38f, 0.86f);
+    float next_height = 0.0f;
+    float notes_height = 0.0f;
+    SplitVerticalPanelHeights(right_rect.Height, gap, notes_ratio, next_height, notes_height);
+    next_rect = RectF(right_rect.X, right_rect.Y, right_rect.Width, next_height);
+    notes_rect = RectF(right_rect.X, right_rect.Y + next_height + gap, right_rect.Width, notes_height);
+  }
+
   graphics.FillRectangle(&background, 0, 0, width, height);
-  graphics.FillRectangle(&panel, width * 0.68f, 0.0f, width * 0.32f, static_cast<REAL>(height));
   graphics.FillRectangle(&accent, 0.0f, 0.0f, static_cast<REAL>(width), 6.0f);
   graphics.FillRectangle(&footer_fill, 0.0f, height - 42.0f, static_cast<REAL>(width), 42.0f);
-
-  const RectF current_rect(40.0f, 48.0f, width * 0.62f, height - 96.0f);
-  const RectF next_rect(width * 0.72f, 252.0f, width * 0.22f, height * 0.14f);
-  const RectF notes_rect(width * 0.72f, 430.0f, width * 0.22f, height - 530.0f);
+  if (!confidence_layout) {
+    graphics.FillRectangle(&panel, right_rect.X - (gap * 0.5f), 0.0f, static_cast<REAL>(width) - right_rect.X + (gap * 0.5f), static_cast<REAL>(height));
+  }
 
   graphics.DrawRectangle(&border, current_rect.X, current_rect.Y, current_rect.Width, current_rect.Height);
   graphics.DrawRectangle(&border, next_rect.X, next_rect.Y, next_rect.Width, next_rect.Height);
   graphics.DrawRectangle(&border, notes_rect.X, notes_rect.Y, notes_rect.Width, notes_rect.Height);
 
-  DrawImageFile(graphics, current_image, current_rect);
+  DrawImagePreview(graphics, current_image, current_rect, options);
   if (!next_image.empty()) {
-    DrawImageFile(graphics, next_image, next_rect);
+    const RectF next_preview_rect(
+      next_rect.X + 10.0f,
+      next_rect.Y + 34.0f,
+      std::max(1.0f, next_rect.Width - 20.0f),
+      std::max(1.0f, next_rect.Height - 44.0f));
+    DrawImagePreview(graphics, next_image, next_preview_rect, options);
   }
 
-  Font header_font(L"Segoe UI Semibold", 28.0f, FontStyleBold, UnitPixel);
+  Font header_font(L"Segoe UI Semibold", compact_layout ? 22.0f : 28.0f, FontStyleBold, UnitPixel);
   Font label_font(L"Segoe UI Semibold", 18.0f, FontStyleBold, UnitPixel);
-  Font notes_font(L"Segoe UI", 20.0f, FontStyleRegular, UnitPixel);
+  const float notes_zoom = ClampFloat(static_cast<float>(options.notes_zoom_percent) / 100.0f, 0.50f, 2.00f);
+  Font notes_font(
+    L"Segoe UI",
+    ClampFloat(static_cast<float>(options.notes_font_size) * notes_zoom, 8.0f, 64.0f),
+    FontStyleRegular,
+    UnitPixel);
   Font small_font(L"Segoe UI", 16.0f, FontStyleRegular, UnitPixel);
   Font tiny_font(L"Segoe UI", 14.0f, FontStyleRegular, UnitPixel);
 
-  graphics.DrawString(L"PPTBridge SK Presenter", -1, &header_font, PointF(width * 0.72f, 44.0f), &title_brush);
-  if (!deck_name.empty()) {
-    graphics.DrawString(deck_name.c_str(), -1, &small_font, PointF(width * 0.72f, 72.0f), &muted_brush);
+  const float label_x = confidence_layout ? margin : right_rect.X;
+  if (!confidence_layout) {
+    graphics.DrawString(L"PPTBridge SK Presenter", -1, &header_font, PointF(label_x, compact_layout ? 20.0f : 44.0f), &title_brush);
+    if (!deck_name.empty() && !compact_layout) {
+      graphics.DrawString(deck_name.c_str(), -1, &small_font, PointF(label_x, 72.0f), &muted_brush);
+    }
   }
 
   const auto timer = FormatDuration(seconds);
   std::wstringstream slide_counter;
   slide_counter << L"Slide " << (current_index + 1) << L" / " << slide_count;
-  graphics.DrawString(slide_counter.str().c_str(), -1, &label_font, PointF(width * 0.72f, 100.0f), &title_brush);
-  graphics.DrawString(timer.c_str(), -1, &small_font, PointF(width * 0.92f, 102.0f), &accent);
+  graphics.DrawString(slide_counter.str().c_str(), -1, &label_font, PointF(label_x, height - 34.0f), &title_brush);
+  graphics.DrawString(timer.c_str(), -1, &small_font, PointF(width - 120.0f, height - 32.0f), &accent);
 
-  const RectF mode_badge(width * 0.72f, 124.0f, 120.0f, 30.0f);
-  SolidBrush &mode_brush = (mode_label == L"TRUE LIVE") ? success_fill : badge_fill;
-  graphics.FillRectangle(&mode_brush, mode_badge);
-  graphics.DrawString(mode_label.c_str(), -1, &tiny_font, RectF(mode_badge.X + 10.0f, mode_badge.Y + 6.0f, mode_badge.Width - 20.0f, 20.0f), nullptr, &title_brush);
+  if (!confidence_layout) {
+    const RectF mode_badge(label_x, compact_layout ? 50.0f : 124.0f, 120.0f, 30.0f);
+    SolidBrush &mode_brush = (mode_label == L"TRUE LIVE") ? success_fill : badge_fill;
+    graphics.FillRectangle(&mode_brush, mode_badge);
+    graphics.DrawString(mode_label.c_str(), -1, &tiny_font, RectF(mode_badge.X + 10.0f, mode_badge.Y + 6.0f, mode_badge.Width - 20.0f, 20.0f), nullptr, &title_brush);
 
-  const RectF status_badge(width * 0.72f, 162.0f, width * 0.22f, 44.0f);
-  SolidBrush &status_brush = (!last_issue.empty()) ? warning_fill : badge_fill;
-  graphics.FillRectangle(&status_brush, status_badge);
-  graphics.DrawString(status_label.c_str(), -1, &tiny_font, RectF(status_badge.X + 10.0f, status_badge.Y + 8.0f, status_badge.Width - 20.0f, 28.0f), nullptr, &title_brush);
+    const RectF status_badge(label_x, mode_badge.Y + 38.0f, right_rect.Width, 44.0f);
+    SolidBrush &status_brush = (!last_issue.empty()) ? warning_fill : badge_fill;
+    graphics.FillRectangle(&status_brush, status_badge);
+    graphics.DrawString(status_label.c_str(), -1, &tiny_font, RectF(status_badge.X + 10.0f, status_badge.Y + 8.0f, status_badge.Width - 20.0f, 28.0f), nullptr, &title_brush);
+  }
 
-  graphics.DrawString(L"Next", -1, &label_font, PointF(width * 0.72f, 224.0f), &muted_brush);
-  graphics.DrawString(L"Notes", -1, &label_font, PointF(width * 0.72f, 402.0f), &muted_brush);
+  graphics.DrawString(L"Next", -1, &label_font, PointF(next_rect.X + 10.0f, next_rect.Y + 8.0f), &muted_brush);
+  graphics.DrawString(L"Notes", -1, &label_font, PointF(notes_rect.X + 10.0f, notes_rect.Y + 8.0f), &muted_brush);
 
   std::wstring header_title = title.empty() ? L"Current slide" : title;
-  graphics.DrawString(header_title.c_str(), -1, &small_font, PointF(48.0f, 14.0f), &muted_brush);
+  const float current_title_y = current_rect.Y >= 32.0f ? current_rect.Y - 28.0f : current_rect.Y + 8.0f;
+  graphics.DrawString(header_title.c_str(), -1, &small_font, PointF(current_rect.X + 8.0f, current_title_y), &muted_brush);
 
   if (notes.empty()) {
     notes = L"No presenter notes on this slide.";
@@ -2045,10 +2208,25 @@ bool PresentationDocument::RenderPresenterBGRA(
   StringFormat notes_format;
   notes_format.SetTrimming(StringTrimmingEllipsisWord);
   notes_format.SetFormatFlags(StringFormatFlagsLineLimit);
-  graphics.DrawString(notes.c_str(), -1, &notes_font, notes_rect, &notes_format, &body_brush);
+  const float notes_text_height = std::max(1.0f, notes_rect.Height - 48.0f);
+  const float notes_offset_y =
+    (ClampFloat(static_cast<float>(options.notes_position_y), -100.0f, 100.0f) / 100.0f) *
+    notes_text_height *
+    0.35f;
+  graphics.DrawString(
+    notes.c_str(),
+    -1,
+    &notes_font,
+    RectF(
+      notes_rect.X + 12.0f,
+      notes_rect.Y + 36.0f + notes_offset_y,
+      std::max(1.0f, notes_rect.Width - 24.0f),
+      notes_text_height),
+    &notes_format,
+    &body_brush);
 
-  if (!last_issue.empty()) {
-    RectF issue_rect(width * 0.72f, height - 108.0f, width * 0.22f, 52.0f);
+  if (!last_issue.empty() && !confidence_layout) {
+    RectF issue_rect(label_x, height - 108.0f, right_rect.Width, 52.0f);
     graphics.FillRectangle(&warning_fill, issue_rect);
     graphics.DrawString(last_issue.c_str(), -1, &tiny_font, RectF(issue_rect.X + 10.0f, issue_rect.Y + 8.0f, issue_rect.Width - 20.0f, issue_rect.Height - 16.0f), &notes_format, &title_brush);
   }

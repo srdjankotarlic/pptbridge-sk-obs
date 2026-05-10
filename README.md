@@ -9,7 +9,7 @@ PPTBridge SK adds two native OBS source types:
 - `PPTBridge SK Slide` - clean audience/program output
 - `PPTBridge SK Presenter` - speaker view with notes, next slide, and timer
 
-[![macOS stable](https://img.shields.io/badge/macOS-v0.2.2_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
+[![macOS stable](https://img.shields.io/badge/macOS-v0.3.0_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
 [![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-supported-000000?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
 [![Intel Mac](https://img.shields.io/badge/Intel_Mac-supported-555555?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
 [![License](https://img.shields.io/badge/License-see_LICENSE-lightgrey?style=flat-square)](#license)
@@ -53,7 +53,8 @@ PPTBridge SK is built for conference, church, webinar, keynote, and hybrid-event
 - **Windowed PowerPoint live mode** so PowerPoint does not take over the desktop.
 - **Automatic title-bar crop** for clean live PowerPoint capture.
 - **Presenter notes and next-slide preview** from the original deck.
-- **Logitech Spotlight-friendly hotkeys** that can work while OBS is in the background.
+- **Customizable presenter layouts** with presenter split, preview fit/fill/crop, positioning, notes zoom, and notes sizing.
+- **OBS-focused hotkeys** that ignore keyboard input while you work in other apps.
 - **Multi-deck scene routing** so the current program scene controls the right deck.
 - **OBS-side audio capture path** for PowerPoint slideshow media.
 - **Cached fallback mode** when live PowerPoint mode is unavailable.
@@ -80,7 +81,8 @@ Apple Silicon was runtime-tested locally on OBS 32.x. Intel is cross-built again
 
 | Release | Status | Use it for |
 | --- | --- | --- |
-| [`v0.2.2`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.2) | macOS stable | Current Apple Silicon + Intel public build with easier installer |
+| [`v0.3.0`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.3.0) | macOS stable | Presenter customization, safer OBS-focused hotkeys, and confidence monitor polish |
+| [`v0.2.2`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.2) | Previous stable | Apple Silicon + Intel public build with easier installer |
 | `v1.0.0` | Planned | Signed/notarized macOS release and wider public launch |
 
 The v1.0 checklist lives in [Issue #1](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/1).
@@ -112,6 +114,8 @@ When reporting a bug, include your macOS version, Mac type, OBS version, PowerPo
 
 ## Roadmap
 
+- Later OSC/Companion integration for broadcast control surfaces
+- Later video remaining-time support where PPTBridge can reliably read media timing
 - Signed and notarized macOS `.pkg` installer
 - Second-Mac clean install verification
 - macOS v1.0 OBS Forum release

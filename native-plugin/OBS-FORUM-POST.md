@@ -62,10 +62,14 @@ Search for `PPTBridge SK` in OBS hotkeys and bind:
 - toggle black screen
 - optional first / last slide
 
-Most clickers work if they send:
+The default safe bindings are:
 
-- `Right Arrow` or `Page Down` for next
-- `Left Arrow` or `Page Up` for previous
+- `2` for next
+- `1` for previous
+
+PPTBridge only acts on hotkeys while OBS is the active app, so typing in another
+app will not accidentally move the presentation. You can still bind different
+keys or clicker buttons in OBS Settings > Hotkeys.
 
 ## Limitations
 
