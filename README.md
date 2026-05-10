@@ -91,6 +91,7 @@ The v1.0 checklist lives in [Issue #1](https://github.com/srdjankotarlic/pptbrid
 
 - [SETUP-GUIDE.md](SETUP-GUIDE.md) - user setup and troubleshooting
 - [BUILDING.md](BUILDING.md) - developer build commands and dependencies
+- [native-plugin/COMPANION-CONTROL.md](native-plugin/COMPANION-CONTROL.md) - Companion/OBS WebSocket control workflow
 - [native-plugin/PRO-AUDIO-MODE.md](native-plugin/PRO-AUDIO-MODE.md) - stricter audio routing setups
 - [native-plugin/SIGNING-AND-NOTARIZATION.md](native-plugin/SIGNING-AND-NOTARIZATION.md) - v1.0 signing path
 
@@ -114,7 +115,7 @@ When reporting a bug, include your macOS version, Mac type, OBS version, PowerPo
 
 ## Roadmap
 
-- Later OSC/Companion integration for broadcast control surfaces
+- Companion control via OBS WebSocket workflow is documented; native OSC listener remains a later release scope
 - Later video remaining-time support where PPTBridge can reliably read media timing
 - Signed and notarized macOS `.pkg` installer
 - Second-Mac clean install verification

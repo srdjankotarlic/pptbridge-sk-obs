@@ -143,6 +143,7 @@ If you want to publish this properly, these files are prepared for you:
 - `PUBLISHING.md`
 - `PRO-AUDIO-MODE.md`
 - `GITHUB-RELEASE.md`
+- `COMPANION-CONTROL.md`
 - `OBS-FORUM-POST.md`
 - `RELEASE-CHECKLIST.md`
 - `SIGNING-AND-NOTARIZATION.md`
@@ -192,6 +193,7 @@ Quick setup for stage control:
 
 After that, the speaker can drive the deck from OBS with the clicker and the active PPTBridge source will move forward/back.
 PPTBridge ignores hotkey callbacks while OBS is not the active app, so typing in another app will not move the presentation.
+For Stream Deck or Bitfocus Companion control that must work while another app is focused, use the OBS WebSocket workflow in `COMPANION-CONTROL.md` instead of keyboard hotkeys.
 
 This plugin does not require the old `pptbridge_obs.py` workflow.
 The included installers also remove legacy PPTBridge Python script entries from OBS scene collections.
