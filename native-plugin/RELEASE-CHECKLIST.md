@@ -10,12 +10,14 @@
   - `PPTBridge SK Slide` appears
   - `PPTBridge SK Presenter` appears
   - hotkeys work
+  - `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture` appears and logs that it loaded PPTBridge hotkey bindings
+  - with macOS permissions granted, a PageDown/PageUp presenter binding advances the current program deck while another app is focused
   - a sample `.pptx` loads
   - `Tools > PPTBridge SK: Toggle Local OSC Control` starts the local OSC listener
   - `send-osc.sh /pptbridge/next` moves the active program deck
   - Companion Generic OSC can send `/pptbridge/next` to `127.0.0.1:57130`
   - default/manual mode opens OBS without launching PowerPoint
-  - `Open PowerPoint / Start Live Mode` opens PowerPoint if needed and starts the slideshow
+  - `START - Open PowerPoint / Start Live Mode` opens PowerPoint if needed and starts the slideshow from the highlighted `PowerPoint Live Start / Stop` group
   - `Auto Start PowerPoint When OBS Opens` starts PowerPoint automatically
   - `Close PowerPoint Slideshow When OBS Closes` stops the slideshow when OBS quits
 
@@ -30,7 +32,7 @@
 
 - create the repository
 - push the code
-- create tag `v0.4.1`
+- create tag `v0.4.2`
 - create a GitHub Release
 - paste the body from `GITHUB-RELEASE.md`
 - upload the release assets

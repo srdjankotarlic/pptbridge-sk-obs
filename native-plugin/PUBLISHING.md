@@ -35,8 +35,8 @@ cd native-plugin
 
 Main outputs:
 
-- `release/PPTBridge-SK-for-OBS-v0.4.1-macOS-Apple-Silicon.zip`
-- `release/PPTBridge-SK-for-OBS-v0.4.1-macOS-Intel.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.2-macOS-Apple-Silicon.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.2-macOS-Intel.zip`
 - `release/pptbridge-obs-macos-apple-silicon.zip`
 - `release/pptbridge-obs-macos-intel.zip`
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
@@ -66,8 +66,8 @@ git commit -m "Initial public release of PPTBridge SK for OBS"
 git branch -M main
 git remote add origin <your-github-repo-url>
 git push -u origin main
-git tag v0.4.1
-git push origin v0.4.1
+git tag v0.4.2
+git push origin v0.4.2
 ```
 
 ## 4. Create The GitHub Release
@@ -77,8 +77,8 @@ In GitHub:
 1. Open the repository
 2. Click `Releases`
 3. Click `Draft a new release`
-4. Choose tag `v0.4.1`
-5. Title it `PPTBridge SK for OBS v0.4.1`
+4. Choose tag `v0.4.2`
+5. Title it `PPTBridge SK for OBS v0.4.2`
 6. Paste the text from `GITHUB-RELEASE.md`
 7. Upload:
    - `pptbridge-obs-macos-apple-silicon.zip`
@@ -110,7 +110,7 @@ If possible, also record a short 20-30 second demo:
 
 - load `.pptx`
 - add both sources
-- press next/previous on a clicker
+- press next/previous on a clicker with Spotlight/Clicker Capture enabled while another app is focused
 - show clean slide vs presenter view
 
 Suggested repository:
@@ -118,7 +118,7 @@ Suggested repository:
 - Description: `PowerPoint/PDF slide and presenter sources for OBS on macOS. Apple Silicon and Intel builds.`
 
 Suggested release title:
-- `PPTBridge SK for OBS v0.4.1`
+- `PPTBridge SK for OBS v0.4.2`
 
 Suggested release assets:
 - `pptbridge-obs-macos-apple-silicon.zip`
@@ -136,7 +136,7 @@ Release checklist:
 1. Run `./scripts/make-release.sh`
 2. Build both Apple Silicon and Intel ZIPs
 3. Verify the source picker shows `PPTBridge SK Slide` and `PPTBridge SK Presenter`
-4. Verify default/manual PowerPoint startup, optional auto-start, close-on-quit, and OBS-focused hotkeys
+4. Verify default/manual PowerPoint startup, optional auto-start, close-on-quit, OBS-focused hotkeys, and Spotlight/Clicker Capture
 5. Verify local OSC or Companion can send `/pptbridge/next`
 6. Upload both ZIPs and checksum files to GitHub Release
 7. Copy the short pitch into the OBS Forums listing

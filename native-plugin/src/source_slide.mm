@@ -23,13 +23,18 @@ constexpr const char *kHotkeyHelp =
   "   in another window will not accidentally move the presentation.\n"
   "3. Open OBS Settings > Hotkeys if you want to change the keys or bind a\n"
   "   clicker button. Keep those bindings narrow for live use.\n"
-  "4. If you brought a PDF presentation instead of a PPTX, pick the .pdf in\n"
+  "4. For a stage clicker while you use Chrome, OBS, or another app, enable\n"
+  "   Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture. It captures\n"
+  "   the same PPTBridge hotkeys globally, sends them to the current program\n"
+  "   scene deck, and suppresses those key presses from the focused app. This\n"
+  "   works for PPTX live mode and for PDF/cached decks without live mode.\n"
+  "5. If you brought a PDF presentation instead of a PPTX, pick the .pdf in\n"
   "   the file field above - PPTBridge renders pages natively, no PowerPoint\n"
   "   required, and all hotkeys work identically.\n"
-  "5. Multi-deck shows: put each presentation in its own scene. The hotkey\n"
+  "6. Multi-deck shows: put each presentation in its own scene. The hotkey\n"
   "   router automatically targets the PPTBridge source in the current\n"
   "   program scene, so Spotlight on stage always drives the right deck.\n"
-  "6. Use the buttons below for quick testing inside OBS.";
+  "7. Use the buttons below for quick testing inside OBS.";
 
 constexpr const char *kMediaHelp =
   "Media note:\n"
@@ -40,7 +45,17 @@ constexpr const char *kLiveHelp =
   "True live mode:\n"
   "PowerPoint itself runs the slideshow, so click-build animations, embedded video, and slide timing behave like real PowerPoint.\n"
   "Recommended for macOS when Microsoft PowerPoint is installed.\n"
-  "PowerPoint can either start automatically with OBS or wait until you click Open PowerPoint / Start Live Mode below.";
+  "PowerPoint can either start automatically with OBS or wait until you click START - Open PowerPoint / Start Live Mode in the highlighted control group above.";
+
+constexpr const char *kLiveControlHelp =
+  "Main PowerPoint live controls:\n"
+  "START opens PowerPoint if needed and begins the live slideshow.\n"
+  "STOP ends the PowerPoint live slideshow without quitting OBS.";
+
+constexpr const char *kLiveResizeHelp =
+  "PowerPoint window resize:\n"
+  "Lock OBS Output Size keeps the PPTBridge source filling the OBS canvas even if you shrink or resize the PowerPoint slideshow window.\n"
+  "Use Follow PowerPoint Window only when you intentionally want the OBS output to reflect the current PowerPoint window shape.";
 
 constexpr const char *kAudioHelp =
   "Conference audio:\n"
@@ -80,6 +95,20 @@ PresenterPreviewScaleMode presenter_preview_scale_from_setting(const char *value
     return PresenterPreviewScaleMode::Crop;
   }
   return PresenterPreviewScaleMode::Fit;
+}
+
+LiveCaptureResizeMode live_capture_resize_mode_from_setting(const char *value)
+{
+  const std::string setting = value ? value : "";
+  if (setting == "fit_window") {
+    return LiveCaptureResizeMode::FitWindow;
+  }
+  return LiveCaptureResizeMode::LockCanvas;
+}
+
+const char *live_capture_resize_mode_to_setting(LiveCaptureResizeMode mode)
+{
+  return mode == LiveCaptureResizeMode::FitWindow ? "fit_window" : "lock_canvas";
 }
 
 double clamp_setting(double value, double minimum, double maximum, double fallback)
@@ -699,18 +728,17 @@ bool render_live_capture(SourceContext *context)
     return false;
   }
 
-  // Aspect-fit the captured PowerPoint slideshow window into the source
-  // canvas (typically 1920x1080). This prevents the slide from being
-  // stretched non-uniformly when the display aspect ratio does not match
-  // the canvas — for example, a 16:10 MacBook display captured into a
-  // 16:9 canvas. Pillarbox / letterbox bars are drawn only if the aspect
-  // ratios truly differ; when PowerPoint is running kiosk-mode on a 16:9
-  // display the capture fills the canvas exactly with no bars.
+  // Default to a locked OBS output: the PowerPoint window may be resized
+  // smaller on the desktop, but the PPTBridge source still fills its OBS
+  // canvas. The optional fit mode preserves the old behavior for users who
+  // intentionally want the program feed to follow the PowerPoint window shape.
   const float canvas_w = static_cast<float>(context->width);
   const float canvas_h = static_cast<float>(context->height);
   const float cap_w = static_cast<float>(capture_width);
   const float cap_h = static_cast<float>(capture_height);
-  const float scale = std::min(canvas_w / cap_w, canvas_h / cap_h);
+  const float scale = context->live_capture_resize_mode == LiveCaptureResizeMode::FitWindow
+    ? std::min(canvas_w / cap_w, canvas_h / cap_h)
+    : std::max(canvas_w / cap_w, canvas_h / cap_h);
   const float target_w = cap_w * scale;
   const float target_h = cap_h * scale;
   const float offset_x = (canvas_w - target_w) * 0.5f;
@@ -987,6 +1015,11 @@ std::string build_status_text(SourceContext *context)
       status << "not ready";
     }
     status << "\n";
+    status << "PowerPoint resize: "
+           << (context->live_capture_resize_mode == LiveCaptureResizeMode::FitWindow
+                 ? "following PowerPoint window"
+                 : "locked to OBS canvas")
+           << "\n";
     status << "Auto recover: " << (context->auto_recover_live ? "enabled" : "manual only") << "\n";
   }
 
@@ -1157,6 +1190,38 @@ bool control_stop_live(obs_properties_t *, obs_property_t *, void *data)
   return false;
 }
 
+void set_live_capture_resize_mode(SourceContext *context, LiveCaptureResizeMode mode)
+{
+  if (!context) {
+    return;
+  }
+
+  context->live_capture_resize_mode = mode;
+  if (!context->source) {
+    return;
+  }
+
+  obs_data_t *settings = obs_source_get_settings(context->source);
+  if (!settings) {
+    return;
+  }
+  obs_data_set_string(settings, "live_capture_resize_mode", live_capture_resize_mode_to_setting(mode));
+  obs_source_update(context->source, settings);
+  obs_data_release(settings);
+}
+
+bool control_lock_live_resize(obs_properties_t *, obs_property_t *, void *data)
+{
+  set_live_capture_resize_mode(static_cast<SourceContext *>(data), LiveCaptureResizeMode::LockCanvas);
+  return true;
+}
+
+bool control_follow_live_resize(obs_properties_t *, obs_property_t *, void *data)
+{
+  set_live_capture_resize_mode(static_cast<SourceContext *>(data), LiveCaptureResizeMode::FitWindow);
+  return true;
+}
+
 bool control_reattach_live(obs_properties_t *, obs_property_t *, void *data)
 {
   auto *context = static_cast<SourceContext *>(data);
@@ -1183,6 +1248,7 @@ void source_defaults(obs_data_t *settings)
   obs_data_set_default_bool(settings, "use_live_powerpoint", true);
   obs_data_set_default_bool(settings, "auto_start_live_powerpoint", false);
   obs_data_set_default_bool(settings, "close_live_powerpoint_on_shutdown", true);
+  obs_data_set_default_string(settings, "live_capture_resize_mode", "lock_canvas");
   obs_data_set_default_bool(settings, "audio_enabled", true);
   obs_data_set_default_bool(settings, "use_live_app_audio", true);
   obs_data_set_default_bool(settings, "auto_recover_live", true);
@@ -1226,6 +1292,37 @@ obs_properties_t *source_properties(SourceContext *context)
     obs_properties_add_bool(props, "use_live_powerpoint", "Use True Live PowerPoint Mode");
     obs_properties_add_bool(props, "auto_start_live_powerpoint", "Auto Start PowerPoint When OBS Opens");
     obs_properties_add_bool(props, "close_live_powerpoint_on_shutdown", "Close PowerPoint Slideshow When OBS Closes");
+
+    obs_properties_t *live_controls = obs_properties_create();
+    obs_property_t *live_control_help =
+      obs_properties_add_text(live_controls, "pptbridge_live_control_help", kLiveControlHelp, OBS_TEXT_INFO);
+    obs_property_text_set_info_type(live_control_help, OBS_TEXT_INFO_WARNING);
+    obs_property_text_set_info_word_wrap(live_control_help, true);
+    obs_properties_add_button(
+      live_controls,
+      "pptbridge_start_live_btn",
+      "START - Open PowerPoint / Start Live Mode",
+      control_start_live);
+    obs_properties_add_button(
+      live_controls,
+      "pptbridge_stop_live_btn",
+      "STOP - Stop PowerPoint Live Mode",
+      control_stop_live);
+    obs_properties_add_group(
+      props,
+      "pptbridge_live_controls_group",
+      "PowerPoint Live Start / Stop",
+      OBS_GROUP_NORMAL,
+      live_controls);
+
+    obs_property_t *resize_mode = obs_properties_add_list(
+      props,
+      "live_capture_resize_mode",
+      "PowerPoint Resize Behavior",
+      OBS_COMBO_TYPE_LIST,
+      OBS_COMBO_FORMAT_STRING);
+    obs_property_list_add_string(resize_mode, "Lock OBS Output Size", "lock_canvas");
+    obs_property_list_add_string(resize_mode, "Follow PowerPoint Window Size", "fit_window");
     obs_properties_add_bool(props, "audio_enabled", "Enable PPTBridge Audio Output");
     obs_properties_add_bool(props, "use_live_app_audio", "Route PowerPoint App Audio Through OBS");
     obs_properties_add_bool(props, "auto_recover_live", "Auto Recover Live PowerPoint Session");
@@ -1245,6 +1342,13 @@ obs_properties_t *source_properties(SourceContext *context)
   obs_property_text_set_info_type(live_help, OBS_TEXT_INFO_NORMAL);
   obs_property_text_set_info_word_wrap(live_help, true);
 
+  if (context && context->mode == ViewMode::Slide) {
+    obs_property_t *resize_help =
+      obs_properties_add_text(props, "pptbridge_live_resize_help", kLiveResizeHelp, OBS_TEXT_INFO);
+    obs_property_text_set_info_type(resize_help, OBS_TEXT_INFO_NORMAL);
+    obs_property_text_set_info_word_wrap(resize_help, true);
+  }
+
   obs_property_t *media_help = obs_properties_add_text(props, "pptbridge_media_help", kMediaHelp, OBS_TEXT_INFO);
   obs_property_text_set_info_type(media_help, OBS_TEXT_INFO_WARNING);
   obs_property_text_set_info_word_wrap(media_help, true);
@@ -1262,8 +1366,8 @@ obs_properties_t *source_properties(SourceContext *context)
   obs_properties_add_button(props, "pptbridge_black_btn", "Toggle Black Screen", control_black);
   obs_properties_add_button(props, "pptbridge_reload_btn", "Reload Presentation", control_reload);
   if (context && context->mode == ViewMode::Slide) {
-    obs_properties_add_button(props, "pptbridge_start_live_btn", "Open PowerPoint / Start Live Mode", control_start_live);
-    obs_properties_add_button(props, "pptbridge_stop_live_btn", "Stop PowerPoint Live Mode", control_stop_live);
+    obs_properties_add_button(props, "pptbridge_lock_live_resize_btn", "Lock OBS Size Against PPT Resize", control_lock_live_resize);
+    obs_properties_add_button(props, "pptbridge_follow_live_resize_btn", "Follow Current PPT Window Size", control_follow_live_resize);
     obs_properties_add_button(props, "pptbridge_reattach_live_btn", "Reattach Live PowerPoint Window", control_reattach_live);
   }
   return props;
@@ -1288,6 +1392,8 @@ void source_update(SourceContext *context, obs_data_t *settings)
   const bool use_live_powerpoint = obs_data_get_bool(settings, "use_live_powerpoint");
   const bool auto_start_live_powerpoint = obs_data_get_bool(settings, "auto_start_live_powerpoint");
   const bool close_live_powerpoint_on_shutdown = obs_data_get_bool(settings, "close_live_powerpoint_on_shutdown");
+  const LiveCaptureResizeMode live_capture_resize_mode =
+    live_capture_resize_mode_from_setting(obs_data_get_string(settings, "live_capture_resize_mode"));
   const bool audio_enabled = obs_data_get_bool(settings, "audio_enabled");
   const bool use_live_app_audio = obs_data_get_bool(settings, "use_live_app_audio");
   const bool auto_recover_live = obs_data_get_bool(settings, "auto_recover_live");
@@ -1322,6 +1428,7 @@ void source_update(SourceContext *context, obs_data_t *settings)
   context->use_live_powerpoint = use_live_powerpoint;
   context->auto_start_live_powerpoint = auto_start_live_powerpoint;
   context->close_live_powerpoint_on_shutdown = close_live_powerpoint_on_shutdown;
+  context->live_capture_resize_mode = live_capture_resize_mode;
   context->audio_enabled = audio_enabled;
   context->use_live_app_audio = use_live_app_audio;
   context->auto_recover_live = auto_recover_live;

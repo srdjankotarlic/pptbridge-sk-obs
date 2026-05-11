@@ -9,7 +9,7 @@ PPTBridge SK adds two native OBS source types:
 - `PPTBridge SK Slide` - clean audience/program output
 - `PPTBridge SK Presenter` - speaker view with notes, next slide, and timer
 
-[![macOS stable](https://img.shields.io/badge/macOS-v0.4.1_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
+[![macOS stable](https://img.shields.io/badge/macOS-v0.4.2_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
 [![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-supported-000000?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
 [![Intel Mac](https://img.shields.io/badge/Intel_Mac-supported-555555?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
 [![License](https://img.shields.io/badge/License-see_LICENSE-lightgrey?style=flat-square)](#license)
@@ -53,26 +53,38 @@ The presenter source is PPTBridge's own OBS presenter layout. It is not a screen
 1. Add `PPTBridge SK Slide` to the scene that goes to the audience.
 2. Add `PPTBridge SK Presenter` to the scene or monitor view used by the presenter.
 3. Select the same `.pptx` or `.pdf` file in both source properties.
-4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `Open PowerPoint / Start Live Mode` when you are ready.
+4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `START - Open PowerPoint / Start Live Mode` in the highlighted `PowerPoint Live Start / Stop` group when you are ready.
 5. For PDF decks, PowerPoint is not needed.
 6. Control slides with OBS hotkeys, source property buttons, Companion, or local OSC.
 7. Customize `PPTBridge SK Presenter` if you want bigger notes, bigger preview, a different split, fit/fill/crop behavior, or confidence-monitor style.
+
+## Multiple PowerPoint Decks
+
+For shows with several decks, make one scene per deck and choose a different `.pptx` in each scene's `PPTBridge SK Slide` and `PPTBridge SK Presenter` sources. Start live mode once per deck from that deck's slide source.
+
+PPTBridge stages each live deck separately and locks PowerPoint commands to that exact staged file, so Deck 2 no longer attaches to Deck 1 just because both are open in PowerPoint. When you change the OBS program scene, hotkeys and local OSC target the PPTBridge source in that scene.
 
 ## PowerPoint Startup Options
 
 | Option | What it does | Use it when |
 | --- | --- | --- |
-| `Open PowerPoint / Start Live Mode` | Opens PowerPoint if needed and starts the slideshow only when you click it | You want OBS to open quietly and start slides manually |
+| `START - Open PowerPoint / Start Live Mode` | Opens PowerPoint if needed and starts the slideshow only when you click it. It is separated in the highlighted `PowerPoint Live Start / Stop` group. | You want OBS to open quietly and start slides manually |
 | `Auto Start PowerPoint When OBS Opens` | Starts the PowerPoint slideshow automatically when OBS loads the source | You want the old automatic behavior |
 | `Close PowerPoint Slideshow When OBS Closes` | Closes the slideshow when OBS quits | You want OBS to clean up PowerPoint after the show |
-| `Stop PowerPoint Live Mode` | Stops the running live slideshow from the source properties | You want to end or reset live mode without quitting OBS |
+| `STOP - Stop PowerPoint Live Mode` | Stops the running live slideshow from the highlighted `PowerPoint Live Start / Stop` group | You want to end or reset live mode without quitting OBS |
+| `PowerPoint Resize Behavior` | Chooses whether OBS ignores or follows PowerPoint window resizing | Keep `Lock OBS Output Size` for live shows; use `Follow PowerPoint Window Size` only when intentional |
+| `Lock OBS Size Against PPT Resize` | Forces the OBS source to stay filled even if you shrink the PowerPoint window | You need PowerPoint smaller on the desktop without changing OBS output |
+| `Follow Current PPT Window Size` | Lets the OBS output follow the current PowerPoint window shape | You intentionally want the resized PowerPoint window to affect OBS |
 
 Default behavior is manual: OBS can open without immediately popping up the PowerPoint slideshow.
+Default resize behavior is locked: you can shrink the PowerPoint slideshow window to see other apps without making the OBS program source smaller.
 
 ## Slide Control
 
 - OBS hotkeys default to `2` for next slide and `1` for previous slide.
 - PPTBridge only responds to OBS hotkeys while OBS is the active app, so typing in another app will not accidentally move slides.
+- For a Logitech Spotlight or other presenter clicker while the operator uses Chrome, OBS, or other apps, enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. It captures the same PPTBridge hotkey bindings globally, routes them to the current OBS program scene, and suppresses those captured keys from the focused app.
+- Use clicker-style bindings such as PageDown/PageUp or the keys your presenter sends. If you bind normal typing keys such as `1` and `2`, those keys will be swallowed while Spotlight/Clicker Capture is enabled.
 - Companion and Stream Deck workflows should use OBS WebSocket or PPTBridge's local OSC listener instead of keyboard presses.
 - Local OSC can be enabled in OBS from `Tools > PPTBridge SK: Toggle Local OSC Control` and listens on `127.0.0.1:57130`.
 - Useful OSC paths include `/pptbridge/next`, `/pptbridge/previous`, `/pptbridge/first`, `/pptbridge/last`, `/pptbridge/black`, and `/pptbridge/reload`.
@@ -94,6 +106,7 @@ PPTBridge SK is built for conference, church, webinar, keynote, and hybrid-event
 - **Presenter notes and next-slide preview** from the original deck.
 - **Customizable presenter layouts** with presenter split, preview fit/fill/crop, positioning, notes zoom, and notes sizing.
 - **OBS-focused hotkeys** that ignore keyboard input while you work in other apps.
+- **Optional Spotlight/Clicker Capture** so a stage clicker can drive only PPTBridge while the operator keeps using Chrome, OBS, or other apps.
 - **Local OSC/Companion control** for Stream Deck and show-control workflows without keyboard focus.
 - **Multi-deck scene routing** so the current program scene controls the right deck.
 - **OBS-side audio capture path** for PowerPoint slideshow media.
@@ -122,7 +135,8 @@ Apple Silicon was runtime-tested locally on OBS 32.x. Intel is cross-built again
 
 | Release | Status | Use it for |
 | --- | --- | --- |
-| `v0.4.1` | Stable | Recommended release for most users: manual PowerPoint start button, optional auto-start, optional close-on-OBS-quit, Companion/OSC control, and presenter customization |
+| `v0.4.2` | Stable | Recommended release for most users: stage clicker capture, multi-deck PowerPoint scene routing, locked PowerPoint resize behavior, manual PowerPoint start/stop, Companion/OSC control, and presenter customization |
+| [`v0.4.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.1) | Previous stable | Manual PowerPoint start button, optional auto-start, optional close-on-OBS-quit, Companion/OSC control, and presenter customization |
 | [`v0.4.0`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.0) | Previous stable | Companion/OSC control, presenter customization, and safer OBS-focused hotkeys without the v0.4.1 PowerPoint lifecycle controls |
 | [`v0.3.0`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.3.0) | macOS stable | Presenter customization, safer OBS-focused hotkeys, and confidence monitor polish |
 | [`v0.2.2`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.2) | Previous stable | Apple Silicon + Intel public build with easier installer |

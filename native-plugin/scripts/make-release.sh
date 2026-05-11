@@ -108,8 +108,19 @@ Basic OBS setup:
 1. Add \`PPTBridge SK Slide\` to the program/audience scene.
 2. Add \`PPTBridge SK Presenter\` to the speaker/confidence scene.
 3. Select the same .pptx or .pdf in both sources.
-4. For .pptx live mode, click \`Open PowerPoint / Start Live Mode\` in \`PPTBridge SK Slide\` properties when you are ready.
+4. For .pptx live mode, click \`START - Open PowerPoint / Start Live Mode\` in the highlighted \`PowerPoint Live Start / Stop\` group when you are ready.
 5. For PDF decks, PowerPoint is not required.
+
+Multiple PPTX decks:
+- Create one OBS scene per deck.
+- Select that scene's .pptx in its PPTBridge SK Slide and Presenter sources.
+- PPTBridge locks each live PowerPoint session to its exact staged deck file, so several slideshow windows can stay open and scene changes control the right deck.
+
+Spotlight / clicker capture:
+- Bind PPTBridge SK Next Slide / Previous Slide to your presenter clicker keys in OBS Settings > Hotkeys.
+- Enable Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture when the stage clicker must work while Chrome, OBS, or another app is focused.
+- If macOS asks, allow OBS in System Settings > Privacy & Security > Accessibility and Input Monitoring, then restart OBS or toggle the feature again.
+- Captured clicker hotkeys drive the PPTBridge source in the current OBS Program scene and are suppressed from the focused app.
 
 Runtime note:
 - If OBS starts in Safe Mode, third-party plugins are disabled.

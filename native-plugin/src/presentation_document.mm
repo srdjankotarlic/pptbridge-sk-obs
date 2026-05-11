@@ -676,6 +676,7 @@ bool RunAppleScriptLines(
 
 struct LivePowerPointSnapshot {
   std::string window_title;
+  std::string presentation_path;
   std::size_t current_index = 0;
   std::size_t slide_count = 0;
 };
@@ -706,6 +707,7 @@ bool ParseLivePowerPointOutput(
     const auto slide_number = std::stoul(lines[1]);
     const auto slide_count = std::stoul(lines[2]);
     snapshot.window_title = lines[0];
+    snapshot.presentation_path = lines.size() > 3 ? lines[3] : "";
     snapshot.current_index = slide_number > 0 ? static_cast<std::size_t>(slide_number - 1) : 0;
     snapshot.slide_count = static_cast<std::size_t>(slide_count);
     return true;
@@ -715,21 +717,89 @@ bool ParseLivePowerPointOutput(
   }
 }
 
-std::string PowerPointAppleScriptLiveStartSource()
+fs::path StagedPowerPointLivePath(const std::string &pptx_path, const fs::path &work_dir)
+{
+  const fs::path input(pptx_path);
+  const std::string hash = DeckCacheHash(pptx_path);
+  const std::string short_hash = hash.substr(0, std::min<std::size_t>(hash.size(), 8));
+  const std::string stem = input.stem().string().empty() ? "deck" : input.stem().string();
+  const std::string extension = input.extension().string().empty() ? ".pptx" : input.extension().string();
+  return work_dir / (stem + " - PPTBridge " + short_hash + extension);
+}
+
+std::string PowerPointAppleScriptLiveHandlers()
 {
   return R"APPLESCRIPT(
-on wait_for_slide_show_window(max_wait_seconds)
-	repeat (max_wait_seconds * 10) times
-		tell application "Microsoft PowerPoint"
+on normalize_posix_path(candidate)
+	try
+		return POSIX path of (candidate as alias)
+	on error
+		try
+			return candidate as text
+		on error
+			return ""
+		end try
+	end try
+end normalize_posix_path
+
+on presentation_posix_path(targetPresentation)
+	tell application "Microsoft PowerPoint"
+		try
+			return my normalize_posix_path((full name of targetPresentation) as text)
+		end try
+		try
+			return my normalize_posix_path((path of targetPresentation) as text)
+		end try
+	end tell
+	return ""
+end presentation_posix_path
+
+on find_presentation_by_path(target_path)
+	tell application "Microsoft PowerPoint"
+		repeat with i from 1 to count of presentations
+			set candidatePresentation to presentation i
+			set candidatePath to ""
 			try
-				set targetPresentation to active presentation
-				set targetWindow to slide show window of targetPresentation
-				set windowTitle to name of targetWindow
-				set slideNumber to slide index of slide of slideshow view of targetWindow
-				set slideCount to count of slides of targetPresentation
-				return windowTitle & linefeed & (slideNumber as text) & linefeed & (slideCount as text)
+				set candidatePath to my normalize_posix_path((full name of candidatePresentation) as text)
 			end try
-		end tell
+			if candidatePath is "" then
+				try
+					set candidatePath to my normalize_posix_path((path of candidatePresentation) as text)
+				end try
+			end if
+			if candidatePath is target_path then return candidatePresentation
+		end repeat
+	end tell
+	return missing value
+end find_presentation_by_path
+
+on snapshot_for_presentation(targetPresentation, target_path)
+	tell application "Microsoft PowerPoint"
+		set targetWindow to slide show window of targetPresentation
+		set windowTitle to name of targetWindow
+		set slideNumber to slide index of slide of slideshow view of targetWindow
+		set slideCount to count of slides of targetPresentation
+		set presentationPath to my presentation_posix_path(targetPresentation)
+		if presentationPath is "" then set presentationPath to target_path
+		return windowTitle & linefeed & (slideNumber as text) & linefeed & (slideCount as text) & linefeed & presentationPath
+	end tell
+end snapshot_for_presentation
+
+)APPLESCRIPT";
+}
+
+std::string PowerPointAppleScriptLiveStartSource()
+{
+  return PowerPointAppleScriptLiveHandlers() + R"APPLESCRIPT(
+on wait_for_slide_show_window(target_path, openedPresentation, max_wait_seconds)
+	repeat (max_wait_seconds * 10) times
+		set targetPresentation to openedPresentation
+		if targetPresentation is missing value then set targetPresentation to my find_presentation_by_path(target_path)
+		if targetPresentation is not missing value then
+			try
+				return my snapshot_for_presentation(targetPresentation, target_path)
+			end try
+		end if
 		delay 0.1
 	end repeat
 	error "PowerPoint live slideshow window did not appear."
@@ -737,12 +807,16 @@ end wait_for_slide_show_window
 
 on run argv
 	if (count of argv) is not 1 then error "Expected PowerPoint input path."
-	set input_path to item 1 of argv
+	set input_path to my normalize_posix_path(item 1 of argv)
 
 	tell application "Microsoft PowerPoint"
 		activate
 		open POSIX file input_path
 		set targetPresentation to active presentation
+		try
+			set foundPresentation to my find_presentation_by_path(input_path)
+			if foundPresentation is not missing value then set targetPresentation to foundPresentation
+		end try
 		tell slide show settings of targetPresentation
 			-- Windowed slide show keeps PowerPoint in a normal resizable
 			-- window so the presenter can still use OBS (and the rest of the
@@ -756,32 +830,57 @@ on run argv
 		end tell
 	end tell
 
-	return my wait_for_slide_show_window(20)
+	return my wait_for_slide_show_window(input_path, targetPresentation, 20)
+end run
+	)APPLESCRIPT";
+}
+
+std::string PowerPointAppleScriptLiveQuerySource()
+{
+  return PowerPointAppleScriptLiveHandlers() + R"APPLESCRIPT(
+on run argv
+	if (count of argv) is not 1 then error "Expected PowerPoint input path."
+	set input_path to my normalize_posix_path(item 1 of argv)
+	set targetPresentation to my find_presentation_by_path(input_path)
+	if targetPresentation is missing value then error "PowerPoint presentation is not open for this deck."
+	return my snapshot_for_presentation(targetPresentation, input_path)
 end run
 	)APPLESCRIPT";
 }
 
 std::string PowerPointAppleScriptLiveStopSource()
 {
-  return R"APPLESCRIPT(
+  return PowerPointAppleScriptLiveHandlers() + R"APPLESCRIPT(
 on run argv
-	if (count of argv) is not 1 then error "Expected PowerPoint slideshow window title."
-	set target_title to item 1 of argv
+	if (count of argv) is less than 1 then error "Expected PowerPoint input path."
+	set input_path to my normalize_posix_path(item 1 of argv)
+	set target_title to ""
+	if (count of argv) is greater than 1 then set target_title to item 2 of argv
 	set did_close to false
 
 	tell application "Microsoft PowerPoint"
-		try
-			set targetWindow to slide show window 1
-			if ((name of targetWindow) as text) is target_title then
-				tell slideshow view of targetWindow to exit slide show
+		set targetPresentation to my find_presentation_by_path(input_path)
+		if targetPresentation is not missing value then
+			try
+				tell slideshow view of slide show window of targetPresentation to exit slide show
 				set did_close to true
-			end if
-		end try
+			end try
+		else if target_title is not "" then
+			try
+				repeat with targetWindow in slide show windows
+					if ((name of targetWindow) as text) is target_title then
+						tell slideshow view of targetWindow to exit slide show
+						set did_close to true
+						exit repeat
+					end if
+				end repeat
+			end try
+		end if
 
 		if did_close then
 			delay 0.2
 			try
-				close active presentation saving no
+				if targetPresentation is not missing value then close targetPresentation saving no
 			end try
 			try
 				if (count of presentations) is 0 then quit
@@ -795,22 +894,25 @@ end run
 	)APPLESCRIPT";
 }
 
-bool QueryPowerPointLiveState(LivePowerPointSnapshot &snapshot, std::string &out_error)
+bool QueryPowerPointLiveState(
+  const std::string &cache_dir,
+  const std::string &presentation_path,
+  LivePowerPointSnapshot &snapshot,
+  std::string &out_error)
 {
+  if (presentation_path.empty()) {
+    out_error = "PowerPoint live query has no target presentation path.";
+    return false;
+  }
+
   std::string std_out;
   std::string std_err;
   int exit_code = 0;
-  const bool ok = RunAppleScriptLines(
-    {
-      R"(tell application "Microsoft PowerPoint")",
-      R"(set targetPresentation to active presentation)",
-      R"(set targetWindow to slide show window of targetPresentation)",
-      R"(set windowTitle to name of targetWindow)",
-      R"(set slideNumber to slide index of slide of slideshow view of targetWindow)",
-      R"(set slideCount to count of slides of targetPresentation)",
-      R"(return windowTitle & linefeed & (slideNumber as text) & linefeed & (slideCount as text))",
-      R"(end tell)",
-    },
+  const bool ok = RunAppleScriptFile(
+    cache_dir.empty() ? CacheDirectoryForDeck(presentation_path) : cache_dir,
+    "pptbridge_powerpoint_live_query.applescript",
+    PowerPointAppleScriptLiveQuerySource(),
+    { presentation_path },
     std_out,
     std_err,
     exit_code);
@@ -835,21 +937,6 @@ bool StartPowerPointLiveSession(
     return false;
   }
 
-  // Fast path: if PowerPoint already has a slideshow running (e.g. OBS was
-  // restarted while PowerPoint stayed open from a prior session), just
-  // reattach to that existing session instead of restaging the file and
-  // re-launching the show. QueryPowerPointLiveState queries PowerPoint's
-  // active presentation; if it comes back with a valid window title, we're
-  // good to go.
-  {
-    std::string query_error;
-    LivePowerPointSnapshot existing;
-    if (QueryPowerPointLiveState(existing, query_error) && !existing.window_title.empty()) {
-      snapshot = existing;
-      return true;
-    }
-  }
-
   auto work_dir = fs::path(cache_dir) / "powerpoint-live";
   std::error_code error;
   fs::create_directories(work_dir, error);
@@ -858,7 +945,25 @@ bool StartPowerPointLiveSession(
     return false;
   }
 
-  const auto copied_input = work_dir / fs::path(pptx_path).filename();
+  const auto copied_input = StagedPowerPointLivePath(pptx_path, work_dir);
+
+  // Fast path: if PowerPoint already has this exact staged deck running
+  // (for example OBS was restarted while PowerPoint stayed open), reattach
+  // to that session. Do not use PowerPoint's active presentation here:
+  // multi-deck shows often have a different slideshow active.
+  {
+    std::error_code exists_error;
+    if (fs::exists(copied_input, exists_error)) {
+      std::string query_error;
+      LivePowerPointSnapshot existing;
+      if (QueryPowerPointLiveState(cache_dir, copied_input.string(), existing, query_error) &&
+          !existing.window_title.empty()) {
+        snapshot = existing;
+        return true;
+      }
+    }
+  }
+
   error.clear();
   fs::copy_file(pptx_path, copied_input, fs::copy_options::overwrite_existing, error);
   if (error) {
@@ -868,7 +973,7 @@ bool StartPowerPointLiveSession(
     // a tmp-dir rename, and only then report an error.
     std::error_code exists_error;
     if (!fs::exists(copied_input, exists_error)) {
-      auto tmp_staged = work_dir / ("pptbridge_stage_" + fs::path(pptx_path).filename().string());
+      auto tmp_staged = work_dir / ("pptbridge_stage_" + copied_input.filename().string());
       error.clear();
       fs::copy_file(pptx_path, tmp_staged, fs::copy_options::overwrite_existing, error);
       if (error) {
@@ -900,10 +1005,11 @@ bool StartPowerPointLiveSession(
 
 bool StopPowerPointLiveSession(
   const std::string &cache_dir,
+  const std::string &presentation_path,
   const std::string &window_title,
   std::string &out_error)
 {
-  if (window_title.empty()) {
+  if (presentation_path.empty() && window_title.empty()) {
     return true;
   }
   if (!IsPowerPointRunning()) {
@@ -914,10 +1020,12 @@ bool StopPowerPointLiveSession(
   std::string std_err;
   int exit_code = 0;
   const bool stopped = RunAppleScriptFile(
-    cache_dir.empty() ? CacheDirectoryForDeck(window_title) : cache_dir,
+    cache_dir.empty()
+      ? CacheDirectoryForDeck(!presentation_path.empty() ? presentation_path : window_title)
+      : cache_dir,
     "pptbridge_powerpoint_live_stop.applescript",
     PowerPointAppleScriptLiveStopSource(),
-    { window_title },
+    { presentation_path, window_title },
     std_out,
     std_err,
     exit_code);
@@ -930,30 +1038,50 @@ bool StopPowerPointLiveSession(
   return true;
 }
 
+std::string PowerPointAppleScriptLiveCommandSource(const std::string &command_line)
+{
+  std::string source = PowerPointAppleScriptLiveHandlers() + R"APPLESCRIPT(
+on run argv
+	if (count of argv) is not 1 then error "Expected PowerPoint input path."
+	set input_path to my normalize_posix_path(item 1 of argv)
+	set targetPresentation to my find_presentation_by_path(input_path)
+	if targetPresentation is missing value then error "PowerPoint presentation is not open for this deck."
+)APPLESCRIPT";
+  if (!command_line.empty()) {
+    source += "\ttell application \"Microsoft PowerPoint\"\n\t\t";
+    source += command_line;
+    source += "\n\tend tell\n\tdelay 0.05\n";
+  }
+  source += R"APPLESCRIPT(
+	return my snapshot_for_presentation(targetPresentation, input_path)
+end run
+	)APPLESCRIPT";
+  return source;
+}
+
 bool RunPowerPointLiveCommand(
+  const std::string &cache_dir,
+  const std::string &presentation_path,
   const std::string &command_line,
   LivePowerPointSnapshot &snapshot,
   std::string &out_error)
 {
-  std::vector<std::string> lines = {
-    R"(tell application "Microsoft PowerPoint")",
-    R"(set targetPresentation to active presentation)",
-  };
-  if (!command_line.empty()) {
-    lines.push_back(command_line);
-    lines.push_back(R"(delay 0.05)");
+  if (presentation_path.empty()) {
+    out_error = "PowerPoint live command has no target presentation path.";
+    return false;
   }
-  lines.push_back(R"(set targetWindow to slide show window of targetPresentation)");
-  lines.push_back(R"(set windowTitle to name of targetWindow)");
-  lines.push_back(R"(set slideNumber to slide index of slide of slideshow view of targetWindow)");
-  lines.push_back(R"(set slideCount to count of slides of targetPresentation)");
-  lines.push_back(R"(return windowTitle & linefeed & (slideNumber as text) & linefeed & (slideCount as text))");
-  lines.push_back(R"(end tell)");
 
   std::string std_out;
   std::string std_err;
   int exit_code = 0;
-  const bool ok = RunAppleScriptLines(lines, std_out, std_err, exit_code);
+  const bool ok = RunAppleScriptFile(
+    cache_dir.empty() ? CacheDirectoryForDeck(presentation_path) : cache_dir,
+    "pptbridge_powerpoint_live_command.applescript",
+    PowerPointAppleScriptLiveCommandSource(command_line),
+    { presentation_path },
+    std_out,
+    std_err,
+    exit_code);
   if (!ok || exit_code != 0) {
     out_error = "PowerPoint live command failed: " + BuildTaskErrorMessage(std_out, std_err, exit_code);
     return false;
@@ -1784,6 +1912,7 @@ struct PresentationDocument::Impl {
   std::size_t current = 0;
   std::size_t live_slide_count = 0;
   std::string live_window_title;
+  std::string live_presentation_path;
   std::string live_error;
   Clock::time_point live_last_sync = Clock::time_point::min();
   uint64_t version = 1;
@@ -1830,6 +1959,7 @@ void PresentationDocument::SetLivePowerPointEnabled(bool enabled)
     impl_->live_start_requested = false;
     impl_->live_ready = false;
     impl_->live_window_title.clear();
+    impl_->live_presentation_path.clear();
     impl_->live_slide_count = 0;
     impl_->live_sync_in_flight = false;
   }
@@ -1908,19 +2038,26 @@ void PresentationDocument::StopLivePowerPoint()
 {
   std::string cache_dir;
   std::string window_title;
+  std::string presentation_path;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     cache_dir = impl_->cache_dir;
     window_title = impl_->live_window_title;
+    presentation_path = impl_->live_presentation_path;
   }
 
   std::string stop_error;
-  const bool stopped = StopPowerPointLiveSession(cache_dir, window_title, stop_error);
-  if (!window_title.empty()) {
+  const bool stopped = StopPowerPointLiveSession(cache_dir, presentation_path, window_title, stop_error);
+  if (!window_title.empty() || !presentation_path.empty()) {
     if (stopped) {
-      blog(LOG_INFO, "[PPTBridge] PowerPoint live mode stopped (%s)", window_title.c_str());
+      blog(LOG_INFO,
+        "[PPTBridge] PowerPoint live mode stopped (%s)",
+        !window_title.empty() ? window_title.c_str() : presentation_path.c_str());
     } else {
-      blog(LOG_WARNING, "[PPTBridge] PowerPoint live mode stop failed (%s): %s", window_title.c_str(), stop_error.c_str());
+      blog(LOG_WARNING,
+        "[PPTBridge] PowerPoint live mode stop failed (%s): %s",
+        !window_title.empty() ? window_title.c_str() : presentation_path.c_str(),
+        stop_error.c_str());
     }
   }
 
@@ -1929,6 +2066,7 @@ void PresentationDocument::StopLivePowerPoint()
   impl_->live_ready = false;
   impl_->live_sync_in_flight = false;
   impl_->live_window_title.clear();
+  impl_->live_presentation_path.clear();
   impl_->live_slide_count = 0;
   impl_->live_error = stopped ? std::string() : stop_error;
   impl_->version += 1;
@@ -1964,6 +2102,8 @@ void PresentationDocument::ReloadAsync()
 
 void PresentationDocument::SyncLiveStateAsync()
 {
+  std::string cache_dir;
+  std::string presentation_path;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     if (!impl_->live_powerpoint_enabled || !impl_->live_ready || impl_->live_sync_in_flight) {
@@ -1976,14 +2116,16 @@ void PresentationDocument::SyncLiveStateAsync()
       return;
     }
 
+    cache_dir = impl_->cache_dir;
+    presentation_path = impl_->live_presentation_path;
     impl_->live_sync_in_flight = true;
   }
 
   auto self = shared_from_this();
-  std::thread([self]() {
+  std::thread([self, cache_dir, presentation_path]() {
     LivePowerPointSnapshot snapshot;
     std::string error;
-    const bool ok = QueryPowerPointLiveState(snapshot, error);
+    const bool ok = QueryPowerPointLiveState(cache_dir, presentation_path, snapshot, error);
 
     std::lock_guard<std::mutex> lock(self->impl_->mutex);
     self->impl_->live_sync_in_flight = false;
@@ -2006,6 +2148,9 @@ void PresentationDocument::SyncLiveStateAsync()
     self->impl_->live_ready = true;
     self->impl_->live_error.clear();
     self->impl_->live_window_title = snapshot.window_title;
+    if (!snapshot.presentation_path.empty()) {
+      self->impl_->live_presentation_path = snapshot.presentation_path;
+    }
     self->impl_->live_slide_count = snapshot.slide_count;
     self->impl_->current = snapshot.current_index;
     if (changed) {
@@ -2057,6 +2202,7 @@ void PresentationDocument::LoadOnWorker()
         impl_->live_powerpoint_enabled = false;
         impl_->live_ready = false;
         impl_->live_window_title.clear();
+        impl_->live_presentation_path.clear();
         impl_->live_slide_count = 0;
         impl_->live_sync_in_flight = false;
       }
@@ -2085,6 +2231,9 @@ void PresentationDocument::LoadOnWorker()
         impl_->live_ready = true;
         impl_->live_error.clear();
         impl_->live_window_title = live_snapshot.window_title;
+        impl_->live_presentation_path = !live_snapshot.presentation_path.empty()
+          ? live_snapshot.presentation_path
+          : StagedPowerPointLivePath(impl_->path, fs::path(cache_dir) / "powerpoint-live").string();
         impl_->live_slide_count = live_snapshot.slide_count;
         impl_->current = live_snapshot.current_index;
         impl_->black = false;
@@ -2100,6 +2249,7 @@ void PresentationDocument::LoadOnWorker()
         impl_->live_ready = false;
         impl_->live_error = live_error;
         impl_->live_window_title.clear();
+        impl_->live_presentation_path.clear();
         impl_->live_slide_count = 0;
         impl_->version += 1;
         blog(LOG_WARNING, "[PPTBridge] Live mode failed for '%s': %s", impl_->path.c_str(), live_error.c_str());
@@ -2255,14 +2405,20 @@ bool PresentationDocument::IsBlackScreen() const
 void PresentationDocument::Next()
 {
   bool use_live = false;
+  std::string cache_dir;
+  std::string presentation_path;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     use_live = impl_->live_powerpoint_enabled && impl_->live_ready;
+    cache_dir = impl_->cache_dir;
+    presentation_path = impl_->live_presentation_path;
   }
   if (use_live) {
     LivePowerPointSnapshot snapshot;
     std::string error;
     if (RunPowerPointLiveCommand(
+          cache_dir,
+          presentation_path,
           R"(go to next slide (slideshow view of slide show window of targetPresentation))",
           snapshot,
           error)) {
@@ -2270,6 +2426,9 @@ void PresentationDocument::Next()
       impl_->current = snapshot.current_index;
       impl_->live_slide_count = snapshot.slide_count;
       impl_->live_window_title = snapshot.window_title;
+      if (!snapshot.presentation_path.empty()) {
+        impl_->live_presentation_path = snapshot.presentation_path;
+      }
       impl_->live_error.clear();
       impl_->black = false;
       impl_->version += 1;
@@ -2305,14 +2464,20 @@ void PresentationDocument::Next()
 void PresentationDocument::Previous()
 {
   bool use_live = false;
+  std::string cache_dir;
+  std::string presentation_path;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     use_live = impl_->live_powerpoint_enabled && impl_->live_ready;
+    cache_dir = impl_->cache_dir;
+    presentation_path = impl_->live_presentation_path;
   }
   if (use_live) {
     LivePowerPointSnapshot snapshot;
     std::string error;
     if (RunPowerPointLiveCommand(
+          cache_dir,
+          presentation_path,
           R"(go to previous slide (slideshow view of slide show window of targetPresentation))",
           snapshot,
           error)) {
@@ -2320,6 +2485,9 @@ void PresentationDocument::Previous()
       impl_->current = snapshot.current_index;
       impl_->live_slide_count = snapshot.slide_count;
       impl_->live_window_title = snapshot.window_title;
+      if (!snapshot.presentation_path.empty()) {
+        impl_->live_presentation_path = snapshot.presentation_path;
+      }
       impl_->live_error.clear();
       impl_->black = false;
       impl_->version += 1;
@@ -2353,14 +2521,20 @@ void PresentationDocument::Previous()
 void PresentationDocument::First()
 {
   bool use_live = false;
+  std::string cache_dir;
+  std::string presentation_path;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     use_live = impl_->live_powerpoint_enabled && impl_->live_ready;
+    cache_dir = impl_->cache_dir;
+    presentation_path = impl_->live_presentation_path;
   }
   if (use_live) {
     LivePowerPointSnapshot snapshot;
     std::string error;
     if (RunPowerPointLiveCommand(
+          cache_dir,
+          presentation_path,
           R"(go to first slide (slideshow view of slide show window of targetPresentation))",
           snapshot,
           error)) {
@@ -2368,6 +2542,9 @@ void PresentationDocument::First()
       impl_->current = snapshot.current_index;
       impl_->live_slide_count = snapshot.slide_count;
       impl_->live_window_title = snapshot.window_title;
+      if (!snapshot.presentation_path.empty()) {
+        impl_->live_presentation_path = snapshot.presentation_path;
+      }
       impl_->live_error.clear();
       impl_->black = false;
       impl_->version += 1;
@@ -2391,14 +2568,20 @@ void PresentationDocument::First()
 void PresentationDocument::Last()
 {
   bool use_live = false;
+  std::string cache_dir;
+  std::string presentation_path;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     use_live = impl_->live_powerpoint_enabled && impl_->live_ready;
+    cache_dir = impl_->cache_dir;
+    presentation_path = impl_->live_presentation_path;
   }
   if (use_live) {
     LivePowerPointSnapshot snapshot;
     std::string error;
     if (RunPowerPointLiveCommand(
+          cache_dir,
+          presentation_path,
           R"(go to last slide (slideshow view of slide show window of targetPresentation))",
           snapshot,
           error)) {
@@ -2406,6 +2589,9 @@ void PresentationDocument::Last()
       impl_->current = snapshot.current_index;
       impl_->live_slide_count = snapshot.slide_count;
       impl_->live_window_title = snapshot.window_title;
+      if (!snapshot.presentation_path.empty()) {
+        impl_->live_presentation_path = snapshot.presentation_path;
+      }
       impl_->live_error.clear();
       impl_->black = false;
       impl_->version += 1;
@@ -2520,7 +2706,7 @@ bool PresentationDocument::RenderSlideBGRA(
     } else if (loaded && !black) {
       DrawPageThumbnail(document, current, canvas);
     } else if (live_waiting_for_manual_start) {
-      DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode is manual. Click Open PowerPoint / Start Live Mode in source properties.", canvas);
+      DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode is manual. Click START - Open PowerPoint / Start Live Mode in the highlighted source-property group.", canvas);
     } else if (live_enabled && loading) {
       DrawCenteredMessage(@"PPTBridge SK", @"Starting PowerPoint live mode…", canvas);
     } else if (live_enabled && !live_error.empty()) {

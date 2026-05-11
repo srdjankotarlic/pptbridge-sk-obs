@@ -47,7 +47,8 @@ Cilj mi je bio da napravim praktičan workflow:
 - čist PowerPoint slide izlaz za program ili publiku
 - poseban presenter view sa notes za monitor na bini
 - kontrola slajdova preko OBS hotkeys, dugmića u source properties, Companion-a ili lokalnog OSC-a
-- OBS može da se otvori mirno, a PowerPoint startuje tek kad operator klikne `Open PowerPoint / Start Live Mode`
+- opcioni Spotlight/clicker capture, tako da presenter na bini može da menja slajdove dok operator koristi Chrome, OBS ili drugi program
+- OBS može da se otvori mirno, a PowerPoint startuje tek kad operator klikne `START - Open PowerPoint / Start Live Mode` u izdvojenoj `PowerPoint Live Start / Stop` grupi
 
 Najvažnije mi je što sada radi kao pravi OBS plugin, a ne kao improvizacija preko window capture ili sličnih workaround-a.
 

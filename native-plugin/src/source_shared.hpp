@@ -18,6 +18,11 @@ enum class ViewMode {
   Presenter,
 };
 
+enum class LiveCaptureResizeMode {
+  LockCanvas,
+  FitWindow,
+};
+
 struct SourceContext {
   struct MediaPlayback {
     std::string signature;
@@ -48,6 +53,7 @@ struct SourceContext {
   bool use_live_powerpoint = true;
   bool auto_start_live_powerpoint = false;
   bool close_live_powerpoint_on_shutdown = true;
+  LiveCaptureResizeMode live_capture_resize_mode = LiveCaptureResizeMode::LockCanvas;
   bool audio_enabled = true;
   bool use_live_app_audio = true;
   bool auto_recover_live = true;

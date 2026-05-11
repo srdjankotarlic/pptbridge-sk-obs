@@ -47,11 +47,11 @@ Copy these into GitHub topics:
 
 ## Suggested Release Tag
 
-`v0.4.1`
+`v0.4.2`
 
 ## Suggested Release Title
 
-`PPTBridge SK for OBS v0.4.1`
+`PPTBridge SK for OBS v0.4.2`
 
 ## README Tagline
 
@@ -74,4 +74,4 @@ Start with:
 
 ## Suggested Pinned Description For Portfolio
 
-`PPTBridge SK for OBS is a native macOS plugin I built for live productions that need a clean PowerPoint/PDF feed in program, a separate presenter view with notes, and reliable OBS/Companion slide control.`
+`PPTBridge SK for OBS is a native macOS plugin I built for live productions that need a clean PowerPoint/PDF feed in program, a separate presenter view with notes, reliable OBS/Companion slide control, and optional stage clicker capture.`

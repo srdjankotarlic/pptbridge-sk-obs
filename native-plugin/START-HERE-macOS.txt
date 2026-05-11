@@ -46,7 +46,7 @@ BASIC OBS SETUP
 3. Select the same .pptx or .pdf file in both sources.
 4. For .pptx live mode, open PPTBridge SK Slide properties and click:
 
-   Open PowerPoint / Start Live Mode
+   START - Open PowerPoint / Start Live Mode
 
 5. For PDF decks, PowerPoint is not needed.
 
@@ -62,16 +62,49 @@ Defaults:
 PPTBridge only moves slides from hotkeys while OBS is the active app.
 You can bind different keys in OBS Settings > Hotkeys if needed.
 
+SPOTLIGHT / CLICKER CAPTURE
+
+If a presenter on stage uses a Logitech Spotlight or similar clicker while the
+operator uses Chrome, OBS, or another app:
+
+1. Bind PPTBridge SK Next Slide / Previous Slide to the clicker keys in
+   OBS Settings > Hotkeys.
+2. In OBS, open Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture.
+3. If macOS asks, allow OBS in System Settings > Privacy & Security >
+   Accessibility and Input Monitoring.
+4. Restart OBS or toggle the feature again after granting permission.
+
+This makes the clicker drive the PPTBridge deck in the current OBS Program scene
+and stops those captured key presses from affecting the focused app. It works for
+PPTX live mode and PDF/cached decks. Use PageDown/PageUp or other clicker-style
+keys when possible; normal typing keys such as 1 and 2 are swallowed while this
+feature is enabled.
+
 POWERPOINT STARTUP
 
 In the PPTBridge SK Slide source properties:
 
 - Leave Auto Start PowerPoint When OBS Opens off if OBS should open quietly.
-- Click Open PowerPoint / Start Live Mode when you are ready to launch the slideshow.
+- Click START - Open PowerPoint / Start Live Mode in the highlighted
+  PowerPoint Live Start / Stop group when you are ready to launch the slideshow.
   If PowerPoint is not open yet, PPTBridge opens it for you.
 - Turn Auto Start PowerPoint When OBS Opens on if you want the slideshow to launch with OBS.
 - Leave Close PowerPoint Slideshow When OBS Closes on if OBS should clean up the slideshow on quit.
-- Use Stop PowerPoint Live Mode if you want to stop the slideshow without quitting OBS.
+- Use STOP - Stop PowerPoint Live Mode in the same highlighted group if you want
+  to stop the slideshow without quitting OBS.
+- Leave PowerPoint Resize Behavior on Lock OBS Output Size if you want to shrink
+  the PowerPoint window on your desktop without changing the OBS program output.
+- Use Follow Current PPT Window Size only when you intentionally want the resized
+  PowerPoint window to affect OBS.
+
+MULTIPLE PPTX DECKS
+
+- Create one OBS scene per deck.
+- Add PPTBridge SK Slide and PPTBridge SK Presenter to each scene.
+- Select that scene's .pptx in both sources.
+- Click START - Open PowerPoint / Start Live Mode once for each deck you want ready.
+- PPTBridge locks each PowerPoint live session to its exact staged deck file, so
+  several slideshow windows can stay open and scene changes control the right deck.
 
 COMPANION / OSC
 

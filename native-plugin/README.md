@@ -36,7 +36,8 @@ This native version is built around a practical conference workflow:
 
 ## Quick Platform Guide
 
-- `v0.4.1` = macOS stable release with manual/automatic PowerPoint lifecycle controls and Companion/OSC control
+- `v0.4.2` = macOS stable release with Spotlight/Clicker Capture, multi-deck live routing, locked PowerPoint resize behavior, manual/automatic PowerPoint lifecycle controls, and Companion/OSC control
+- `v0.4.1` = previous macOS stable release with manual/automatic PowerPoint lifecycle controls and Companion/OSC control
 - `v0.4.0` = previous macOS stable release with Companion/OSC control
 - `v0.3.0` = previous macOS stable release with presenter customization
 - `v0.2.2` = previous macOS stable release
@@ -50,7 +51,7 @@ With this plugin you can:
 
 - send only the slide to program
 - keep notes and upcoming-slide context on a separate monitor
-- let the speaker drive the deck with a clicker that maps to OBS hotkeys
+- let the speaker drive the deck with OBS hotkeys, Companion/OSC, or optional Spotlight/Clicker Capture
 - avoid fragile window-capture or full-screen PowerPoint workarounds
 
 ## Why This Is Native
@@ -134,8 +135,8 @@ Build the package:
 Result:
 
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
-- `release/PPTBridge-SK-for-OBS-v0.4.1-macOS-Apple-Silicon.zip`
-- `release/PPTBridge-SK-for-OBS-v0.4.1-macOS-Intel.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.2-macOS-Apple-Silicon.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.2-macOS-Intel.zip`
 - `release/pptbridge-obs-macos-apple-silicon.zip`
 - `release/pptbridge-obs-macos-intel.zip`
 
@@ -163,15 +164,21 @@ Recommended workflow:
 1. Add `PPTBridge SK Slide` to the program scene
 2. Add `PPTBridge SK Presenter` to the stage confidence scene
 3. Point both to the same `.pptx` or `.pdf`
-4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `Open PowerPoint / Start Live Mode` when you are ready
+4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `START - Open PowerPoint / Start Live Mode` in the highlighted `PowerPoint Live Start / Stop` group when you are ready
 5. Open `Settings > Hotkeys`
 6. Bind `PPTBridge SK: Next Slide` and `PPTBridge SK: Previous Slide`
-7. Let the speaker drive slides with OBS-focused hotkeys, Companion, local OSC, or source property buttons
+7. Let the speaker drive slides with OBS-focused hotkeys, optional Spotlight/Clicker Capture, Companion, local OSC, or source property buttons
 
 That gives you a clean dual-output workflow:
 
 - program output for audience or stream
 - presenter output for the stage monitor
+
+## Multiple Decks
+
+For multi-deck shows, put each `.pptx` in its own OBS scene with its own `PPTBridge SK Slide` source and optional matching `PPTBridge SK Presenter` source. Start live mode for each deck you want ready before the show.
+
+Each live PowerPoint session is matched by its exact staged file path, so multiple open PowerPoint slideshow windows can coexist without Deck 2 attaching to Deck 1. Hotkeys and local OSC still route to the PPTBridge source in the current OBS program scene.
 
 ## Slide Control
 
@@ -198,6 +205,8 @@ Quick setup for stage control:
 
 After that, the speaker can drive the deck from OBS with the clicker and the active PPTBridge source will move forward/back.
 PPTBridge ignores hotkey callbacks while OBS is not the active app, so typing in another app will not move the presentation.
+For a Logitech Spotlight or other presenter clicker that should work while the operator uses Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. It captures the same PPTBridge hotkey bindings globally, routes them to the PPTBridge source in the current OBS program scene, and suppresses those captured key presses from the focused app. This works for PPTX live mode and PDF/cached decks.
+If macOS asks, allow OBS in `System Settings > Privacy & Security > Accessibility` and `Input Monitoring`, then restart OBS or toggle the feature again. Use PageDown/PageUp or other clicker-style bindings when possible; normal typing keys such as `1` and `2` will be swallowed while Spotlight/Clicker Capture is enabled.
 For Stream Deck or Bitfocus Companion control that must work while another app is focused, use the OBS WebSocket workflow in `COMPANION-CONTROL.md` instead of keyboard hotkeys.
 For direct local OSC, enable `Tools > PPTBridge SK: Toggle Local OSC Control` and send OSC messages such as `/pptbridge/next` to `127.0.0.1:57130`.
 
@@ -205,12 +214,16 @@ For direct local OSC, enable `Tools > PPTBridge SK: Toggle Local OSC Control` an
 
 In `PPTBridge SK Slide` properties:
 
-- `Open PowerPoint / Start Live Mode` opens PowerPoint if needed and starts the slideshow on demand
+- `START - Open PowerPoint / Start Live Mode` opens PowerPoint if needed and starts the slideshow on demand from the highlighted `PowerPoint Live Start / Stop` group
 - `Auto Start PowerPoint When OBS Opens` restores automatic slideshow startup when OBS loads the source
 - `Close PowerPoint Slideshow When OBS Closes` cleans up the running slideshow when OBS quits
-- `Stop PowerPoint Live Mode` stops the live slideshow without quitting OBS
+- `STOP - Stop PowerPoint Live Mode` stops the live slideshow without quitting OBS from the highlighted `PowerPoint Live Start / Stop` group
+- `PowerPoint Resize Behavior` controls whether OBS ignores or follows PowerPoint window resizing
+- `Lock OBS Size Against PPT Resize` keeps the OBS program output stable while the desktop PowerPoint window is made smaller
+- `Follow Current PPT Window Size` intentionally lets the PowerPoint window shape affect OBS
 
 Default behavior is manual startup, so OBS can open quietly before the operator starts PowerPoint.
+Default resize behavior is locked to the OBS canvas.
 
 This plugin does not require the old `pptbridge_obs.py` workflow.
 The included installers also remove legacy PPTBridge Python script entries from OBS scene collections.
@@ -220,7 +233,7 @@ The included installers also remove legacy PPTBridge Python script entries from 
 This native pass is focused on the installable OBS source workflow and rendering path.
 It is designed to run as a real plugin bundle, without requiring the old Python PPTBridge script to stay loaded in OBS.
 On macOS with Microsoft PowerPoint installed, `PPTBridge SK Slide` supports true live mode and lets PowerPoint itself handle slideshow builds, animations, and embedded media.
-By default, PowerPoint live mode waits for `Open PowerPoint / Start Live Mode` in source properties so OBS can open without immediately launching a slideshow. If PowerPoint is closed, that button opens it and starts the slideshow. Enable `Auto Start PowerPoint When OBS Opens` if you want the older automatic behavior.
+By default, PowerPoint live mode waits for `START - Open PowerPoint / Start Live Mode` in the highlighted source-property control group so OBS can open without immediately launching a slideshow. If PowerPoint is closed, that button opens it and starts the slideshow. Enable `Auto Start PowerPoint When OBS Opens` if you want the older automatic behavior.
 Enable `Close PowerPoint Slideshow When OBS Closes` when the live slideshow should be cleaned up as OBS shuts down.
 `PPTBridge SK Presenter` is PPTBridge's own presenter layout, synchronized with the deck and fed by PPTX notes pages and slide thumbnails.
 The presenter source exposes balanced, large-preview, large-notes, compact, and confidence-monitor layout presets, plus presenter split, preview scale/position, notes zoom, notes text position, and notes sizing controls.

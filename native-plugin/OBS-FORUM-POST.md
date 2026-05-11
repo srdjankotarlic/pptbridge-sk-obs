@@ -22,12 +22,13 @@ The goal is to support a real event workflow inside OBS:
 - clean PowerPoint slides for program or stream output
 - separate presenter view with notes for a stage or confidence monitor
 - safe slide control through OBS hotkeys, source buttons, Companion, or local OSC
+- optional Spotlight/Clicker Capture for Logitech Spotlight style presenters while the operator uses other apps
 
 ## What it does
 
 - load a `.pptx` or `.pdf` directly from source properties
 - support true live PowerPoint playback on macOS when Microsoft PowerPoint is installed
-- let OBS open quietly, then start PowerPoint only when you click `Open PowerPoint / Start Live Mode`
+- let OBS open quietly, then start PowerPoint only when you click `START - Open PowerPoint / Start Live Mode` in the highlighted `PowerPoint Live Start / Stop` group
 - optionally auto-start PowerPoint when OBS opens
 - optionally close the live slideshow when OBS quits
 - create a clean audience slide source
@@ -57,7 +58,7 @@ The goal is to support a real event workflow inside OBS:
 4. Add `PPTBridge SK Slide`
 5. Add `PPTBridge SK Presenter`
 6. Point both sources to the same `.pptx` or `.pdf`
-7. For `.pptx` live mode, click `Open PowerPoint / Start Live Mode` in `PPTBridge SK Slide` properties
+7. For `.pptx` live mode, click `START - Open PowerPoint / Start Live Mode` in the highlighted `PowerPoint Live Start / Stop` group inside `PPTBridge SK Slide` properties
 8. Bind `PPTBridge SK` hotkeys in `Settings > Hotkeys`, or use Companion/OSC
 
 ## Hotkeys and clickers
@@ -77,6 +78,12 @@ The default safe bindings are:
 PPTBridge only acts on hotkeys while OBS is the active app, so typing in another
 app will not accidentally move the presentation. You can still bind different
 keys or clicker buttons in OBS Settings > Hotkeys.
+
+If a stage clicker needs to work while Chrome, OBS, or another app is focused,
+enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. It captures the
+same PPTBridge hotkey bindings globally, routes them to the PPTBridge source in
+the current OBS program scene, and suppresses those captured key presses from the
+focused app. This is optional; leave it off for normal OBS-focused hotkeys.
 
 ## Companion / OSC
 

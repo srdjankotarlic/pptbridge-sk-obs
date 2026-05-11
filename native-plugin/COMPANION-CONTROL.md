@@ -15,6 +15,11 @@ The request targets one exact PPTBridge source by name and presses the built-in 
 For direct OSC, enable PPTBridge's local listener from the OBS `Tools` menu.
 It listens only on `127.0.0.1`, so it is intended for a control app running on the same machine.
 
+For a physical Logitech Spotlight or presenter clicker, use `Tools > PPTBridge
+SK: Toggle Spotlight/Clicker Capture` instead of Companion. It captures the same
+PPTBridge hotkey bindings globally, routes them to the current OBS program scene,
+and suppresses those captured key presses from the focused app.
+
 ## Requirements
 
 - OBS Studio with the built-in obs-websocket server enabled.
@@ -145,6 +150,8 @@ Supported OSC addresses:
 The OSC listener routes commands to the PPTBridge source in the current OBS program scene.
 If no PPTBridge source is in Program, it falls back to the last active PPTBridge document.
 This matches the stage-friendly hotkey routing, but it does not require OBS to be the focused app.
+For multiple live PowerPoint decks, keep one deck per OBS scene. PPTBridge locks each open slideshow to its exact staged file, and OSC follows the current Program scene.
+Spotlight/Clicker Capture uses the same current Program scene routing for physical presenter clickers.
 
 Example terminal test after enabling OSC in OBS:
 
