@@ -7,7 +7,7 @@ Author credit:
 
 Recommended free launch:
 1. Publish the source code on GitHub.
-2. Attach the release zip and `.pkg` to a GitHub Release.
+2. Attach the Apple Silicon and Intel release ZIPs to a GitHub Release.
 3. Publish the plugin on the OBS Forums plugin/resources section.
 
 Official links:
@@ -35,7 +35,8 @@ cd native-plugin
 
 Main outputs:
 
-- `release/PPTBridge-SK-for-OBS-v0.2.0-macOS.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.1-macOS-Apple-Silicon.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.1-macOS-Intel.zip`
 - `release/pptbridge-obs-macos-apple-silicon.zip`
 - `release/pptbridge-obs-macos-intel.zip`
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
@@ -48,7 +49,7 @@ Suggested repo name:
 
 Suggested repository description:
 
-- `Native macOS OBS plugin for PowerPoint slide and presenter sources, created by Srdjan Kotarlic.`
+- `PowerPoint/PDF slide and presenter sources for OBS on macOS. Apple Silicon and Intel builds.`
 
 Suggested visibility:
 
@@ -65,8 +66,8 @@ git commit -m "Initial public release of PPTBridge SK for OBS"
 git branch -M main
 git remote add origin <your-github-repo-url>
 git push -u origin main
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.4.1
+git push origin v0.4.1
 ```
 
 ## 4. Create The GitHub Release
@@ -76,14 +77,14 @@ In GitHub:
 1. Open the repository
 2. Click `Releases`
 3. Click `Draft a new release`
-4. Choose tag `v0.2.0`
-5. Title it `PPTBridge SK for OBS v0.2.0`
+4. Choose tag `v0.4.1`
+5. Title it `PPTBridge SK for OBS v0.4.1`
 6. Paste the text from `GITHUB-RELEASE.md`
 7. Upload:
-   - `PPTBridge-SK-for-OBS-v0.2.0-macOS.zip`
    - `pptbridge-obs-macos-apple-silicon.zip`
+   - `pptbridge-obs-macos-apple-silicon.zip.sha256`
    - `pptbridge-obs-macos-intel.zip`
-   - `PPTBridge-SK-for-OBS-Installer.pkg`
+   - `pptbridge-obs-macos-intel.zip.sha256`
 8. Publish the release
 
 ## 5. Create The OBS Forums Resource
@@ -114,30 +115,31 @@ If possible, also record a short 20-30 second demo:
 
 Suggested repository:
 - Name: `pptbridge-sk-obs`
-- Description: `PPTBridge SK for OBS is a native macOS OBS plugin for PowerPoint slide and presenter sources, created by Srdjan Kotarlic.`
+- Description: `PowerPoint/PDF slide and presenter sources for OBS on macOS. Apple Silicon and Intel builds.`
 
 Suggested release title:
-- `PPTBridge SK for OBS v0.2.0`
+- `PPTBridge SK for OBS v0.4.1`
 
 Suggested release assets:
-- `PPTBridge-SK-for-OBS-v0.2.0-macOS.zip`
 - `pptbridge-obs-macos-apple-silicon.zip`
+- `pptbridge-obs-macos-apple-silicon.zip.sha256`
 - `pptbridge-obs-macos-intel.zip`
-- `PPTBridge-SK-for-OBS-Installer.pkg`
+- `pptbridge-obs-macos-intel.zip.sha256`
 
 Suggested OBS Forums title:
 - `PPTBridge SK for OBS`
 
 Suggested short pitch:
-- `Native macOS OBS plugin that adds live PowerPoint slide and presenter sources, clicker-friendly hotkeys, and OBS audio routing for conference workflows. Created by Srdjan Kotarlic.`
+- `Native macOS OBS plugin that adds live PowerPoint/PDF slide and presenter sources, safe OBS hotkeys, Companion/OSC control, and manual PowerPoint startup for conference workflows. Created by Srdjan Kotarlic.`
 
 Release checklist:
 1. Run `./scripts/make-release.sh`
-2. Test the `.pkg` on a second Mac or clean user account
+2. Build both Apple Silicon and Intel ZIPs
 3. Verify the source picker shows `PPTBridge SK Slide` and `PPTBridge SK Presenter`
-4. Verify hotkeys work with `Right Arrow` / `Page Down` and `Left Arrow` / `Page Up`
-5. Upload the zip and `.pkg` to GitHub Release
-6. Copy the short pitch into the OBS Forums listing
+4. Verify default/manual PowerPoint startup, optional auto-start, close-on-quit, and OBS-focused hotkeys
+5. Verify local OSC or Companion can send `/pptbridge/next`
+6. Upload both ZIPs and checksum files to GitHub Release
+7. Copy the short pitch into the OBS Forums listing
 
 Portfolio angle:
 - Keep the plugin free first to maximize adoption and visibility.

@@ -6,7 +6,7 @@ PPTBridge SK also includes an experimental local OSC listener for direct control
 
 ## Why This Path
 
-PPTBridge SK v0.3.0 intentionally ignores OBS hotkey callbacks while OBS is not the active app.
+Since v0.3.0, PPTBridge SK intentionally ignores OBS hotkey callbacks while OBS is not the active app.
 That protects the show operator from accidentally changing slides while typing in another window.
 
 For Companion, use OBS WebSocket requests instead of keyboard hotkeys.

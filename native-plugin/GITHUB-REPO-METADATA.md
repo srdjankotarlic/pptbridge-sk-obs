@@ -8,7 +8,7 @@ Created by **Srdjan Kotarlic**
 
 ## Repository Description
 
-`Native macOS OBS plugin for PowerPoint/PDF slide and presenter sources. Apple Silicon and Intel builds.`
+`PowerPoint/PDF slide and presenter sources for OBS on macOS. Apple Silicon and Intel builds.`
 
 ## GitHub "About" Short Text
 
@@ -24,28 +24,38 @@ Use this after your first release is live:
 
 Copy these into GitHub topics:
 
+- `apple-silicon`
+- `companion`
+- `confidence-monitor`
+- `conference`
+- `event-production`
+- `live-production`
+- `livestream`
+- `macos`
+- `obs`
 - `obs-studio`
 - `obs-plugin`
-- `obs`
+- `osc`
+- `pdf`
 - `powerpoint`
 - `pptx`
-- `presenter-view`
 - `presentation`
-- `macos`
-- `livestream`
-- `event-production`
+- `presenter-notes`
+- `presenter-view`
+- `streamdeck`
+- `webinar`
 
 ## Suggested Release Tag
 
-`v0.3.0`
+`v0.4.1`
 
 ## Suggested Release Title
 
-`PPTBridge SK for OBS v0.3.0`
+`PPTBridge SK for OBS v0.4.1`
 
 ## README Tagline
 
-`Native macOS OBS plugin that adds PowerPoint slide and presenter source types to OBS.`
+`Native macOS OBS plugin that adds PowerPoint/PDF slide and presenter source types to OBS.`
 
 ## Author Credit To Keep
 
@@ -64,4 +74,4 @@ Start with:
 
 ## Suggested Pinned Description For Portfolio
 
-`PPTBridge SK for OBS is a native macOS plugin I built for live productions that need a clean PowerPoint feed in program and a separate presenter view with notes on stage monitors.`
+`PPTBridge SK for OBS is a native macOS plugin I built for live productions that need a clean PowerPoint/PDF feed in program, a separate presenter view with notes, and reliable OBS/Companion slide control.`

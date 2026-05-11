@@ -21,11 +21,10 @@
 
 ## Assets To Upload
 
-- `PPTBridge-SK-for-OBS-v0.4.1-macOS-Apple-Silicon.zip`
-- `PPTBridge-SK-for-OBS-v0.4.1-macOS-Intel.zip`
 - `pptbridge-obs-macos-apple-silicon.zip`
+- `pptbridge-obs-macos-apple-silicon.zip.sha256`
 - `pptbridge-obs-macos-intel.zip`
-- `PPTBridge-SK-for-OBS-Installer.pkg`
+- `pptbridge-obs-macos-intel.zip.sha256`
 
 ## GitHub Release
 
