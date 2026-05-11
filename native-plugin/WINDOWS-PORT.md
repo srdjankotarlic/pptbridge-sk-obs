@@ -6,7 +6,7 @@ This document captures the current engineering status and next practical path fo
 
 ## Honest Status
 
-The public release is still **macOS-first**, but the repo now contains the first serious Windows implementation layer.
+The public stable release is still **macOS-first**, but the repo now contains a Windows beta implementation layer prepared for real Windows OBS validation.
 
 What is already in the Windows code now:
 
@@ -23,6 +23,16 @@ What is already in the Windows code now:
 - live PowerPoint process-audio attachment attempt through OBS process audio capture
 - fallback to exported slide rendering plus extracted embedded media when the live capture path is not ready
 - legacy click-to-play media behavior so a media-heavy slide can stay on screen and start playback before advancing
+- manual PowerPoint startup with highlighted `START - Open PowerPoint / Start Live Mode`
+- highlighted `STOP - Stop PowerPoint Live Mode`
+- optional `Auto Start PowerPoint When OBS Opens`
+- optional slideshow cleanup when OBS closes
+- locked OBS output sizing when the PowerPoint slideshow window is resized
+- optional follow-window resize behavior
+- current Program scene routing for hotkeys, local OSC, and clicker capture
+- multi-deck routing by source `pptx_path`
+- optional Windows Spotlight/Clicker Capture using the same OBS hotkey bindings
+- local OSC / Companion control through the shared OSC server path
 
 What is **not** claimed as done yet:
 
@@ -52,7 +62,9 @@ The most realistic Windows path is:
 4. Export slides to cached PNGs for the safe fallback render path.
 5. Extract embedded media from the `.pptx` package so OBS can still render or mix that media when live slideshow capture is unavailable.
 6. Keep the live-show path focused on real PowerPoint slideshow control and OBS-side attachment to the slideshow window/audio process.
-7. Render presenter layout in-plugin with Windows graphics APIs.
+7. Keep manual startup as the default so OBS can open quietly unless the user enables auto-start.
+8. Route controls through the current OBS Program scene so multi-deck shows can work cleanly.
+9. Render presenter layout in-plugin with Windows graphics APIs.
 
 ## Recommended Export Path On Windows
 
@@ -113,8 +125,13 @@ Official OBS starting point:
 ### Milestone 1: Real Windows runtime validation
 
 - confirm the new Windows sources compile on a real Windows machine
+- confirm the plugin DLL loads into OBS
 - confirm `window_capture` attaches to the real PowerPoint slideshow window
 - confirm `wasapi_process_output_capture` works with the expected OBS build
+- confirm manual START/STOP works
+- confirm locked resize keeps the OBS source stable when the PowerPoint window is resized
+- confirm hotkeys, clicker capture, and OSC route to the current Program scene
+- confirm two or more open decks can coexist across separate OBS scenes
 
 ### Milestone 2: Live parity hardening
 

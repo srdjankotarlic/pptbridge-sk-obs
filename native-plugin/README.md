@@ -10,6 +10,11 @@ The main public release path today is the stable macOS ZIP for the user's Mac:
 - [Download for Intel Mac](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
 - [Open the latest stable macOS release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
 
+The Windows beta path is source-only for validation:
+
+- [Download Windows beta source pack](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0-beta.1/PPTBridge-SK-Windows-Beta-v0.5.0-beta.1-source.zip)
+- [Open the Windows beta prerelease page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1)
+
 It is designed to show up inside OBS as real source types:
 
 - `PPTBridge SK Slide`
@@ -33,9 +38,11 @@ This native version is built around a practical conference workflow:
 ## Platform Status
 
 - macOS: stable public release path, tested and packaged
+- Windows: `v0.5.0-beta.1` source validation pack, not a final installer yet
 
 ## Quick Platform Guide
 
+- `v0.5.0-beta.1` = Windows beta source pack for real Windows OBS build/runtime validation
 - `v0.4.2` = macOS stable release with Spotlight/Clicker Capture, multi-deck live routing, locked PowerPoint resize behavior, manual/automatic PowerPoint lifecycle controls, and Companion/OSC control
 - `v0.4.1` = previous macOS stable release with manual/automatic PowerPoint lifecycle controls and Companion/OSC control
 - `v0.4.0` = previous macOS stable release with Companion/OSC control
@@ -147,6 +154,9 @@ If you want to publish this properly, these files are prepared for you:
 - `PUBLISHING.md`
 - `PRO-AUDIO-MODE.md`
 - `GITHUB-RELEASE.md`
+- `WINDOWS-BETA-RELEASE.md`
+- `WINDOWS-ALPHA-TESTING.md`
+- `WINDOWS-CODEX-HANDOFF.md`
 - `COMPANION-CONTROL.md`
 - `OBS-FORUM-POST.md`
 - `RELEASE-CHECKLIST.md`

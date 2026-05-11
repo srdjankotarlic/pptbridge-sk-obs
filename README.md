@@ -10,6 +10,7 @@ PPTBridge SK adds two native OBS source types:
 - `PPTBridge SK Presenter` - speaker view with notes, next slide, and timer
 
 [![macOS stable](https://img.shields.io/badge/macOS-v0.4.2_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
+[![Windows beta](https://img.shields.io/badge/Windows-v0.5.0--beta.1_source-orange?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1)
 [![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-supported-000000?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
 [![Intel Mac](https://img.shields.io/badge/Intel_Mac-supported-555555?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
 [![License](https://img.shields.io/badge/License-see_LICENSE-lightgrey?style=flat-square)](#license)
@@ -18,12 +19,15 @@ PPTBridge SK adds two native OBS source types:
 
 ## Download
 
-| Your Mac | Download | Status | Notes |
+| Platform | Download | Status | Notes |
 | --- | --- | --- | --- |
 | Apple Silicon Mac | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip) | Stable | Use this for M1, M2, M3, and M4 Macs |
 | Intel Mac | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip) | Stable build | Use this for older Macs where `About This Mac` says `Processor: Intel` |
+| Windows 64-bit | [`PPTBridge-SK-Windows-Beta-v0.5.0-beta.1-source.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0-beta.1/PPTBridge-SK-Windows-Beta-v0.5.0-beta.1-source.zip) | Beta source validation | Build and test on a Windows OBS machine before using in production |
 
 The Apple Silicon and Intel downloads contain the same PPTBridge features. Only the CPU build is different. The current public installer is a ZIP with a one-click command; a signed and notarized `.pkg` installer is tracked for v1.0 in [Issue #1](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/1).
+
+The Windows beta is source-only for now. It is published for real Windows OBS validation, not as a finished installer. Start with [native-plugin/START-HERE-Windows-Beta.txt](native-plugin/START-HERE-Windows-Beta.txt) and [native-plugin/WINDOWS-CODEX-HANDOFF.md](native-plugin/WINDOWS-CODEX-HANDOFF.md).
 
 ## Quick Install on macOS
 
@@ -125,6 +129,8 @@ PPTBridge SK is built for conference, church, webinar, keynote, and hybrid-event
 
 Apple Silicon was runtime-tested locally on OBS 32.x. Intel is cross-built against the Intel OBS 32.1.1 app with the same feature set and is published for real Intel Mac validation.
 
+Windows beta validation expects Windows 10/11 64-bit, OBS Studio 30 or newer, Microsoft PowerPoint for Windows, Visual Studio 2022 C++ build tools, CMake, and an OBS source/header tree. PDF decks are not enabled in the Windows beta yet.
+
 ## Screenshots
 
 ![PPTBridge SK launch overview](native-plugin/media/github/launch-overview.png)
@@ -135,6 +141,7 @@ Apple Silicon was runtime-tested locally on OBS 32.x. Intel is cross-built again
 
 | Release | Status | Use it for |
 | --- | --- | --- |
+| [`v0.5.0-beta.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1) | Windows beta source | Windows build/runtime validation for manual START/STOP, resize lock, multi-deck routing, clicker capture, OSC, and presenter workflow |
 | `v0.4.2` | Stable | Recommended release for most users: stage clicker capture, multi-deck PowerPoint scene routing, locked PowerPoint resize behavior, manual PowerPoint start/stop, Companion/OSC control, and presenter customization |
 | [`v0.4.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.1) | Previous stable | Manual PowerPoint start button, optional auto-start, optional close-on-OBS-quit, Companion/OSC control, and presenter customization |
 | [`v0.4.0`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.0) | Previous stable | Companion/OSC control, presenter customization, and safer OBS-focused hotkeys without the v0.4.1 PowerPoint lifecycle controls |
@@ -149,6 +156,9 @@ The v1.0 checklist lives in [Issue #1](https://github.com/srdjankotarlic/pptbrid
 - [SETUP-GUIDE.md](SETUP-GUIDE.md) - user setup and troubleshooting
 - [BUILDING.md](BUILDING.md) - developer build commands and dependencies
 - [native-plugin/COMPANION-CONTROL.md](native-plugin/COMPANION-CONTROL.md) - Companion, OBS WebSocket, and local OSC control workflow
+- [native-plugin/WINDOWS-BETA-RELEASE.md](native-plugin/WINDOWS-BETA-RELEASE.md) - Windows beta scope and limits
+- [native-plugin/WINDOWS-ALPHA-TESTING.md](native-plugin/WINDOWS-ALPHA-TESTING.md) - Windows runtime validation checklist
+- [native-plugin/WINDOWS-CODEX-HANDOFF.md](native-plugin/WINDOWS-CODEX-HANDOFF.md) - copy/paste prompt for a Windows Codex build/test session
 - [native-plugin/PRO-AUDIO-MODE.md](native-plugin/PRO-AUDIO-MODE.md) - stricter audio routing setups
 - [native-plugin/SIGNING-AND-NOTARIZATION.md](native-plugin/SIGNING-AND-NOTARIZATION.md) - v1.0 signing path
 

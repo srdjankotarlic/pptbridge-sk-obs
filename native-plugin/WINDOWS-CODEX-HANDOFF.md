@@ -1,0 +1,81 @@
+# Windows Codex Handoff
+
+Copy this into Codex on the Windows laptop.
+
+```text
+We are validating PPTBridge SK for OBS Windows beta.
+
+Workspace:
+<choose the local checkout of srdjankotarlic/pptbridge-sk-obs>
+
+First read:
+native-plugin/WINDOWS-BETA-RELEASE.md
+native-plugin/WINDOWS-ALPHA-TESTING.md
+native-plugin/WINDOWS-PORT.md
+
+Important context:
+- This is Windows beta source validation, not a final installer.
+- Do not change the macOS stable release files unless a Windows compile fix truly requires a shared file change.
+- The Windows beta code is meant to match the macOS v0.4.x workflow where possible:
+  - PPTBridge SK Slide and PPTBridge SK Presenter OBS sources
+  - manual START and STOP PowerPoint live controls
+  - optional Auto Start PowerPoint When OBS Opens
+  - optional Close PowerPoint Slideshow When OBS Closes
+  - Lock OBS Output Size so resizing PowerPoint does not shrink OBS output
+  - Follow PowerPoint Window Size as the intentional alternate mode
+  - multi-deck scene routing by current OBS Program scene
+  - OBS-focused hotkeys
+  - optional Spotlight/Clicker Capture
+  - local OSC/Companion control on 127.0.0.1:57130
+- PDF input is not expected to work on Windows beta yet. Test PowerPoint decks first.
+
+Start by running:
+git status
+cmake --version
+where cl
+where cmake
+
+Then configure and build:
+cmake -S native-plugin -B native-plugin/build-win -DOBS_SOURCE_DIR=C:\path\to\obs-studio -DOBS_APP_DIR="C:\Program Files\obs-studio"
+cmake --build native-plugin/build-win --config RelWithDebInfo
+
+If CMake needs OBS paths, discover the installed OBS location and the OBS source/header tree. Do not guess silently; report the exact missing variable or path.
+
+After build:
+1. Install the DLL into a test/portable OBS if possible:
+   C:\Program Files\obs-studio\obs-plugins\64bit\pptbridge-obs.dll
+   C:\Program Files\obs-studio\data\obs-plugins\pptbridge-obs\...
+2. Open OBS and confirm these sources appear:
+   PPTBridge SK Slide
+   PPTBridge SK Presenter
+3. Test a .pptx deck using native-plugin/WINDOWS-ALPHA-TESTING.md.
+
+Must verify:
+- OBS does not auto-start PowerPoint unless Auto Start is enabled.
+- START opens PowerPoint/live slideshow.
+- STOP stops the slideshow.
+- Resizing the PowerPoint window does not resize OBS output when Lock OBS Output Size is selected.
+- Follow PowerPoint Window Size intentionally follows the current PPT window shape.
+- Two OBS scenes with two different PPT decks each control the correct deck.
+- OBS hotkeys only work while OBS is focused.
+- Spotlight/Clicker Capture works while another app is focused and suppresses the clicker key from the focused app.
+- Local OSC /pptbridge/next reaches the current Program scene deck.
+
+If everything passes, create a Windows beta zip containing:
+- obs-plugins/64bit/pptbridge-obs.dll
+- data/obs-plugins/pptbridge-obs/
+- START-HERE-Windows-Beta.txt
+- native-plugin/WINDOWS-ALPHA-TESTING.md
+
+Name it:
+pptbridge-obs-windows-x64-v0.5.0-beta.1.zip
+
+Also create:
+pptbridge-obs-windows-x64-v0.5.0-beta.1.zip.sha256
+
+Do not claim stable. Mark it Windows beta. Report exactly what passed, what failed, and include OBS log paths.
+```
+
+## Notes For The Mac Development Machine
+
+The Mac development machine prepared the Windows source beta and documentation, but cannot runtime-test Windows OBS. A real Windows laptop must compile and validate before publishing a Windows binary asset.

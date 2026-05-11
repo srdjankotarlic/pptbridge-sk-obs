@@ -1,0 +1,44 @@
+PPTBridge SK for OBS - Windows Beta Source Validation
+=====================================================
+
+This package is NOT a final Windows installer.
+It is a source beta prepared for building and testing on a real Windows OBS machine.
+
+Start here:
+
+1. Read native-plugin/WINDOWS-BETA-RELEASE.md
+2. Read native-plugin/WINDOWS-ALPHA-TESTING.md
+3. If you use Codex on the Windows laptop, copy the prompt from:
+   native-plugin/WINDOWS-CODEX-HANDOFF.md
+
+Build summary:
+
+  cmake -S native-plugin -B native-plugin/build-win ^
+    -DOBS_SOURCE_DIR=C:\path\to\obs-studio ^
+    -DOBS_APP_DIR="C:\Program Files\obs-studio"
+
+  cmake --build native-plugin/build-win --config RelWithDebInfo
+
+Expected install layout after a successful build:
+
+  C:\Program Files\obs-studio\obs-plugins\64bit\pptbridge-obs.dll
+  C:\Program Files\obs-studio\data\obs-plugins\pptbridge-obs\...
+
+Beta features to validate:
+
+- PPTBridge SK Slide and PPTBridge SK Presenter appear in OBS
+- START opens PowerPoint / starts live mode
+- STOP stops PowerPoint live mode
+- Auto Start PowerPoint When OBS Opens is optional
+- Close PowerPoint Slideshow When OBS Closes is optional
+- Lock OBS Output Size ignores PowerPoint window resizing
+- Follow PowerPoint Window Size intentionally follows the PPT window shape
+- Hotkeys and OSC target the current OBS Program scene
+- Spotlight/Clicker Capture works while another app is focused
+- Multiple OBS scenes can control different PowerPoint decks
+
+Known limits:
+
+- PDF input is not enabled in this Windows beta.
+- This needs real Windows runtime validation before a binary is called usable.
+- The stable public release is still the macOS v0.4.2 release.

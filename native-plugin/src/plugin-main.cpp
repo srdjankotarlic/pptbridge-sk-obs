@@ -4,10 +4,14 @@
 
 #include <windows.h>
 
+#include <cctype>
 #include <cstdint>
+#include <cstring>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "presentation_document.hpp"
@@ -30,8 +34,13 @@ constexpr uint16_t kDefaultOscPort = 57130;
 constexpr const char *kOscConfigSection = "PPTBridgeSK";
 constexpr const char *kOscEnabledConfigKey = "OscEnabled";
 constexpr const char *kOscPortConfigKey = "OscPort";
+constexpr const char *kClickerCaptureConfigKey = "ClickerCaptureEnabled";
 static bool g_osc_enabled = false;
 static uint16_t g_osc_port = kDefaultOscPort;
+static bool g_clicker_capture_enabled = false;
+static HHOOK g_clicker_keyboard_hook = nullptr;
+static std::mutex g_clicker_bindings_mutex;
+static std::unordered_set<DWORD> g_clicker_swallowed_keys;
 
 }  // namespace
 
@@ -72,6 +81,21 @@ HotkeyAction kBlack = HotkeyAction::Black;
 HotkeyAction kFirst = HotkeyAction::First;
 HotkeyAction kLast = HotkeyAction::Last;
 
+struct ClickerBinding {
+  DWORD virtual_key = 0;
+  uint32_t modifiers = 0;
+  HotkeyAction action = HotkeyAction::Next;
+};
+
+enum ClickerModifier : uint32_t {
+  ClickerShift = 1u << 0,
+  ClickerControl = 1u << 1,
+  ClickerAlt = 1u << 2,
+  ClickerWin = 1u << 3,
+};
+
+std::vector<ClickerBinding> g_clicker_bindings;
+
 const char *action_label(HotkeyAction action)
 {
   switch (action) {
@@ -97,11 +121,88 @@ bool obs_application_is_active()
   return process_id == GetCurrentProcessId();
 }
 
+bool is_pptbridge_source(obs_source_t *source)
+{
+  if (!source) {
+    return false;
+  }
+  const char *source_id = obs_source_get_id(source);
+  if (!source_id) {
+    return false;
+  }
+  return std::strcmp(source_id, "pptbridge_slide_source") == 0 ||
+         std::strcmp(source_id, "pptbridge_presenter_source") == 0;
+}
+
+struct SceneCollector {
+  std::vector<std::string> paths;
+  std::unordered_set<std::string> seen;
+};
+
+bool collect_pptbridge_from_item(obs_scene_t *, obs_sceneitem_t *item, void *user_data)
+{
+  if (!item || !user_data) {
+    return true;
+  }
+  obs_source_t *source = obs_sceneitem_get_source(item);
+  if (!source) {
+    return true;
+  }
+
+  if (obs_source_is_group(source)) {
+    obs_scene_t *group = obs_group_from_source(source);
+    if (group) {
+      obs_scene_enum_items(group, collect_pptbridge_from_item, user_data);
+    }
+  }
+
+  if (!is_pptbridge_source(source)) {
+    return true;
+  }
+
+  auto *collector = static_cast<SceneCollector *>(user_data);
+  obs_data_t *settings = obs_source_get_settings(source);
+  const char *path = settings ? obs_data_get_string(settings, "pptx_path") : nullptr;
+  std::string path_str = path ? path : "";
+  if (settings) {
+    obs_data_release(settings);
+  }
+  if (path_str.empty()) {
+    return true;
+  }
+  if (collector->seen.insert(path_str).second) {
+    collector->paths.push_back(std::move(path_str));
+  }
+  return true;
+}
+
 std::vector<std::shared_ptr<pptbridge::PresentationDocument>> resolve_target_documents()
 {
   std::vector<std::shared_ptr<pptbridge::PresentationDocument>> documents;
-  if (auto document = pptbridge::Registry::Instance().Active()) {
-    documents.push_back(std::move(document));
+
+  obs_source_t *program_source = obs_frontend_get_current_scene();
+  if (program_source) {
+    obs_scene_t *scene = obs_scene_from_source(program_source);
+    if (!scene && obs_source_is_group(program_source)) {
+      scene = obs_group_from_source(program_source);
+    }
+    SceneCollector collector;
+    if (scene) {
+      obs_scene_enum_items(scene, collect_pptbridge_from_item, &collector);
+    }
+    obs_source_release(program_source);
+
+    for (const auto &path : collector.paths) {
+      if (auto document = pptbridge::Registry::Instance().Acquire(path)) {
+        documents.push_back(std::move(document));
+      }
+    }
+  }
+
+  if (documents.empty()) {
+    if (auto fallback = pptbridge::Registry::Instance().Active()) {
+      documents.push_back(std::move(fallback));
+    }
   }
   return documents;
 }
@@ -110,7 +211,7 @@ void dispatch_action_to_documents(HotkeyAction action, const char *control_sourc
 {
   auto documents = resolve_target_documents();
   if (documents.empty()) {
-    blog(LOG_WARNING, "[PPTBridge SK] %s control received, but no active PPTBridge document is selected",
+    blog(LOG_WARNING, "[PPTBridge SK] %s control received, but no PPTBridge source is in the current scene",
          control_source ? control_source : "Remote");
     return;
   }
@@ -160,6 +261,262 @@ HotkeyAction hotkey_action_from_osc(pptbridge::OscAction action)
   return HotkeyAction::Next;
 }
 
+void queued_clicker_action_task(void *param)
+{
+  std::unique_ptr<HotkeyAction> action(static_cast<HotkeyAction *>(param));
+  if (!action) {
+    return;
+  }
+  dispatch_action_to_documents(*action, "Spotlight/Clicker Capture");
+}
+
+std::string normalize_key_name(const char *name)
+{
+  std::string value = name ? name : "";
+  constexpr const char *prefix = "OBS_KEY_";
+  if (value.rfind(prefix, 0) == 0) {
+    value.erase(0, std::strlen(prefix));
+  }
+
+  std::string normalized;
+  normalized.reserve(value.size());
+  for (unsigned char ch : value) {
+    if (ch == '_' || ch == '-' || ch == ' ') {
+      continue;
+    }
+    normalized.push_back(static_cast<char>(std::toupper(ch)));
+  }
+  return normalized;
+}
+
+bool key_name_to_virtual_key(const char *name, DWORD &out_virtual_key)
+{
+  const std::string key = normalize_key_name(name);
+  if (key.size() == 1 && key[0] >= '0' && key[0] <= '9') {
+    out_virtual_key = static_cast<DWORD>(key[0]);
+    return true;
+  }
+  if (key.size() == 1 && key[0] >= 'A' && key[0] <= 'Z') {
+    out_virtual_key = static_cast<DWORD>(key[0]);
+    return true;
+  }
+  if (key == "SPACE") { out_virtual_key = VK_SPACE; return true; }
+  if (key == "LEFT") { out_virtual_key = VK_LEFT; return true; }
+  if (key == "RIGHT") { out_virtual_key = VK_RIGHT; return true; }
+  if (key == "UP") { out_virtual_key = VK_UP; return true; }
+  if (key == "DOWN") { out_virtual_key = VK_DOWN; return true; }
+  if (key == "PAGEUP" || key == "PRIOR") { out_virtual_key = VK_PRIOR; return true; }
+  if (key == "PAGEDOWN" || key == "NEXT") { out_virtual_key = VK_NEXT; return true; }
+  if (key == "HOME") { out_virtual_key = VK_HOME; return true; }
+  if (key == "END") { out_virtual_key = VK_END; return true; }
+  if (key == "RETURN" || key == "ENTER") { out_virtual_key = VK_RETURN; return true; }
+  if (key == "ESCAPE" || key == "ESC") { out_virtual_key = VK_ESCAPE; return true; }
+  return false;
+}
+
+uint32_t modifier_mask_from_hotkey_item(obs_data_t *item)
+{
+  uint32_t modifiers = 0;
+  if (obs_data_get_bool(item, "shift")) {
+    modifiers |= ClickerShift;
+  }
+  if (obs_data_get_bool(item, "control")) {
+    modifiers |= ClickerControl;
+  }
+  if (obs_data_get_bool(item, "alt")) {
+    modifiers |= ClickerAlt;
+  }
+  if (obs_data_get_bool(item, "command")) {
+    modifiers |= ClickerWin;
+  }
+  return modifiers;
+}
+
+uint32_t current_modifier_mask()
+{
+  uint32_t modifiers = 0;
+  if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0) {
+    modifiers |= ClickerShift;
+  }
+  if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0) {
+    modifiers |= ClickerControl;
+  }
+  if ((GetAsyncKeyState(VK_MENU) & 0x8000) != 0) {
+    modifiers |= ClickerAlt;
+  }
+  if ((GetAsyncKeyState(VK_LWIN) & 0x8000) != 0 || (GetAsyncKeyState(VK_RWIN) & 0x8000) != 0) {
+    modifiers |= ClickerWin;
+  }
+  return modifiers;
+}
+
+void append_clicker_bindings_from_hotkey(
+  obs_hotkey_id id,
+  HotkeyAction action,
+  std::vector<ClickerBinding> &bindings)
+{
+  if (id == OBS_INVALID_HOTKEY_ID) {
+    return;
+  }
+
+  obs_data_array_t *saved = obs_hotkey_save(id);
+  if (!saved) {
+    return;
+  }
+
+  for (size_t i = 0; i < obs_data_array_count(saved); ++i) {
+    obs_data_t *item = obs_data_array_item(saved, i);
+    if (!item) {
+      continue;
+    }
+
+    DWORD virtual_key = 0;
+    const char *key_name = obs_data_get_string(item, "key");
+    if (key_name_to_virtual_key(key_name, virtual_key)) {
+      bindings.push_back(ClickerBinding{
+        virtual_key,
+        modifier_mask_from_hotkey_item(item),
+        action,
+      });
+    } else if (key_name && *key_name) {
+      blog(LOG_WARNING,
+        "[PPTBridge SK] Spotlight/Clicker Capture cannot map OBS hotkey key '%s' yet",
+        key_name);
+    }
+    obs_data_release(item);
+  }
+
+  obs_data_array_release(saved);
+}
+
+std::vector<ClickerBinding> collect_clicker_bindings_from_obs_hotkeys()
+{
+  std::vector<ClickerBinding> bindings;
+  append_clicker_bindings_from_hotkey(g_next_hotkey, HotkeyAction::Next, bindings);
+  append_clicker_bindings_from_hotkey(g_previous_hotkey, HotkeyAction::Previous, bindings);
+  append_clicker_bindings_from_hotkey(g_black_hotkey, HotkeyAction::Black, bindings);
+  append_clicker_bindings_from_hotkey(g_first_hotkey, HotkeyAction::First, bindings);
+  append_clicker_bindings_from_hotkey(g_last_hotkey, HotkeyAction::Last, bindings);
+  return bindings;
+}
+
+void refresh_clicker_bindings()
+{
+  auto bindings = collect_clicker_bindings_from_obs_hotkeys();
+  {
+    std::lock_guard<std::mutex> lock(g_clicker_bindings_mutex);
+    g_clicker_bindings = std::move(bindings);
+    g_clicker_swallowed_keys.clear();
+  }
+  blog(LOG_INFO,
+    "[PPTBridge SK] Spotlight/Clicker Capture loaded %zu OBS hotkey binding(s)",
+    g_clicker_bindings.size());
+}
+
+LRESULT CALLBACK clicker_keyboard_proc(int code, WPARAM wparam, LPARAM lparam)
+{
+  if (code < 0 || !g_clicker_capture_enabled) {
+    return CallNextHookEx(g_clicker_keyboard_hook, code, wparam, lparam);
+  }
+
+  const bool is_key_down = wparam == WM_KEYDOWN || wparam == WM_SYSKEYDOWN;
+  const bool is_key_up = wparam == WM_KEYUP || wparam == WM_SYSKEYUP;
+  if (!is_key_down && !is_key_up) {
+    return CallNextHookEx(g_clicker_keyboard_hook, code, wparam, lparam);
+  }
+
+  const auto *event = reinterpret_cast<KBDLLHOOKSTRUCT *>(lparam);
+  if (!event) {
+    return CallNextHookEx(g_clicker_keyboard_hook, code, wparam, lparam);
+  }
+
+  const DWORD virtual_key = event->vkCode;
+  if (is_key_up) {
+    std::lock_guard<std::mutex> lock(g_clicker_bindings_mutex);
+    const bool swallowed = g_clicker_swallowed_keys.erase(virtual_key) > 0;
+    return swallowed ? 1 : CallNextHookEx(g_clicker_keyboard_hook, code, wparam, lparam);
+  }
+
+  HotkeyAction matched_action = HotkeyAction::Next;
+  bool matched = false;
+  bool repeat = false;
+  {
+    std::lock_guard<std::mutex> lock(g_clicker_bindings_mutex);
+    for (const auto &binding : g_clicker_bindings) {
+      if (binding.virtual_key == virtual_key && binding.modifiers == current_modifier_mask()) {
+        matched_action = binding.action;
+        repeat = g_clicker_swallowed_keys.find(virtual_key) != g_clicker_swallowed_keys.end();
+        g_clicker_swallowed_keys.insert(virtual_key);
+        matched = true;
+        break;
+      }
+    }
+  }
+
+  if (!matched) {
+    return CallNextHookEx(g_clicker_keyboard_hook, code, wparam, lparam);
+  }
+
+  if (!repeat) {
+    auto *queued = new HotkeyAction(matched_action);
+    obs_queue_task(OBS_TASK_UI, queued_clicker_action_task, queued, false);
+  }
+  return 1;
+}
+
+void stop_clicker_capture()
+{
+  if (g_clicker_keyboard_hook) {
+    UnhookWindowsHookEx(g_clicker_keyboard_hook);
+    g_clicker_keyboard_hook = nullptr;
+  }
+  {
+    std::lock_guard<std::mutex> lock(g_clicker_bindings_mutex);
+    g_clicker_swallowed_keys.clear();
+  }
+}
+
+bool start_clicker_capture()
+{
+  stop_clicker_capture();
+  refresh_clicker_bindings();
+
+  {
+    std::lock_guard<std::mutex> lock(g_clicker_bindings_mutex);
+    if (g_clicker_bindings.empty()) {
+      blog(LOG_WARNING,
+        "[PPTBridge SK] Spotlight/Clicker Capture has no supported PPTBridge hotkeys to capture");
+      return false;
+    }
+  }
+
+  HMODULE module = nullptr;
+  GetModuleHandleExA(
+    GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+    reinterpret_cast<LPCSTR>(&clicker_keyboard_proc),
+    &module);
+  g_clicker_keyboard_hook = SetWindowsHookExW(WH_KEYBOARD_LL, clicker_keyboard_proc, module, 0);
+  if (!g_clicker_keyboard_hook) {
+    blog(LOG_WARNING,
+      "[PPTBridge SK] Spotlight/Clicker Capture could not start on Windows (GetLastError=%lu)",
+      GetLastError());
+    return false;
+  }
+
+  return true;
+}
+
+void set_clicker_capture_enabled(bool enabled)
+{
+  if (enabled) {
+    g_clicker_capture_enabled = start_clicker_capture();
+    return;
+  }
+
+  stop_clicker_capture();
+  g_clicker_capture_enabled = false;
+}
+
 void queued_osc_action_task(void *param)
 {
   std::unique_ptr<HotkeyAction> action(static_cast<HotkeyAction *>(param));
@@ -201,6 +558,7 @@ void load_osc_settings_from_config()
 
   config_set_default_bool(config, kOscConfigSection, kOscEnabledConfigKey, false);
   config_set_default_int(config, kOscConfigSection, kOscPortConfigKey, kDefaultOscPort);
+  config_set_default_bool(config, kOscConfigSection, kClickerCaptureConfigKey, false);
 
   const int64_t saved_port = config_get_int(config, kOscConfigSection, kOscPortConfigKey);
   g_osc_port = saved_port > 0 && saved_port <= 65535
@@ -208,6 +566,7 @@ void load_osc_settings_from_config()
     : kDefaultOscPort;
 
   set_osc_enabled(config_get_bool(config, kOscConfigSection, kOscEnabledConfigKey));
+  set_clicker_capture_enabled(config_get_bool(config, kOscConfigSection, kClickerCaptureConfigKey));
 }
 
 void save_osc_settings_to_config()
@@ -219,6 +578,7 @@ void save_osc_settings_to_config()
 
   config_set_bool(config, kOscConfigSection, kOscEnabledConfigKey, g_osc_enabled);
   config_set_int(config, kOscConfigSection, kOscPortConfigKey, g_osc_port);
+  config_set_bool(config, kOscConfigSection, kClickerCaptureConfigKey, g_clicker_capture_enabled);
   config_save_safe(config, "tmp", nullptr);
 }
 
@@ -226,6 +586,15 @@ void toggle_osc_menu(void *)
 {
   set_osc_enabled(!g_osc_enabled);
   blog(LOG_INFO, "[PPTBridge SK] OSC control is now %s", g_osc_enabled ? "enabled" : "disabled");
+  save_osc_settings_to_config();
+}
+
+void toggle_clicker_capture_menu(void *)
+{
+  set_clicker_capture_enabled(!g_clicker_capture_enabled);
+  blog(LOG_INFO,
+    "[PPTBridge SK] Spotlight/Clicker Capture is now %s",
+    g_clicker_capture_enabled ? "enabled" : "disabled");
   save_osc_settings_to_config();
 }
 
@@ -377,8 +746,8 @@ void apply_default_hotkeys_if_needed()
 void frontend_event_callback(enum obs_frontend_event event, void *)
 {
   if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING) {
-    load_osc_settings_from_config();
     apply_default_hotkeys_if_needed();
+    load_osc_settings_from_config();
   }
 }
 
@@ -422,6 +791,7 @@ bool obs_module_load(void)
 
   obs_frontend_add_event_callback(frontend_event_callback, nullptr);
   obs_frontend_add_tools_menu_item("PPTBridge SK: Toggle Local OSC Control", toggle_osc_menu, nullptr);
+  obs_frontend_add_tools_menu_item("PPTBridge SK: Toggle Spotlight/Clicker Capture", toggle_clicker_capture_menu, nullptr);
 
   blog(LOG_INFO, "[PPTBridge SK] Native plugin loaded");
   return true;
@@ -429,6 +799,7 @@ bool obs_module_load(void)
 
 void obs_module_unload(void)
 {
+  set_clicker_capture_enabled(false);
   set_osc_enabled(false);
   obs_frontend_remove_event_callback(frontend_event_callback, nullptr);
 }

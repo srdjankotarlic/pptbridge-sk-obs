@@ -23,6 +23,7 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -1022,6 +1023,23 @@ switch ($Mode) {
     Emit-PPTBridgeSnapshot $window $presentation
   }
 
+  "live-stop" {
+    $app = Get-PPTBridgeApp $false
+    if ($null -eq $app) {
+      Emit-PPTBridgeSnapshot $null $null
+      return
+    }
+
+    $presentation = Find-PPTBridgePresentation $app $PptxPath
+    $window = Get-PPTBridgeWindow $app $presentation
+    if ($window) {
+      try { $window.View.Exit() } catch {}
+      Start-Sleep -Milliseconds 250
+    }
+    $window = Get-PPTBridgeWindow $app $presentation
+    Emit-PPTBridgeSnapshot $window $presentation
+  }
+
   "next" {
     $app = Get-PPTBridgeApp $false
     $presentation = Find-PPTBridgePresentation $app $PptxPath
@@ -1488,6 +1506,8 @@ struct PresentationDocument::Impl {
   bool force_reload = false;
   bool black_screen = false;
   bool live_enabled = true;
+  bool live_auto_start = false;
+  bool live_start_requested = false;
   bool live_ready = false;
   bool presenter_assets_wanted = false;
   std::string live_window_title;
@@ -1516,19 +1536,55 @@ std::string PresentationDocument::Name() const
 
 void PresentationDocument::SetLivePowerPointEnabled(bool enabled)
 {
+  bool should_start = false;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     impl_->live_enabled = enabled;
+    impl_->last_error.clear();
+    if (enabled && impl_->live_auto_start && !impl_->live_ready) {
+      impl_->live_start_requested = true;
+      impl_->force_reload = true;
+      should_start = true;
+    }
     if (!enabled) {
+      impl_->live_start_requested = false;
       impl_->live_ready = false;
       impl_->live_window_title.clear();
       impl_->current_media_triggered = false;
+      impl_->live_sync_inflight.store(false);
       impl_->state_version += 1;
     }
   }
 
-  if (enabled) {
+  if (should_start) {
+    StartLoadIfNeeded(true);
+  } else if (enabled) {
     SyncLiveStateAsync();
+  }
+}
+
+void PresentationDocument::SetLivePowerPointAutoStart(bool enabled)
+{
+  bool should_start = false;
+  {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    if (impl_->live_auto_start == enabled) {
+      return;
+    }
+
+    impl_->live_auto_start = enabled;
+    if (enabled && impl_->live_enabled && !impl_->live_ready) {
+      impl_->live_start_requested = true;
+      impl_->force_reload = true;
+      should_start = true;
+    } else if (!enabled && !impl_->live_ready) {
+      impl_->live_start_requested = false;
+    }
+    impl_->state_version += 1;
+  }
+
+  if (should_start) {
+    StartLoadIfNeeded(true);
   }
 }
 
@@ -1548,6 +1604,64 @@ std::string PresentationDocument::LiveWindowTitle() const
 {
   std::lock_guard<std::mutex> lock(impl_->mutex);
   return impl_->live_window_title;
+}
+
+void PresentationDocument::StartLivePowerPointAsync()
+{
+  {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    if (!IsSupportedPowerPointExtension(impl_->path)) {
+      impl_->live_enabled = false;
+      impl_->live_start_requested = false;
+      impl_->last_error = "Windows live mode expects a PowerPoint file such as .pptx, .pptm, .ppsx, .potx, or .potm.";
+      impl_->state_version += 1;
+      return;
+    }
+
+    impl_->live_enabled = true;
+    impl_->live_start_requested = true;
+    impl_->force_reload = true;
+    impl_->last_error.clear();
+    impl_->state_version += 1;
+  }
+
+  StartLoadIfNeeded(true);
+}
+
+void PresentationDocument::StopLivePowerPoint()
+{
+  std::string output;
+  int exit_code = -1;
+  {
+    std::lock_guard<std::mutex> script_lock(impl_->script_mutex);
+    RunPowerShellMode(L"live-stop", Utf8ToWide(impl_->path), impl_->cache_root.wstring(), 0, output, exit_code);
+  }
+
+  LiveSnapshot snapshot;
+  std::string error;
+  const bool parsed = ParseLiveSnapshot(output, snapshot, error);
+
+  std::lock_guard<std::mutex> lock(impl_->mutex);
+  impl_->live_start_requested = false;
+  impl_->live_ready = parsed ? snapshot.running : false;
+  if (!impl_->live_ready) {
+    impl_->live_window_title.clear();
+  }
+  impl_->current_media_triggered = false;
+  if (exit_code == 0 && parsed && !snapshot.running) {
+    impl_->last_error.clear();
+    blog(LOG_INFO, "[PPTBridge SK] Windows PowerPoint live slideshow stopped for '%s'", impl_->path.c_str());
+  } else {
+    impl_->last_error = error.empty() ? output : error;
+    if (impl_->last_error.empty()) {
+      impl_->last_error = "PowerPoint live slideshow stop did not return a clean status.";
+    }
+    blog(LOG_WARNING,
+      "[PPTBridge SK] Windows PowerPoint live slideshow stop failed for '%s': %s",
+      impl_->path.c_str(),
+      impl_->last_error.c_str());
+  }
+  impl_->state_version += 1;
 }
 
 void PresentationDocument::SyncLiveStateAsync()
@@ -2354,6 +2468,7 @@ void PresentationDocument::LoadOnWorker()
   LiveSnapshot live_snapshot;
   std::string live_error;
   bool live_enabled = false;
+  bool should_start_live = false;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     impl_->slides = std::move(deck_data.slides);
@@ -2369,10 +2484,11 @@ void PresentationDocument::LoadOnWorker()
     impl_->current_media_triggered = false;
     impl_->last_error = load_error;
     live_enabled = impl_->live_enabled;
+    should_start_live = impl_->live_enabled && (impl_->live_auto_start || impl_->live_start_requested);
     impl_->state_version += 1;
   }
 
-  if (live_enabled) {
+  if (should_start_live) {
     std::string output;
     int exit_code = -1;
     {
@@ -2383,6 +2499,7 @@ void PresentationDocument::LoadOnWorker()
     if (exit_code == 0 && ParseLiveSnapshot(output, live_snapshot, live_error) && live_snapshot.running) {
       std::lock_guard<std::mutex> lock(impl_->mutex);
       impl_->live_ready = true;
+      impl_->live_start_requested = false;
       impl_->loaded = true;
       impl_->live_window_title = live_snapshot.window_title;
       if (!impl_->slides.empty() && live_snapshot.current_slide > 0) {
@@ -2397,9 +2514,12 @@ void PresentationDocument::LoadOnWorker()
         impl_->last_error =
           "Live slideshow attached, but fallback slide export did not complete. Presenter notes and legacy fallback may be limited.";
       }
-    } else if (!live_error.empty()) {
+    } else {
       std::lock_guard<std::mutex> lock(impl_->mutex);
-      impl_->last_error = live_error;
+      impl_->live_start_requested = false;
+      impl_->last_error = !live_error.empty()
+        ? live_error
+        : (output.empty() ? "PowerPoint live slideshow did not start." : output);
       impl_->state_version += 1;
     }
   }
