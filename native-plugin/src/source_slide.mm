@@ -40,7 +40,7 @@ constexpr const char *kLiveHelp =
   "True live mode:\n"
   "PowerPoint itself runs the slideshow, so click-build animations, embedded video, and slide timing behave like real PowerPoint.\n"
   "Recommended for macOS when Microsoft PowerPoint is installed.\n"
-  "PowerPoint can either start automatically with OBS or wait until you click Start PowerPoint Live Mode below.";
+  "PowerPoint can either start automatically with OBS or wait until you click Open PowerPoint / Start Live Mode below.";
 
 constexpr const char *kAudioHelp =
   "Conference audio:\n"
@@ -1262,7 +1262,7 @@ obs_properties_t *source_properties(SourceContext *context)
   obs_properties_add_button(props, "pptbridge_black_btn", "Toggle Black Screen", control_black);
   obs_properties_add_button(props, "pptbridge_reload_btn", "Reload Presentation", control_reload);
   if (context && context->mode == ViewMode::Slide) {
-    obs_properties_add_button(props, "pptbridge_start_live_btn", "Start PowerPoint Live Mode", control_start_live);
+    obs_properties_add_button(props, "pptbridge_start_live_btn", "Open PowerPoint / Start Live Mode", control_start_live);
     obs_properties_add_button(props, "pptbridge_stop_live_btn", "Stop PowerPoint Live Mode", control_stop_live);
     obs_properties_add_button(props, "pptbridge_reattach_live_btn", "Reattach Live PowerPoint Window", control_reattach_live);
   }

@@ -2520,7 +2520,7 @@ bool PresentationDocument::RenderSlideBGRA(
     } else if (loaded && !black) {
       DrawPageThumbnail(document, current, canvas);
     } else if (live_waiting_for_manual_start) {
-      DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode is manual. Click Start PowerPoint Live Mode in source properties.", canvas);
+      DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode is manual. Click Open PowerPoint / Start Live Mode in source properties.", canvas);
     } else if (live_enabled && loading) {
       DrawCenteredMessage(@"PPTBridge SK", @"Starting PowerPoint live mode…", canvas);
     } else if (live_enabled && !live_error.empty()) {

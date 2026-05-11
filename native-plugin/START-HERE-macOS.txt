@@ -44,7 +44,8 @@ POWERPOINT STARTUP
 In the PPTBridge SK Slide source properties:
 
 - Leave Auto Start PowerPoint When OBS Opens off if OBS should open quietly.
-- Click Start PowerPoint Live Mode when you are ready to launch the slideshow.
+- Click Open PowerPoint / Start Live Mode when you are ready to launch the slideshow.
+  If PowerPoint is not open yet, PPTBridge opens it for you.
 - Turn Auto Start PowerPoint When OBS Opens on if you want the slideshow to launch with OBS.
 - Leave Close PowerPoint Slideshow When OBS Closes on if OBS should clean up the slideshow on quit.
 

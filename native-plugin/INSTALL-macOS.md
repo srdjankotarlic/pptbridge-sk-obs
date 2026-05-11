@@ -59,7 +59,7 @@ You can bind different keys in OBS Settings > Hotkeys if needed.
 In `PPTBridge SK Slide` source properties:
 
 - Keep `Auto Start PowerPoint When OBS Opens` off if OBS should open quietly.
-- Click `Start PowerPoint Live Mode` when you are ready to launch the slideshow.
+- Click `Open PowerPoint / Start Live Mode` when you are ready to launch the slideshow. If PowerPoint is not open yet, PPTBridge opens it for you.
 - Turn `Auto Start PowerPoint When OBS Opens` on if you prefer the slideshow to launch as soon as OBS loads the source.
 - Keep `Close PowerPoint Slideshow When OBS Closes` on if the slideshow should close when OBS quits.
 

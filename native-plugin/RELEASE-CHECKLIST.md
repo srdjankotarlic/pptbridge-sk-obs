@@ -14,11 +14,15 @@
   - `Tools > PPTBridge SK: Toggle Local OSC Control` starts the local OSC listener
   - `send-osc.sh /pptbridge/next` moves the active program deck
   - Companion Generic OSC can send `/pptbridge/next` to `127.0.0.1:57130`
+  - default/manual mode opens OBS without launching PowerPoint
+  - `Open PowerPoint / Start Live Mode` opens PowerPoint if needed and starts the slideshow
+  - `Auto Start PowerPoint When OBS Opens` starts PowerPoint automatically
+  - `Close PowerPoint Slideshow When OBS Closes` stops the slideshow when OBS quits
 
 ## Assets To Upload
 
-- `PPTBridge-SK-for-OBS-v0.4.0-macOS-Apple-Silicon.zip`
-- `PPTBridge-SK-for-OBS-v0.4.0-macOS-Intel.zip`
+- `PPTBridge-SK-for-OBS-v0.4.1-macOS-Apple-Silicon.zip`
+- `PPTBridge-SK-for-OBS-v0.4.1-macOS-Intel.zip`
 - `pptbridge-obs-macos-apple-silicon.zip`
 - `pptbridge-obs-macos-intel.zip`
 - `PPTBridge-SK-for-OBS-Installer.pkg`
@@ -27,7 +31,7 @@
 
 - create the repository
 - push the code
-- create tag `v0.4.0`
+- create tag `v0.4.1`
 - create a GitHub Release
 - paste the body from `GITHUB-RELEASE.md`
 - upload the release assets
