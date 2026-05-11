@@ -51,6 +51,7 @@ PPTBridge SK is built for conference, church, webinar, keynote, and hybrid-event
 - **Two native OBS sources** for program output and presenter confidence view.
 - **PowerPoint and PDF input** on macOS, including multi-page PDFs.
 - **Windowed PowerPoint live mode** so PowerPoint does not take over the desktop.
+- **Manual or automatic PowerPoint startup** so OBS can open quietly or launch the slideshow for you.
 - **Automatic title-bar crop** for clean live PowerPoint capture.
 - **Presenter notes and next-slide preview** from the original deck.
 - **Customizable presenter layouts** with presenter split, preview fit/fill/crop, positioning, notes zoom, and notes sizing.
@@ -59,6 +60,7 @@ PPTBridge SK is built for conference, church, webinar, keynote, and hybrid-event
 - **Multi-deck scene routing** so the current program scene controls the right deck.
 - **OBS-side audio capture path** for PowerPoint slideshow media.
 - **Cached fallback mode** when live PowerPoint mode is unavailable.
+- **Optional slideshow cleanup** when OBS closes.
 
 ## Requirements
 

@@ -39,7 +39,8 @@ constexpr const char *kMediaHelp =
 constexpr const char *kLiveHelp =
   "True live mode:\n"
   "PowerPoint itself runs the slideshow, so click-build animations, embedded video, and slide timing behave like real PowerPoint.\n"
-  "Recommended for macOS when Microsoft PowerPoint is installed.";
+  "Recommended for macOS when Microsoft PowerPoint is installed.\n"
+  "PowerPoint can either start automatically with OBS or wait until you click Start PowerPoint Live Mode below.";
 
 constexpr const char *kAudioHelp =
   "Conference audio:\n"
@@ -1129,6 +1130,33 @@ bool control_reload(obs_properties_t *, obs_property_t *, void *data)
   });
 }
 
+bool control_start_live(obs_properties_t *, obs_property_t *, void *data)
+{
+  auto *context = static_cast<SourceContext *>(data);
+  if (!context || !context->document) {
+    return false;
+  }
+
+  Registry::Instance().SetActive(context->document);
+  clear_live_capture_source(context);
+  clear_live_audio_source(context);
+  context->document->StartLivePowerPointAsync();
+  return false;
+}
+
+bool control_stop_live(obs_properties_t *, obs_property_t *, void *data)
+{
+  auto *context = static_cast<SourceContext *>(data);
+  if (!context || !context->document) {
+    return false;
+  }
+
+  clear_live_capture_source(context);
+  clear_live_audio_source(context);
+  context->document->StopLivePowerPoint();
+  return false;
+}
+
 bool control_reattach_live(obs_properties_t *, obs_property_t *, void *data)
 {
   auto *context = static_cast<SourceContext *>(data);
@@ -1153,6 +1181,8 @@ void source_defaults(obs_data_t *settings)
   obs_data_set_default_int(settings, "canvas_width", 1920);
   obs_data_set_default_int(settings, "canvas_height", 1080);
   obs_data_set_default_bool(settings, "use_live_powerpoint", true);
+  obs_data_set_default_bool(settings, "auto_start_live_powerpoint", false);
+  obs_data_set_default_bool(settings, "close_live_powerpoint_on_shutdown", true);
   obs_data_set_default_bool(settings, "audio_enabled", true);
   obs_data_set_default_bool(settings, "use_live_app_audio", true);
   obs_data_set_default_bool(settings, "auto_recover_live", true);
@@ -1194,6 +1224,8 @@ obs_properties_t *source_properties(SourceContext *context)
   }
   if (context && context->mode == ViewMode::Slide) {
     obs_properties_add_bool(props, "use_live_powerpoint", "Use True Live PowerPoint Mode");
+    obs_properties_add_bool(props, "auto_start_live_powerpoint", "Auto Start PowerPoint When OBS Opens");
+    obs_properties_add_bool(props, "close_live_powerpoint_on_shutdown", "Close PowerPoint Slideshow When OBS Closes");
     obs_properties_add_bool(props, "audio_enabled", "Enable PPTBridge Audio Output");
     obs_properties_add_bool(props, "use_live_app_audio", "Route PowerPoint App Audio Through OBS");
     obs_properties_add_bool(props, "auto_recover_live", "Auto Recover Live PowerPoint Session");
@@ -1230,6 +1262,8 @@ obs_properties_t *source_properties(SourceContext *context)
   obs_properties_add_button(props, "pptbridge_black_btn", "Toggle Black Screen", control_black);
   obs_properties_add_button(props, "pptbridge_reload_btn", "Reload Presentation", control_reload);
   if (context && context->mode == ViewMode::Slide) {
+    obs_properties_add_button(props, "pptbridge_start_live_btn", "Start PowerPoint Live Mode", control_start_live);
+    obs_properties_add_button(props, "pptbridge_stop_live_btn", "Stop PowerPoint Live Mode", control_stop_live);
     obs_properties_add_button(props, "pptbridge_reattach_live_btn", "Reattach Live PowerPoint Window", control_reattach_live);
   }
   return props;
@@ -1252,22 +1286,42 @@ void source_update(SourceContext *context, obs_data_t *settings)
     ? 1080u
     : static_cast<uint32_t>(obs_data_get_int(settings, "canvas_height"));
   const bool use_live_powerpoint = obs_data_get_bool(settings, "use_live_powerpoint");
+  const bool auto_start_live_powerpoint = obs_data_get_bool(settings, "auto_start_live_powerpoint");
+  const bool close_live_powerpoint_on_shutdown = obs_data_get_bool(settings, "close_live_powerpoint_on_shutdown");
   const bool audio_enabled = obs_data_get_bool(settings, "audio_enabled");
   const bool use_live_app_audio = obs_data_get_bool(settings, "use_live_app_audio");
   const bool auto_recover_live = obs_data_get_bool(settings, "auto_recover_live");
   const double audio_gain_db = obs_data_get_double(settings, "audio_gain_db");
   const PresenterRenderOptions presenter_options = presenter_options_from_settings(settings);
 
+  const std::shared_ptr<PresentationDocument> old_document = context->document;
+  const bool old_use_live_powerpoint = context->use_live_powerpoint;
+  const bool old_close_live_powerpoint_on_shutdown = context->close_live_powerpoint_on_shutdown;
   const bool path_changed = context->pptx_path != (path ? path : "");
   const bool size_changed = context->width != width || context->height != height;
   const bool live_mode_changed = context->use_live_powerpoint != use_live_powerpoint;
+  const bool live_auto_start_changed = context->auto_start_live_powerpoint != auto_start_live_powerpoint;
   const bool live_audio_mode_changed = context->use_live_app_audio != use_live_app_audio;
   const bool presenter_options_changed = !presenter_options_equal(context->presenter_options, presenter_options);
+  const bool should_stop_old_live =
+    context->mode == ViewMode::Slide &&
+    old_document &&
+    old_use_live_powerpoint &&
+    old_close_live_powerpoint_on_shutdown &&
+    (path_changed || (live_mode_changed && !use_live_powerpoint));
+
+  if (should_stop_old_live) {
+    clear_live_capture_source(context);
+    clear_live_audio_source(context);
+    old_document->StopLivePowerPoint();
+  }
 
   context->pptx_path = path ? path : "";
   context->width = width;
   context->height = height;
   context->use_live_powerpoint = use_live_powerpoint;
+  context->auto_start_live_powerpoint = auto_start_live_powerpoint;
+  context->close_live_powerpoint_on_shutdown = close_live_powerpoint_on_shutdown;
   context->audio_enabled = audio_enabled;
   context->use_live_app_audio = use_live_app_audio;
   context->auto_recover_live = auto_recover_live;
@@ -1298,6 +1352,7 @@ void source_update(SourceContext *context, obs_data_t *settings)
     if (context->document) {
       if (context->mode == ViewMode::Slide) {
         context->document->SetLivePowerPointEnabled(context->use_live_powerpoint);
+        context->document->SetLivePowerPointAutoStart(context->auto_start_live_powerpoint);
       }
       if (context->mode == ViewMode::Presenter) {
         context->document->SetPresenterAssetsWanted(true);
@@ -1305,18 +1360,24 @@ void source_update(SourceContext *context, obs_data_t *settings)
       context->document->EnsureLoadingAsync();
       Registry::Instance().SetActive(context->document);
     }
+  } else if (live_auto_start_changed && context->document) {
+    if (context->mode == ViewMode::Slide) {
+      context->document->SetLivePowerPointAutoStart(context->auto_start_live_powerpoint);
+      context->document->EnsureLoadingAsync();
+    }
   } else if (live_audio_mode_changed) {
     clear_live_audio_source(context);
   } else if (context->document) {
     if (context->mode == ViewMode::Slide) {
       context->document->SetLivePowerPointEnabled(context->use_live_powerpoint);
+      context->document->SetLivePowerPointAutoStart(context->auto_start_live_powerpoint);
     }
     if (context->mode == ViewMode::Presenter) {
       context->document->SetPresenterAssetsWanted(true);
     }
   }
 
-  if (path_changed || size_changed || live_mode_changed || presenter_options_changed) {
+  if (path_changed || size_changed || live_mode_changed || live_auto_start_changed || presenter_options_changed) {
     source_destroy_texture(context);
   }
 
@@ -1454,6 +1515,12 @@ static void slide_source_destroy(void *data)
     return;
   }
   Registry::Instance().DetachSource(context);
+  if (context->mode == ViewMode::Slide &&
+      context->close_live_powerpoint_on_shutdown &&
+      context->document &&
+      Registry::Instance().CountSources(context->pptx_path, RegisteredSourceKind::Slide) == 0) {
+    context->document->StopLivePowerPoint();
+  }
   clear_live_capture_source(context);
   clear_live_audio_source(context);
   clear_media_sources(context);

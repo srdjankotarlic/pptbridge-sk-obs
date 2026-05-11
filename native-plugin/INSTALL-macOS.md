@@ -54,6 +54,15 @@ Default bindings are:
 PPTBridge only moves slides from hotkeys while OBS is the active app.
 You can bind different keys in OBS Settings > Hotkeys if needed.
 
+## PowerPoint Startup / Shutdown
+
+In `PPTBridge SK Slide` source properties:
+
+- Keep `Auto Start PowerPoint When OBS Opens` off if OBS should open quietly.
+- Click `Start PowerPoint Live Mode` when you are ready to launch the slideshow.
+- Turn `Auto Start PowerPoint When OBS Opens` on if you prefer the slideshow to launch as soon as OBS loads the source.
+- Keep `Close PowerPoint Slideshow When OBS Closes` on if the slideshow should close when OBS quits.
+
 ## Companion / OSC Control
 
 For Stream Deck or Bitfocus Companion control without keyboard focus:

@@ -46,6 +46,8 @@ struct SourceContext {
   uint64_t rendered_timer_second = 0;
   PresenterRenderOptions presenter_options;
   bool use_live_powerpoint = true;
+  bool auto_start_live_powerpoint = false;
+  bool close_live_powerpoint_on_shutdown = true;
   bool audio_enabled = true;
   bool use_live_app_audio = true;
   bool auto_recover_live = true;

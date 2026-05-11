@@ -210,6 +210,13 @@ std::string FindPowerPointBundle()
   return cached;
 }
 
+bool IsPowerPointRunning()
+{
+  NSArray<NSRunningApplication *> *apps =
+    [NSRunningApplication runningApplicationsWithBundleIdentifier:@"com.microsoft.Powerpoint"];
+  return apps.count > 0;
+}
+
 std::string DeckCacheHash(const std::string &pptx_path)
 {
   std::stringstream stream;
@@ -751,7 +758,41 @@ on run argv
 
 	return my wait_for_slide_show_window(20)
 end run
-)APPLESCRIPT";
+	)APPLESCRIPT";
+}
+
+std::string PowerPointAppleScriptLiveStopSource()
+{
+  return R"APPLESCRIPT(
+on run argv
+	if (count of argv) is not 1 then error "Expected PowerPoint slideshow window title."
+	set target_title to item 1 of argv
+	set did_close to false
+
+	tell application "Microsoft PowerPoint"
+		try
+			set targetWindow to slide show window 1
+			if ((name of targetWindow) as text) is target_title then
+				tell slideshow view of targetWindow to exit slide show
+				set did_close to true
+			end if
+		end try
+
+		if did_close then
+			delay 0.2
+			try
+				close active presentation saving no
+			end try
+			try
+				if (count of presentations) is 0 then quit
+			end try
+			return "closed"
+		end if
+	end tell
+
+	return "not running"
+end run
+	)APPLESCRIPT";
 }
 
 bool QueryPowerPointLiveState(LivePowerPointSnapshot &snapshot, std::string &out_error)
@@ -857,6 +898,38 @@ bool StartPowerPointLiveSession(
   return ParseLivePowerPointOutput(std_out, snapshot, out_error);
 }
 
+bool StopPowerPointLiveSession(
+  const std::string &cache_dir,
+  const std::string &window_title,
+  std::string &out_error)
+{
+  if (window_title.empty()) {
+    return true;
+  }
+  if (!IsPowerPointRunning()) {
+    return true;
+  }
+
+  std::string std_out;
+  std::string std_err;
+  int exit_code = 0;
+  const bool stopped = RunAppleScriptFile(
+    cache_dir.empty() ? CacheDirectoryForDeck(window_title) : cache_dir,
+    "pptbridge_powerpoint_live_stop.applescript",
+    PowerPointAppleScriptLiveStopSource(),
+    { window_title },
+    std_out,
+    std_err,
+    exit_code);
+
+  if (!stopped || exit_code != 0) {
+    out_error = "PowerPoint live mode failed to stop: " + BuildTaskErrorMessage(std_out, std_err, exit_code);
+    return false;
+  }
+
+  return true;
+}
+
 bool RunPowerPointLiveCommand(
   const std::string &command_line,
   LivePowerPointSnapshot &snapshot,
@@ -947,7 +1020,8 @@ bool ConvertPptxToPdf(
   const std::string &pptx_path,
   const std::string &cache_dir,
   std::string &out_pdf_path,
-  std::string &out_error)
+  std::string &out_error,
+  bool allow_powerpoint_export = true)
 {
   if (pptx_path.empty()) {
     out_error = "Choose a .pptx file in source properties.";
@@ -969,7 +1043,7 @@ bool ConvertPptxToPdf(
   }
 
   std::string powerpoint_error;
-  if (!FindPowerPointBundle().empty()) {
+  if (allow_powerpoint_export && !FindPowerPointBundle().empty()) {
     if (ConvertPptxToPdfWithPowerPoint(pptx_path, cache_dir, out_pdf_path, powerpoint_error)) {
       return true;
     }
@@ -986,7 +1060,9 @@ bool ConvertPptxToPdf(
     return true;
   }
 
-  out_error = "PowerPoint export failed: " + (powerpoint_error.empty() ? std::string("PowerPoint was not found.") : powerpoint_error);
+  out_error = allow_powerpoint_export
+    ? "PowerPoint export failed: " + (powerpoint_error.empty() ? std::string("PowerPoint was not found.") : powerpoint_error)
+    : "PowerPoint export is waiting for manual live start.";
   if (!libreoffice_error.empty()) {
     out_error += " LibreOffice fallback failed: " + libreoffice_error;
   }
@@ -1699,6 +1775,8 @@ struct PresentationDocument::Impl {
   bool load_requested = true;
   bool presenter_assets_wanted = false;
   bool live_powerpoint_enabled = false;
+  bool live_powerpoint_auto_start = false;
+  bool live_start_requested = false;
   bool live_ready = false;
   bool live_sync_in_flight = false;
   bool black = false;
@@ -1746,7 +1824,10 @@ void PresentationDocument::SetLivePowerPointEnabled(bool enabled)
 
   impl_->live_powerpoint_enabled = enabled;
   impl_->live_error.clear();
-  if (!enabled) {
+  if (enabled && impl_->live_powerpoint_auto_start && !impl_->live_ready) {
+    impl_->live_start_requested = true;
+  } else if (!enabled) {
+    impl_->live_start_requested = false;
     impl_->live_ready = false;
     impl_->live_window_title.clear();
     impl_->live_slide_count = 0;
@@ -1754,6 +1835,35 @@ void PresentationDocument::SetLivePowerPointEnabled(bool enabled)
   }
   impl_->load_requested = true;
   impl_->version += 1;
+}
+
+void PresentationDocument::SetLivePowerPointAutoStart(bool enabled)
+{
+  bool should_start = false;
+  {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    const auto extension_lower = ToLowerCopy(fs::path(impl_->path).extension().string());
+    if (extension_lower == ".pdf") {
+      enabled = false;
+    }
+    if (impl_->live_powerpoint_auto_start == enabled) {
+      return;
+    }
+
+    impl_->live_powerpoint_auto_start = enabled;
+    if (enabled && impl_->live_powerpoint_enabled && !impl_->live_ready) {
+      impl_->live_start_requested = true;
+      impl_->load_requested = true;
+      should_start = true;
+    } else if (!enabled && !impl_->live_ready) {
+      impl_->live_start_requested = false;
+    }
+    impl_->version += 1;
+  }
+
+  if (should_start) {
+    StartLoadIfNeeded(false);
+  }
 }
 
 bool PresentationDocument::IsLivePowerPointEnabled() const
@@ -1772,6 +1882,56 @@ std::string PresentationDocument::LiveWindowTitle() const
 {
   std::lock_guard<std::mutex> lock(impl_->mutex);
   return impl_->live_window_title;
+}
+
+void PresentationDocument::StartLivePowerPointAsync()
+{
+  {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    const auto extension_lower = ToLowerCopy(fs::path(impl_->path).extension().string());
+    if (extension_lower == ".pdf") {
+      impl_->live_powerpoint_enabled = false;
+      impl_->live_start_requested = false;
+      return;
+    }
+    impl_->live_powerpoint_enabled = true;
+    impl_->live_start_requested = true;
+    impl_->live_error.clear();
+    impl_->load_requested = true;
+    impl_->version += 1;
+  }
+
+  StartLoadIfNeeded(false);
+}
+
+void PresentationDocument::StopLivePowerPoint()
+{
+  std::string cache_dir;
+  std::string window_title;
+  {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    cache_dir = impl_->cache_dir;
+    window_title = impl_->live_window_title;
+  }
+
+  std::string stop_error;
+  const bool stopped = StopPowerPointLiveSession(cache_dir, window_title, stop_error);
+  if (!window_title.empty()) {
+    if (stopped) {
+      blog(LOG_INFO, "[PPTBridge] PowerPoint live mode stopped (%s)", window_title.c_str());
+    } else {
+      blog(LOG_WARNING, "[PPTBridge] PowerPoint live mode stop failed (%s): %s", window_title.c_str(), stop_error.c_str());
+    }
+  }
+
+  std::lock_guard<std::mutex> lock(impl_->mutex);
+  impl_->live_start_requested = false;
+  impl_->live_ready = false;
+  impl_->live_sync_in_flight = false;
+  impl_->live_window_title.clear();
+  impl_->live_slide_count = 0;
+  impl_->live_error = stopped ? std::string() : stop_error;
+  impl_->version += 1;
 }
 
 void PresentationDocument::SetPresenterAssetsWanted(bool wanted)
@@ -1903,16 +2063,20 @@ void PresentationDocument::LoadOnWorker()
     }
 
     bool live_enabled = false;
+    bool live_auto_start = false;
+    bool live_start_requested = false;
     bool presenter_assets_wanted = false;
     bool already_live_ready = false;
     {
       std::lock_guard<std::mutex> lock(impl_->mutex);
       live_enabled = impl_->live_powerpoint_enabled;
+      live_auto_start = impl_->live_powerpoint_auto_start;
+      live_start_requested = impl_->live_start_requested;
       presenter_assets_wanted = impl_->presenter_assets_wanted;
       already_live_ready = impl_->live_ready;
     }
 
-    if (live_enabled && !already_live_ready) {
+    if (live_enabled && live_start_requested && !already_live_ready) {
       LivePowerPointSnapshot live_snapshot;
       std::string live_error;
       if (StartPowerPointLiveSession(impl_->path, cache_dir, live_snapshot, live_error)) {
@@ -1965,7 +2129,12 @@ void PresentationDocument::LoadOnWorker()
       std::error_code cache_error;
       fs::create_directories(cache_dir, cache_error);
       pdf_path = impl_->path;
-    } else if (!ConvertPptxToPdf(impl_->path, cache_dir, pdf_path, error)) {
+    } else if (!ConvertPptxToPdf(
+                 impl_->path,
+                 cache_dir,
+                 pdf_path,
+                 error,
+                 !live_enabled || live_auto_start || live_start_requested || already_live_ready)) {
       std::lock_guard<std::mutex> lock(impl_->mutex);
       impl_->loading = false;
       impl_->loaded = false;
@@ -2311,10 +2480,11 @@ bool PresentationDocument::RenderSlideBGRA(
     PDFDocument *document = nil;
     bool loading = false;
     bool loaded = false;
-    bool live_enabled = false;
-    bool live_ready = false;
-    bool black = false;
-    std::string error;
+	    bool live_enabled = false;
+	    bool live_ready = false;
+	    bool live_waiting_for_manual_start = false;
+	    bool black = false;
+	    std::string error;
     std::string live_error;
     std::size_t current = 0;
 
@@ -2322,10 +2492,16 @@ bool PresentationDocument::RenderSlideBGRA(
       std::lock_guard<std::mutex> lock(impl_->mutex);
       document = impl_->pdf_document;
       loading = impl_->loading;
-      loaded = impl_->loaded;
-      live_enabled = impl_->live_powerpoint_enabled;
-      live_ready = impl_->live_ready;
-      black = impl_->black;
+	      loaded = impl_->loaded;
+	      live_enabled = impl_->live_powerpoint_enabled;
+	      live_ready = impl_->live_ready;
+	      live_waiting_for_manual_start =
+	        impl_->live_powerpoint_enabled &&
+	        !impl_->live_powerpoint_auto_start &&
+	        !impl_->live_start_requested &&
+	        !impl_->live_ready &&
+	        !impl_->path.empty();
+	      black = impl_->black;
       error = impl_->error;
       live_error = impl_->live_error;
       current = impl_->current;
@@ -2343,6 +2519,8 @@ bool PresentationDocument::RenderSlideBGRA(
       DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode active…", canvas);
     } else if (loaded && !black) {
       DrawPageThumbnail(document, current, canvas);
+    } else if (live_waiting_for_manual_start) {
+      DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode is manual. Click Start PowerPoint Live Mode in source properties.", canvas);
     } else if (live_enabled && loading) {
       DrawCenteredMessage(@"PPTBridge SK", @"Starting PowerPoint live mode…", canvas);
     } else if (live_enabled && !live_error.empty()) {

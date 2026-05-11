@@ -66,9 +66,12 @@ public:
   std::string Name() const;
 
   void SetLivePowerPointEnabled(bool enabled);
+  void SetLivePowerPointAutoStart(bool enabled);
   bool IsLivePowerPointEnabled() const;
   bool IsLivePowerPointReady() const;
   std::string LiveWindowTitle() const;
+  void StartLivePowerPointAsync();
+  void StopLivePowerPoint();
   void SyncLiveStateAsync();
   void SetPresenterAssetsWanted(bool wanted);
 
