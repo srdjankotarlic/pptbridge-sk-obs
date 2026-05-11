@@ -18,27 +18,64 @@ PPTBridge SK adds two native OBS source types:
 
 ## Download
 
-| Platform | Status | Download | Notes |
+| Your Mac | Download | Status | Notes |
 | --- | --- | --- | --- |
-| macOS Apple Silicon | Stable | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip) | Use this for M1/M2/M3/M4 Macs |
-| macOS Intel | Stable build, needs Intel runtime feedback | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip) | Use this for older Intel Macs |
+| Apple Silicon Mac | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip) | Stable | Use this for M1, M2, M3, and M4 Macs |
+| Intel Mac | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip) | Stable build | Use this for older Macs where `About This Mac` says `Processor: Intel` |
 
-The public macOS ZIPs are the safest current path. A signed and notarized `.pkg` installer is tracked for v1.0 in [Issue #1](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/1).
+The Apple Silicon and Intel downloads contain the same PPTBridge features. Only the CPU build is different. The current public installer is a ZIP with a one-click command; a signed and notarized `.pkg` installer is tracked for v1.0 in [Issue #1](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/1).
 
-## Install on macOS
+## Quick Install on macOS
 
-1. Download and unzip the ZIP that matches your Mac:
-   - Apple Silicon: [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
-   - Intel: [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
+1. Download and unzip the ZIP that matches your Mac.
 2. Open `START-HERE-macOS.txt`.
 3. Double-click `1-Install-PPTBridge-SK.command`.
 4. If OBS is open, let the installer quit it and continue.
-5. The installer will copy the plugin and open OBS.
-6. Add `PPTBridge SK Slide` or `PPTBridge SK Presenter`.
+5. If macOS blocks the command the first time, right-click it and choose `Open`.
+6. Let the installer copy the plugin and open OBS.
+7. If OBS asks about Safe Mode, choose normal launch so third-party plugins load.
 
-If macOS blocks the command the first time, right-click it and choose `Open`.
+After OBS opens, add one or both PPTBridge sources from the `Sources` `+` menu.
 
 For a fuller walkthrough, see [native-plugin/INSTALL-macOS.md](native-plugin/INSTALL-macOS.md) and [SETUP-GUIDE.md](SETUP-GUIDE.md).
+
+## What You Add To OBS
+
+| OBS source | Use it for | Typical scene |
+| --- | --- | --- |
+| `PPTBridge SK Slide` | Clean slide/program output for the audience feed | Program, projector, stream, recording |
+| `PPTBridge SK Presenter` | Speaker confidence view with current slide, next slide, timer, and notes | Stage monitor, operator preview, presenter scene |
+
+The presenter source is PPTBridge's own OBS presenter layout. It is not a screen capture of PowerPoint's native Presenter View, so you can size and crop it inside OBS like any other source.
+
+## Basic OBS Workflow
+
+1. Add `PPTBridge SK Slide` to the scene that goes to the audience.
+2. Add `PPTBridge SK Presenter` to the scene or monitor view used by the presenter.
+3. Select the same `.pptx` or `.pdf` file in both source properties.
+4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `Open PowerPoint / Start Live Mode` when you are ready.
+5. For PDF decks, PowerPoint is not needed.
+6. Control slides with OBS hotkeys, source property buttons, Companion, or local OSC.
+7. Customize `PPTBridge SK Presenter` if you want bigger notes, bigger preview, a different split, fit/fill/crop behavior, or confidence-monitor style.
+
+## PowerPoint Startup Options
+
+| Option | What it does | Use it when |
+| --- | --- | --- |
+| `Open PowerPoint / Start Live Mode` | Opens PowerPoint if needed and starts the slideshow only when you click it | You want OBS to open quietly and start slides manually |
+| `Auto Start PowerPoint When OBS Opens` | Starts the PowerPoint slideshow automatically when OBS loads the source | You want the old automatic behavior |
+| `Close PowerPoint Slideshow When OBS Closes` | Closes the slideshow when OBS quits | You want OBS to clean up PowerPoint after the show |
+| `Stop PowerPoint Live Mode` | Stops the running live slideshow from the source properties | You want to end or reset live mode without quitting OBS |
+
+Default behavior is manual: OBS can open without immediately popping up the PowerPoint slideshow.
+
+## Slide Control
+
+- OBS hotkeys default to `2` for next slide and `1` for previous slide.
+- PPTBridge only responds to OBS hotkeys while OBS is the active app, so typing in another app will not accidentally move slides.
+- Companion and Stream Deck workflows should use OBS WebSocket or PPTBridge's local OSC listener instead of keyboard presses.
+- Local OSC can be enabled in OBS from `Tools > PPTBridge SK: Toggle Local OSC Control` and listens on `127.0.0.1:57130`.
+- Useful OSC paths include `/pptbridge/next`, `/pptbridge/previous`, `/pptbridge/first`, `/pptbridge/last`, `/pptbridge/black`, and `/pptbridge/reload`.
 
 ## What It Solves
 
@@ -51,7 +88,8 @@ PPTBridge SK is built for conference, church, webinar, keynote, and hybrid-event
 - **Two native OBS sources** for program output and presenter confidence view.
 - **PowerPoint and PDF input** on macOS, including multi-page PDFs.
 - **Windowed PowerPoint live mode** so PowerPoint does not take over the desktop.
-- **Manual or automatic PowerPoint startup** so OBS can open quietly or launch the slideshow for you.
+- **Manual or automatic PowerPoint startup** so OBS can open quietly, launch the slideshow on demand, or auto-start it for you.
+- **PowerPoint cleanup controls** so the slideshow can close automatically when OBS quits.
 - **Automatic title-bar crop** for clean live PowerPoint capture.
 - **Presenter notes and next-slide preview** from the original deck.
 - **Customizable presenter layouts** with presenter split, preview fit/fill/crop, positioning, notes zoom, and notes sizing.
@@ -67,12 +105,12 @@ PPTBridge SK is built for conference, church, webinar, keynote, and hybrid-event
 | Requirement | macOS stable |
 | --- | --- |
 | macOS | 12 Monterey or newer |
-| CPU | Apple Silicon or Intel |
+| CPU | Apple Silicon or Intel, using the matching ZIP download |
 | OBS Studio | 30 or newer |
 | PowerPoint | Microsoft PowerPoint for Mac, required for `.pptx` live mode |
 | PDF decks | Supported without PowerPoint |
 
-Apple Silicon was runtime-tested locally on OBS 32.x. Intel is cross-built against the Intel OBS 32.1.1 app and published for community validation on real Intel Macs.
+Apple Silicon was runtime-tested locally on OBS 32.x. Intel is cross-built against the Intel OBS 32.1.1 app with the same feature set and is published for real Intel Mac validation.
 
 ## Screenshots
 
@@ -84,8 +122,8 @@ Apple Silicon was runtime-tested locally on OBS 32.x. Intel is cross-built again
 
 | Release | Status | Use it for |
 | --- | --- | --- |
-| `v0.4.1` | Stable | Manual/automatic PowerPoint startup, close-on-OBS-quit, Companion/OSC control, and presenter customization |
-| [`v0.4.0`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.0) | Previous stable | Companion/OSC control, presenter customization, and safer OBS-focused hotkeys |
+| `v0.4.1` | Stable | Recommended release for most users: manual PowerPoint start button, optional auto-start, optional close-on-OBS-quit, Companion/OSC control, and presenter customization |
+| [`v0.4.0`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.0) | Previous stable | Companion/OSC control, presenter customization, and safer OBS-focused hotkeys without the v0.4.1 PowerPoint lifecycle controls |
 | [`v0.3.0`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.3.0) | macOS stable | Presenter customization, safer OBS-focused hotkeys, and confidence monitor polish |
 | [`v0.2.2`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.2.2) | Previous stable | Apple Silicon + Intel public build with easier installer |
 | `v1.0.0` | Planned | Signed/notarized macOS release and wider public launch |

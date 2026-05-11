@@ -92,6 +92,10 @@ What should appear in OBS:
 - PPTBridge SK Slide
 - PPTBridge SK Presenter
 
+What the sources do:
+- PPTBridge SK Slide is the clean audience/program slide output.
+- PPTBridge SK Presenter is the speaker confidence view with current slide, next slide, timer, and notes.
+
 Install:
 1. Double-click \`$INSTALLER_NAME\` for the easiest current-user install.
 2. If OBS is open, allow the installer to quit it and continue.
@@ -100,9 +104,18 @@ Install:
 5. If macOS blocks the command, right-click it and choose \`Open\`.
 6. If the installer says the package does not match this Mac, download the other macOS ZIP.
 
+Basic OBS setup:
+1. Add \`PPTBridge SK Slide\` to the program/audience scene.
+2. Add \`PPTBridge SK Presenter\` to the speaker/confidence scene.
+3. Select the same .pptx or .pdf in both sources.
+4. For .pptx live mode, click \`Open PowerPoint / Start Live Mode\` in \`PPTBridge SK Slide\` properties when you are ready.
+5. For PDF decks, PowerPoint is not required.
+
 Runtime note:
 - If OBS starts in Safe Mode, third-party plugins are disabled.
 - True live PowerPoint mode is the preferred path on macOS when Microsoft PowerPoint is installed.
+- Default PowerPoint startup is manual. Turn on \`Auto Start PowerPoint When OBS Opens\` only if you want OBS to launch the slideshow automatically.
+- \`Close PowerPoint Slideshow When OBS Closes\` can clean up the slideshow on OBS quit.
 - If live mode is unavailable or disabled, PPTBridge falls back to cached render mode for compatibility.
 - Companion/OSC control can send /pptbridge/next, /previous, /first, /last, /black, and /reload to 127.0.0.1:57130.
 EOF

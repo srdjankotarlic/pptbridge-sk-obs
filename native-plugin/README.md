@@ -162,10 +162,11 @@ Recommended workflow:
 
 1. Add `PPTBridge SK Slide` to the program scene
 2. Add `PPTBridge SK Presenter` to the stage confidence scene
-3. Point both to the same `.pptx`
-4. Open `Settings > Hotkeys`
-5. Bind `PPTBridge SK: Next Slide` and `PPTBridge SK: Previous Slide`
-6. Let the speaker drive slides with OBS-focused hotkeys
+3. Point both to the same `.pptx` or `.pdf`
+4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `Open PowerPoint / Start Live Mode` when you are ready
+5. Open `Settings > Hotkeys`
+6. Bind `PPTBridge SK: Next Slide` and `PPTBridge SK: Previous Slide`
+7. Let the speaker drive slides with OBS-focused hotkeys, Companion, local OSC, or source property buttons
 
 That gives you a clean dual-output workflow:
 
@@ -174,7 +175,7 @@ That gives you a clean dual-output workflow:
 
 ## Slide Control
 
-You can change slides in two native ways:
+You can change slides in these native ways:
 
 - bind OBS hotkeys such as `2` for next and `1` for previous, or choose your own narrow clicker bindings
 - send local OSC commands from Companion or another show-control tool to `127.0.0.1:57130`
@@ -199,6 +200,17 @@ After that, the speaker can drive the deck from OBS with the clicker and the act
 PPTBridge ignores hotkey callbacks while OBS is not the active app, so typing in another app will not move the presentation.
 For Stream Deck or Bitfocus Companion control that must work while another app is focused, use the OBS WebSocket workflow in `COMPANION-CONTROL.md` instead of keyboard hotkeys.
 For direct local OSC, enable `Tools > PPTBridge SK: Toggle Local OSC Control` and send OSC messages such as `/pptbridge/next` to `127.0.0.1:57130`.
+
+## PowerPoint Startup Controls
+
+In `PPTBridge SK Slide` properties:
+
+- `Open PowerPoint / Start Live Mode` opens PowerPoint if needed and starts the slideshow on demand
+- `Auto Start PowerPoint When OBS Opens` restores automatic slideshow startup when OBS loads the source
+- `Close PowerPoint Slideshow When OBS Closes` cleans up the running slideshow when OBS quits
+- `Stop PowerPoint Live Mode` stops the live slideshow without quitting OBS
+
+Default behavior is manual startup, so OBS can open quietly before the operator starts PowerPoint.
 
 This plugin does not require the old `pptbridge_obs.py` workflow.
 The included installers also remove legacy PPTBridge Python script entries from OBS scene collections.

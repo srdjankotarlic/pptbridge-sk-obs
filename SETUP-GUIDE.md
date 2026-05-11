@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS — Setup Guide
 
-**Created by Srđan Kotarlić** | v0.3.0
+**Created by Srđan Kotarlić** | v0.4.1
 
 ## What This Is
 
@@ -13,7 +13,8 @@ Use it when you want:
 
 - a clean PowerPoint slide feed in program
 - a separate presenter view with notes on a stage monitor
-- slide control from OBS hotkeys or a Spotlight-style clicker
+- slide control from OBS hotkeys, source buttons, Companion, local OSC, or a show-control surface
+- OBS to open quietly until you choose to start PowerPoint
 
 ## Requirements
 
@@ -21,12 +22,15 @@ You need:
 
 - Apple Silicon or Intel Mac
 - OBS Studio on macOS 12 or newer
-- at least one `.pptx` file
+- at least one `.pptx` or `.pdf` file
 - Microsoft PowerPoint installed for `.pptx` live mode
 
 Recommended:
 
 - install Microsoft PowerPoint for the preferred true live mode
+- download the ZIP that matches your Mac CPU:
+  - Apple Silicon: `pptbridge-obs-macos-apple-silicon.zip`
+  - Intel: `pptbridge-obs-macos-intel.zip`
 
 ## Install The Plugin
 
@@ -37,9 +41,10 @@ Recommended:
    - Intel: `pptbridge-obs-macos-intel.zip`
 2. Quit OBS if it is open
 3. Open `START-HERE-macOS.txt`
-4. Double-click `Install-PPTBridge-SK.command`
+4. Double-click `1-Install-PPTBridge-SK.command`
 5. If macOS blocks the command, right-click it and choose `Open`
 6. Let the installer copy the plugin and open OBS
+7. If OBS asks about Safe Mode, choose normal launch so third-party plugins load
 
 ### Manual Fallback
 
@@ -59,7 +64,7 @@ After restart:
 2. In `Sources`, click `+`
 3. Add `PPTBridge SK Slide`
 4. Add `PPTBridge SK Presenter`
-5. Point both sources to the same `.pptx`
+5. Point both sources to the same `.pptx` or `.pdf`
 
 Recommended setup:
 
@@ -85,6 +90,21 @@ PPTBridge only acts on those hotkeys while OBS is the active app. You can bind
 different keys or a clicker in OBS, but typing in another app will not move the
 presentation.
 
+## PowerPoint Startup And Shutdown
+
+`PPTBridge SK Slide` source properties include the PowerPoint lifecycle controls:
+
+| Control | What it does |
+|---|---|
+| `Open PowerPoint / Start Live Mode` | Opens PowerPoint if needed and starts the slideshow only when you click it |
+| `Auto Start PowerPoint When OBS Opens` | Starts the slideshow automatically when OBS loads the source |
+| `Close PowerPoint Slideshow When OBS Closes` | Closes the live slideshow when OBS quits |
+| `Stop PowerPoint Live Mode` | Stops the live slideshow without quitting OBS |
+
+Default behavior is manual. Leave `Auto Start PowerPoint When OBS Opens` off if
+you want OBS to open quietly, then click `Open PowerPoint / Start Live Mode`
+only when you are ready.
+
 ## Presenter Workflow
 
 Typical live workflow:
@@ -93,6 +113,10 @@ Typical live workflow:
 2. Scene B sends `PPTBridge SK Presenter` to the speaker monitor
 3. The speaker changes slides using the clicker
 4. OBS hotkeys move the active presentation
+
+For Companion or Stream Deck control, avoid keyboard simulation. Use OBS
+WebSocket or PPTBridge's local OSC listener so slide control still works when
+another app has keyboard focus.
 
 ## What The Presenter View Shows
 
@@ -115,6 +139,7 @@ notes.
 
 - true live PowerPoint mode is the preferred path for builds, animations, and embedded media on macOS
 - presenter notes appear only when the `.pptx` actually contains notes pages
+- PDF decks do not require PowerPoint, but they do not contain live PowerPoint animations or embedded media playback
 - for strict OBS control over locally monitored PowerPoint audio, use the pro routing guide in `native-plugin/PRO-AUDIO-MODE.md`
 
 ## Troubleshooting
@@ -122,7 +147,7 @@ notes.
 | Problem | What to do |
 |---|---|
 | Plugin does not appear in OBS | Restart OBS normally, not Safe Mode |
-| Slides do not load | Confirm the `.pptx` exists and try `Reload Presentation` |
+| Slides do not load | Confirm the `.pptx` or `.pdf` exists and try `Reload Presentation` |
 | PowerPoint live mode does not start | Confirm Microsoft PowerPoint is installed and allowed to open the deck |
 | Clicker does not move slides | Rebind the hotkeys in OBS |
 | Notes are missing | Check whether presenter notes exist inside the original `.pptx` |
@@ -131,7 +156,7 @@ notes.
 
 For public sharing, use the native plugin release assets in:
 
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.3.0-macOS-Apple-Silicon`
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.3.0-macOS-Intel`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.4.1-macOS-Apple-Silicon`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.4.1-macOS-Intel`
 
 The legacy Python script remains in this repo only as historical reference.

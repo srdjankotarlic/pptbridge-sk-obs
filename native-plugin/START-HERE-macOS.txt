@@ -7,9 +7,11 @@ FAST INSTALL
 
    Apple Silicon Macs:
    pptbridge-obs-macos-apple-silicon.zip
+   Use this for M1, M2, M3, and M4 Macs.
 
    Intel Macs:
    pptbridge-obs-macos-intel.zip
+   Use this for older Macs where About This Mac says Processor: Intel.
 
 2. Double-click:
 
@@ -26,6 +28,27 @@ FAST INSTALL
    or
 
    PPTBridge SK Presenter
+
+WHAT THE TWO SOURCES DO
+
+PPTBridge SK Slide:
+- clean slide output for the audience, projector, stream, or recording
+- this is the source that should usually run PowerPoint live mode
+
+PPTBridge SK Presenter:
+- presenter confidence view with current slide, next slide, timer, and notes
+- use this on a stage monitor, presenter scene, or operator preview
+
+BASIC OBS SETUP
+
+1. Add PPTBridge SK Slide to the program/audience scene.
+2. Add PPTBridge SK Presenter to the speaker/confidence scene.
+3. Select the same .pptx or .pdf file in both sources.
+4. For .pptx live mode, open PPTBridge SK Slide properties and click:
+
+   Open PowerPoint / Start Live Mode
+
+5. For PDF decks, PowerPoint is not needed.
 
 HOTKEYS
 
@@ -48,6 +71,7 @@ In the PPTBridge SK Slide source properties:
   If PowerPoint is not open yet, PPTBridge opens it for you.
 - Turn Auto Start PowerPoint When OBS Opens on if you want the slideshow to launch with OBS.
 - Leave Close PowerPoint Slideshow When OBS Closes on if OBS should clean up the slideshow on quit.
+- Use Stop PowerPoint Live Mode if you want to stop the slideshow without quitting OBS.
 
 COMPANION / OSC
 

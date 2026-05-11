@@ -1,6 +1,15 @@
 # Install PPTBridge SK on macOS
 
-PPTBridge SK ships as separate macOS downloads for Apple Silicon and Intel Macs.
+PPTBridge SK ships as separate macOS downloads for Apple Silicon and Intel Macs. The feature set is the same in both downloads; only the CPU build is different.
+
+## Which ZIP Should I Download?
+
+| Your Mac | Download |
+| --- | --- |
+| M1, M2, M3, or M4 Mac | `pptbridge-obs-macos-apple-silicon.zip` |
+| Older Intel Mac | `pptbridge-obs-macos-intel.zip` |
+
+To check, open `Apple menu > About This Mac`. If it says `Chip: Apple M...`, use Apple Silicon. If it says `Processor: Intel`, use Intel.
 
 ## Fast Install
 
@@ -25,6 +34,21 @@ PPTBridge SK ships as separate macOS downloads for Apple Silicon and Intel Macs.
    - `PPTBridge SK Presenter`
 
 If macOS blocks the command the first time, right-click it and choose `Open`.
+
+## What To Add In OBS
+
+| OBS source | Use it for |
+| --- | --- |
+| `PPTBridge SK Slide` | Clean audience/program slide output |
+| `PPTBridge SK Presenter` | Presenter confidence view with current slide, next slide, timer, and notes |
+
+Typical setup:
+
+1. Add `PPTBridge SK Slide` to the scene that goes to the projector, stream, or recording.
+2. Add `PPTBridge SK Presenter` to the scene or monitor used by the speaker.
+3. Select the same `.pptx` or `.pdf` file in both sources.
+4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `Open PowerPoint / Start Live Mode` when you are ready.
+5. For PDF decks, PowerPoint is not required.
 
 ## Manual Install
 
@@ -62,6 +86,9 @@ In `PPTBridge SK Slide` source properties:
 - Click `Open PowerPoint / Start Live Mode` when you are ready to launch the slideshow. If PowerPoint is not open yet, PPTBridge opens it for you.
 - Turn `Auto Start PowerPoint When OBS Opens` on if you prefer the slideshow to launch as soon as OBS loads the source.
 - Keep `Close PowerPoint Slideshow When OBS Closes` on if the slideshow should close when OBS quits.
+- Use `Stop PowerPoint Live Mode` if you want to end the running slideshow without quitting OBS.
+
+Default behavior is manual: OBS opens without immediately popping up the PowerPoint slideshow.
 
 ## Companion / OSC Control
 
@@ -87,6 +114,7 @@ The release ZIP also includes `COMPANION-CONTROL.md` and `send-osc.sh` for setup
 - macOS 12 or newer
 - OBS Studio 30 or newer
 - Microsoft PowerPoint for `.pptx` live mode
+- Matching Apple Silicon or Intel ZIP for your Mac
 
 PDF decks can be used without PowerPoint.
 
