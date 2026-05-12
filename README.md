@@ -116,7 +116,14 @@ Default OBS hotkeys are:
 - `2` for next slide
 - `1` for previous slide
 
-PPTBridge ignores normal OBS hotkey callbacks while OBS is not the active app, so typing in another window will not move slides. If a physical clicker must work globally, enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`.
+PPTBridge ignores normal OBS hotkey callbacks while OBS is not the active app, so typing in another window will not move slides. If a physical clicker must work globally, enable `Stage Clicker / Spotlight Capture` in the source properties or use `Tools > PPTBridge SK: ENABLE Stage Clicker Capture`. Use `Tools > PPTBridge SK: DISABLE Stage Clicker Capture` when those clicker keys should behave normally again.
+
+When clicker capture is enabled, PPTBridge captures common presenter remote keys by default:
+
+- `PageDown` or `Right Arrow` for next slide
+- `PageUp` or `Left Arrow` for previous slide
+
+It also captures any custom PPTBridge hotkeys you bind in OBS. Captured keys route to the PPTBridge source in the Preview scene while OBS Studio Mode is active, otherwise the current Program scene. The keys are suppressed from the focused app, so the presenter can change slides while the operator uses Chrome, OBS, or another tool.
 
 Useful OSC paths:
 
@@ -137,7 +144,7 @@ For shows with several PowerPoint decks:
 4. Click `START - Open PowerPoint / Start Live Mode` for each deck you want ready.
 5. Switch OBS Program scenes during the show.
 
-Hotkeys, local OSC, and clicker capture follow the PPTBridge source in the current OBS Program scene. That lets Deck 1, Deck 2, and Deck 3 stay open without one scene controlling the wrong presentation.
+In Studio Mode, hotkeys, local OSC, and clicker capture first follow the PPTBridge source in the Preview scene so the deck you are preparing responds. Outside Studio Mode, or when Preview has no PPTBridge source, they follow the current Program scene. That lets Deck 1, Deck 2, and Deck 3 stay open without one scene controlling the wrong presentation.
 
 ## Presenter Customization
 
@@ -217,11 +224,19 @@ Use [SUPPORT.md](SUPPORT.md) before opening an issue. The most useful bug report
 - deck type, `.pptx` or `.pdf`
 - OBS log from `Help > Log Files > View Current Log`
 
-## Support Development
+## Buy Me a Coffee
 
-PPTBridge SK is free and open source. If it saves time in a livestream, church service, conference, webinar, or AV setup, you can [buy me a coffee on Patreon](https://www.patreon.com/posts/coffee-158046733).
+PPTBridge SK is free, open source, and built around real shows I run myself — conferences, church streams, webinars, and stage events. If the plugin saved your night, made the operator's job easier, or helped a speaker look great on camera, you can say thanks on Patreon. No pressure, completely optional.
 
-Support is completely optional. It helps keep testing, documentation, and macOS/Windows build work moving, but the plugin remains free to use.
+| If you'd like to chip in | Link |
+| --- | --- |
+| Buy me a coffee ($10) | [patreon.com/posts/coffee-158046733](https://www.patreon.com/posts/coffee-158046733) |
+| Support the gear fund ($100) | [patreon.com/SrdjanKotarlic](https://www.patreon.com/SrdjanKotarlic) |
+| Just browse what's on the page | [patreon.com/SrdjanKotarlic](https://www.patreon.com/SrdjanKotarlic) |
+
+Coffee tips go into more testing time, more docs, real-hardware validation on Intel Macs and Windows, and notarized installers down the road. The plugin itself stays free for everyone — supporters or not. If you can't chip in, a star on the repo or telling one fellow AV operator about PPTBridge SK helps just as much.
+
+Thanks for using it. It genuinely means a lot.
 
 ## Roadmap
 
