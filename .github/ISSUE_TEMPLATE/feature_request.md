@@ -20,6 +20,19 @@ Describe the feature or behavior.
 - Windows
 - Both
 
+## OBS workflow
+
+- Slide source
+- Presenter source
+- PowerPoint live mode
+- PDF/cached mode
+- Hotkeys
+- Spotlight/Clicker Capture
+- Companion / Stream Deck
+- OSC
+- Audio
+- Other
+
 ## Why does it matter?
 
 Explain how this would help during a real show.

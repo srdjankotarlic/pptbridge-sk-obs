@@ -22,6 +22,8 @@ What did you expect PPTBridge SK to do?
 - PowerPoint version, if using `.pptx`:
 - Deck type: `.pptx` / `.pdf`
 - Mac model or Windows machine:
+- Source type: `PPTBridge SK Slide` / `PPTBridge SK Presenter`
+- Control method: hotkeys / clicker capture / Companion / OSC / source buttons
 
 ## Steps to reproduce
 
@@ -29,11 +31,21 @@ What did you expect PPTBridge SK to do?
 2.
 3.
 
+## Screenshots or recording
+
+Attach a screenshot or short screen recording if this is a visual, layout, capture, or presenter-view issue.
+
 ## OBS log
 
 Attach the current OBS log or paste the relevant PPTBridge lines.
 
 In OBS: `Help > Log Files > View Current Log`
+
+Search the log for:
+
+```text
+PPTBridge SK
+```
 
 ## Notes
 

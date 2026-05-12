@@ -7,6 +7,13 @@ PPTBridge SK is a native macOS OBS plugin for live PowerPoint and PDF workflows.
 - `PPTBridge SK Slide` - clean audience/program output
 - `PPTBridge SK Presenter` - speaker confidence view with current slide, next slide, timer, and notes
 
+### Start Here
+
+- Quick install: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/QUICKSTART.md
+- Full setup guide: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/SETUP-GUIDE.md
+- FAQ: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/FAQ.md
+- Support checklist: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/SUPPORT.md
+
 ### Which Download Should I Use?
 
 | Your Mac | Download |

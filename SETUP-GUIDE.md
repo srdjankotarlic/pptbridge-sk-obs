@@ -1,10 +1,12 @@
-# PPTBridge SK for OBS — Setup Guide
+# PPTBridge SK for OBS Setup Guide
 
 **Created by Srđan Kotarlić** | v0.4.2
 
+For the fastest install path, start with [QUICKSTART.md](QUICKSTART.md). This guide is the fuller walkthrough for setup, controls, multiple decks, and troubleshooting.
+
 ## What This Is
 
-PPTBridge SK for OBS is a native macOS OBS plugin that adds two real OBS source types:
+PPTBridge SK for OBS is a native OBS plugin that adds two real source types:
 
 - `PPTBridge SK Slide`
 - `PPTBridge SK Presenter`
@@ -15,6 +17,8 @@ Use it when you want:
 - a separate presenter view with notes on a stage monitor
 - slide control from OBS hotkeys, source buttons, Companion, local OSC, or a show-control surface
 - OBS to open quietly until you choose to start PowerPoint
+
+The stable public build is currently macOS. Windows is available as a beta source validation track for testers and developers.
 
 ## Requirements
 
