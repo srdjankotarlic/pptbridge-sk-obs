@@ -12,6 +12,7 @@ PPTBridge SK gives OBS two dedicated presentation sources:
 [![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-supported-000000?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
 [![Intel Mac](https://img.shields.io/badge/Intel_Mac-supported-555555?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
 [![License](https://img.shields.io/badge/License-see_LICENSE-lightgrey?style=flat-square)](#license)
+[![Buy me a coffee](https://img.shields.io/badge/Buy_me_a_coffee-Patreon-f96854?style=flat-square&logo=patreon&logoColor=white)](https://www.patreon.com/posts/coffee-158046733)
 
 ![PPTBridge SK overview](native-plugin/media/github/pptbridge-sk-social-preview.png)
 
@@ -215,6 +216,12 @@ Use [SUPPORT.md](SUPPORT.md) before opening an issue. The most useful bug report
 - PowerPoint version
 - deck type, `.pptx` or `.pdf`
 - OBS log from `Help > Log Files > View Current Log`
+
+## Support Development
+
+PPTBridge SK is free and open source. If it saves time in a livestream, church service, conference, webinar, or AV setup, you can [buy me a coffee on Patreon](https://www.patreon.com/posts/coffee-158046733).
+
+Support is completely optional. It helps keep testing, documentation, and macOS/Windows build work moving, but the plugin remains free to use.
 
 ## Roadmap
 
