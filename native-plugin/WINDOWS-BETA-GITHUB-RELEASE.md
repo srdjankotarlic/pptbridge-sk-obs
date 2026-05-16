@@ -4,7 +4,7 @@
 
 Created by **Srdjan Kotarlic**
 
-This prerelease is for Windows build and runtime validation. The stable public user release is still the macOS `v0.4.2` release.
+This prerelease is for Windows build and runtime validation. The stable public user release is still the macOS `v0.4.3` release.
 
 ## Start Here
 
@@ -30,7 +30,7 @@ This is a source package, not a final Windows installer. Build it on a Windows O
 - Multi-deck scene routing targets the PPTBridge source in the current OBS Program scene.
 - Local OSC/Companion control targets the current Program scene.
 - OBS hotkeys only fire while OBS is focused.
-- Optional `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture` can capture the same PPTBridge hotkey bindings globally, route a stage clicker to PPTBridge, and suppress those keys from the focused app.
+- Optional `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture` can capture common presenter keys globally, route a stage clicker to PPTBridge, and suppress those keys from the focused app.
 - Presenter customization is included in the Windows renderer path.
 
 ## Known Beta Limits

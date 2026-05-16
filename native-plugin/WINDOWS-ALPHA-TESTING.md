@@ -120,7 +120,7 @@ Use at least these decks:
 
 ### Spotlight/Clicker Capture
 
-- bind PPTBridge next/previous to the keys your clicker sends
+- use the built-in presenter keys or bind PPTBridge next/previous to unusual clicker keys
 - enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`
 - focus Notepad, Chrome, or another app
 - press the clicker

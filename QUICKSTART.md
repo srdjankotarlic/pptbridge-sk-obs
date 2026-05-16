@@ -70,14 +70,14 @@ PPTBridge only accepts normal OBS hotkeys while OBS is the active app, so typing
 
 If a presenter clicker must work while the operator uses Chrome, OBS, or another app:
 
-1. Bind PPTBridge next/previous to the keys the clicker sends.
-2. In OBS, open `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`.
+1. In OBS, open `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`.
+2. Use the clicker's normal next/previous buttons. PPTBridge captures `PageDown`, `Right`, `Space`, or `Enter` for next and `PageUp` or `Left` for previous by default.
 3. If macOS asks, allow OBS in:
    - `System Settings > Privacy & Security > Accessibility`
    - `System Settings > Privacy & Security > Input Monitoring`
 4. Restart OBS or toggle the feature again.
 
-Use clicker-style keys such as PageDown/PageUp when possible. If you bind normal typing keys such as `1` and `2`, those keys will be swallowed while Spotlight/Clicker Capture is enabled.
+You can still add custom bindings in `OBS Settings > Hotkeys` if your presenter sends unusual keys. If you bind normal typing keys such as `1` and `2`, those keys will be swallowed while Spotlight/Clicker Capture is enabled.
 
 ## 8. Companion Or Stream Deck
 

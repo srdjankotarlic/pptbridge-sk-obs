@@ -80,15 +80,16 @@ You can bind different keys in OBS Settings > Hotkeys if needed.
 
 For a Logitech Spotlight or another stage clicker while the operator works in
 Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Toggle
-Spotlight/Clicker Capture`. It captures the same PPTBridge hotkey bindings
-globally, sends them to the current OBS program scene deck, and suppresses those
-captured keys from the focused app. This works in PPTX live mode and PDF/cached
-mode.
+Spotlight/Clicker Capture`. It captures `PageDown`, `Right`, `Space`, or
+`Enter` for next and `PageUp` or `Left` for previous by default, sends those
+keys to the current OBS program scene deck, and suppresses them from the focused
+app. It also captures custom PPTBridge hotkeys if you bind them in OBS Settings.
+This works in PPTX live mode and PDF/cached mode.
 
 If macOS asks, allow OBS in `System Settings > Privacy & Security >
 Accessibility` and `Input Monitoring`, then restart OBS or toggle the feature
-again. Use PageDown/PageUp or other clicker-style keys when possible; normal
-typing keys such as `1` and `2` will be swallowed while this option is enabled.
+again. Normal typing keys such as `1` and `2` will be swallowed while this
+option is enabled if you bind them as custom clicker keys.
 
 ## PowerPoint Startup / Shutdown
 

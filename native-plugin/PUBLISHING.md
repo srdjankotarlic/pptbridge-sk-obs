@@ -35,8 +35,8 @@ cd native-plugin
 
 Main outputs:
 
-- `release/PPTBridge-SK-for-OBS-v0.4.2-macOS-Apple-Silicon.zip`
-- `release/PPTBridge-SK-for-OBS-v0.4.2-macOS-Intel.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.3-macOS-Apple-Silicon.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.3-macOS-Intel.zip`
 - `release/pptbridge-obs-macos-apple-silicon.zip`
 - `release/pptbridge-obs-macos-intel.zip`
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
@@ -66,8 +66,8 @@ git commit -m "Initial public release of PPTBridge SK for OBS"
 git branch -M main
 git remote add origin <your-github-repo-url>
 git push -u origin main
-git tag v0.4.2
-git push origin v0.4.2
+git tag v0.4.3
+git push origin v0.4.3
 ```
 
 ## 4. Create The GitHub Release
@@ -77,8 +77,8 @@ In GitHub:
 1. Open the repository
 2. Click `Releases`
 3. Click `Draft a new release`
-4. Choose tag `v0.4.2`
-5. Title it `PPTBridge SK for OBS v0.4.2`
+4. Choose tag `v0.4.3`
+5. Title it `PPTBridge SK for OBS v0.4.3`
 6. Paste the text from `GITHUB-RELEASE.md`
 7. Upload:
    - `pptbridge-obs-macos-apple-silicon.zip`
@@ -118,7 +118,7 @@ Suggested repository:
 - Description: `PowerPoint/PDF slide and presenter sources for OBS on macOS. Apple Silicon and Intel builds.`
 
 Suggested release title:
-- `PPTBridge SK for OBS v0.4.2`
+- `PPTBridge SK for OBS v0.4.3`
 
 Suggested release assets:
 - `pptbridge-obs-macos-apple-silicon.zip`

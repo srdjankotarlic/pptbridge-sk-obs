@@ -67,18 +67,20 @@ SPOTLIGHT / CLICKER CAPTURE
 If a presenter on stage uses a Logitech Spotlight or similar clicker while the
 operator uses Chrome, OBS, or another app:
 
-1. Bind PPTBridge SK Next Slide / Previous Slide to the clicker keys in
-   OBS Settings > Hotkeys.
-2. In OBS, open Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture.
+1. In OBS, open Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture.
+2. Use the clicker's normal next/previous buttons. PPTBridge captures
+   PageDown, Right, Space, or Enter for next and PageUp or Left for previous
+   by default.
 3. If macOS asks, allow OBS in System Settings > Privacy & Security >
    Accessibility and Input Monitoring.
 4. Restart OBS or toggle the feature again after granting permission.
 
 This makes the clicker drive the PPTBridge deck in the current OBS Program scene
 and stops those captured key presses from affecting the focused app. It works for
-PPTX live mode and PDF/cached decks. Use PageDown/PageUp or other clicker-style
-keys when possible; normal typing keys such as 1 and 2 are swallowed while this
-feature is enabled.
+PPTX live mode and PDF/cached decks. You can still bind custom keys in OBS
+Settings > Hotkeys if your clicker sends unusual keys. Normal typing keys such
+as 1 and 2 are swallowed while this feature is enabled if you bind them as
+custom clicker keys.
 
 POWERPOINT STARTUP
 

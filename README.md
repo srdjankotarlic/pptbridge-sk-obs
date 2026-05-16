@@ -7,7 +7,7 @@ PPTBridge SK gives OBS two dedicated presentation sources:
 - `PPTBridge SK Slide` for the clean audience/program feed
 - `PPTBridge SK Presenter` for the speaker view with notes, next slide, and timer
 
-[![macOS stable](https://img.shields.io/badge/macOS-v0.4.2_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
+[![macOS stable](https://img.shields.io/badge/macOS-v0.4.3_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
 [![Windows beta](https://img.shields.io/badge/Windows-v0.5.0--beta.1_source-orange?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1)
 [![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-supported-000000?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
 [![Intel Mac](https://img.shields.io/badge/Intel_Mac-supported-555555?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
@@ -116,14 +116,14 @@ Default OBS hotkeys are:
 - `2` for next slide
 - `1` for previous slide
 
-PPTBridge ignores normal OBS hotkey callbacks while OBS is not the active app, so typing in another window will not move slides. If a physical clicker must work globally, enable `Stage Clicker / Spotlight Capture` in the source properties or use `Tools > PPTBridge SK: ENABLE Stage Clicker Capture`. Use `Tools > PPTBridge SK: DISABLE Stage Clicker Capture` when those clicker keys should behave normally again.
+PPTBridge ignores normal OBS hotkey callbacks while OBS is not the active app, so typing in another window will not move slides. If a physical clicker must work globally, use `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. Toggle it off again when those clicker keys should behave normally.
 
 When clicker capture is enabled, PPTBridge captures common presenter remote keys by default:
 
-- `PageDown` or `Right Arrow` for next slide
+- `PageDown`, `Right Arrow`, `Space`, or `Enter` for next slide
 - `PageUp` or `Left Arrow` for previous slide
 
-It also captures any custom PPTBridge hotkeys you bind in OBS. Captured keys route to the PPTBridge source in the Preview scene while OBS Studio Mode is active, otherwise the current Program scene. The keys are suppressed from the focused app, so the presenter can change slides while the operator uses Chrome, OBS, or another tool.
+It also captures any custom PPTBridge hotkeys you bind in OBS. Captured keys route to the PPTBridge source in the current OBS Program scene. The keys are suppressed from the focused app, so the presenter can change slides while the operator uses Chrome, OBS, or another tool.
 
 Useful OSC paths:
 
@@ -144,7 +144,7 @@ For shows with several PowerPoint decks:
 4. Click `START - Open PowerPoint / Start Live Mode` for each deck you want ready.
 5. Switch OBS Program scenes during the show.
 
-In Studio Mode, hotkeys, local OSC, and clicker capture first follow the PPTBridge source in the Preview scene so the deck you are preparing responds. Outside Studio Mode, or when Preview has no PPTBridge source, they follow the current Program scene. That lets Deck 1, Deck 2, and Deck 3 stay open without one scene controlling the wrong presentation.
+Hotkeys, local OSC, and clicker capture follow the PPTBridge source in the current OBS Program scene. That lets Deck 1, Deck 2, and Deck 3 stay open without one scene controlling the wrong presentation, while the operator can still prepare other scenes without the stage clicker moving the wrong deck.
 
 ## Presenter Customization
 
@@ -181,8 +181,9 @@ Apple Silicon has been runtime-tested locally on OBS 32.x. Intel is cross-built 
 
 | Release | Status | Use it for |
 | --- | --- | --- |
-| [`v0.4.2`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.2) | Stable | Recommended macOS release for most users |
+| [`v0.4.3`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.3) | Stable | Recommended macOS release for most users |
 | [`v0.5.0-beta.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1) | Windows beta source | Windows build/runtime validation |
+| [`v0.4.2`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.2) | Previous stable | Spotlight/Clicker Capture and manual PowerPoint lifecycle controls |
 | [`v0.4.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.1) | Previous stable | Manual PowerPoint lifecycle controls |
 | [`v0.4.0`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.0) | Previous stable | Companion/OSC and presenter customization |
 | [`v0.3.0`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.3.0) | Previous stable | Presenter customization and confidence monitor polish |

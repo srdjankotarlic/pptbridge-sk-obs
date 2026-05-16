@@ -80,9 +80,9 @@ app will not accidentally move the presentation. You can still bind different
 keys or clicker buttons in OBS Settings > Hotkeys.
 
 If a stage clicker needs to work while Chrome, OBS, or another app is focused,
-enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. It captures the
-same PPTBridge hotkey bindings globally, routes them to the PPTBridge source in
-the current OBS program scene, and suppresses those captured key presses from the
+enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. It captures
+common presenter keys globally, routes them to the PPTBridge source in the
+current OBS program scene, and suppresses those captured key presses from the
 focused app. This is optional; leave it off for normal OBS-focused hotkeys.
 
 ## Companion / OSC

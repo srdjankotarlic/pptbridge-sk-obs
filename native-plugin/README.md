@@ -43,7 +43,8 @@ This native version is built around a practical conference workflow:
 ## Quick Platform Guide
 
 - `v0.5.0-beta.1` = Windows beta source pack for real Windows OBS build/runtime validation
-- `v0.4.2` = macOS stable release with Spotlight/Clicker Capture, multi-deck live routing, locked PowerPoint resize behavior, manual/automatic PowerPoint lifecycle controls, and Companion/OSC control
+- `v0.4.3` = macOS stable release with out-of-the-box Spotlight/Clicker Capture keys, multi-deck live routing, locked PowerPoint resize behavior, manual/automatic PowerPoint lifecycle controls, and Companion/OSC control
+- `v0.4.2` = previous macOS stable release with Spotlight/Clicker Capture, multi-deck live routing, locked PowerPoint resize behavior, manual/automatic PowerPoint lifecycle controls, and Companion/OSC control
 - `v0.4.1` = previous macOS stable release with manual/automatic PowerPoint lifecycle controls and Companion/OSC control
 - `v0.4.0` = previous macOS stable release with Companion/OSC control
 - `v0.3.0` = previous macOS stable release with presenter customization
@@ -142,8 +143,8 @@ Build the package:
 Result:
 
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
-- `release/PPTBridge-SK-for-OBS-v0.4.2-macOS-Apple-Silicon.zip`
-- `release/PPTBridge-SK-for-OBS-v0.4.2-macOS-Intel.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.3-macOS-Apple-Silicon.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.3-macOS-Intel.zip`
 - `release/pptbridge-obs-macos-apple-silicon.zip`
 - `release/pptbridge-obs-macos-intel.zip`
 
@@ -209,14 +210,14 @@ Quick setup for stage control:
 1. In OBS, open `Settings > Hotkeys`
 2. Search for `PPTBridge SK`
 3. On first launch, PPTBridge SK defaults to `2` for next slide and `1` for previous slide if you have not set your own bindings yet
-4. Optionally change `PPTBridge SK: Next Slide` to the key your clicker sends for next
-5. Optionally change `PPTBridge SK: Previous Slide` to the key your clicker sends for previous
+4. If your clicker sends unusual keys, optionally change `PPTBridge SK: Next Slide` to the key it sends for next
+5. If your clicker sends unusual keys, optionally change `PPTBridge SK: Previous Slide` to the key it sends for previous
 6. Click `Apply`
 
 After that, the speaker can drive the deck from OBS with the clicker and the active PPTBridge source will move forward/back.
 PPTBridge ignores hotkey callbacks while OBS is not the active app, so typing in another app will not move the presentation.
-For a Logitech Spotlight or other presenter clicker that should work while the operator uses Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. It captures the same PPTBridge hotkey bindings globally, routes them to the PPTBridge source in the current OBS program scene, and suppresses those captured key presses from the focused app. This works for PPTX live mode and PDF/cached decks.
-If macOS asks, allow OBS in `System Settings > Privacy & Security > Accessibility` and `Input Monitoring`, then restart OBS or toggle the feature again. Use PageDown/PageUp or other clicker-style bindings when possible; normal typing keys such as `1` and `2` will be swallowed while Spotlight/Clicker Capture is enabled.
+For a Logitech Spotlight or other presenter clicker that should work while the operator uses Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. It captures `PageDown`, `Right`, `Space`, or `Enter` for next and `PageUp` or `Left` for previous by default. It also captures any custom PPTBridge hotkeys, routes them to the PPTBridge source in the current OBS program scene, and suppresses those captured key presses from the focused app. This works for PPTX live mode and PDF/cached decks.
+If macOS asks, allow OBS in `System Settings > Privacy & Security > Accessibility` and `Input Monitoring`, then restart OBS or toggle the feature again. Normal typing keys such as `1` and `2` will be swallowed while Spotlight/Clicker Capture is enabled if you bind them as custom clicker keys.
 For Stream Deck or Bitfocus Companion control that must work while another app is focused, use the OBS WebSocket workflow in `COMPANION-CONTROL.md` instead of keyboard hotkeys.
 For direct local OSC, enable `Tools > PPTBridge SK: Toggle Local OSC Control` and send OSC messages such as `/pptbridge/next` to `127.0.0.1:57130`.
 

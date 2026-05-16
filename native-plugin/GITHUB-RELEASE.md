@@ -1,4 +1,4 @@
-## PPTBridge SK for OBS v0.4.2
+## PPTBridge SK for OBS v0.4.3
 
 Created by **Srdjan Kotarlic**
 
@@ -23,10 +23,11 @@ PPTBridge SK is a native macOS OBS plugin for live PowerPoint and PDF workflows.
 
 Both downloads have the same feature set. Only the CPU build is different.
 
-### What Is New In v0.4.2
+### What Is New In v0.4.3
 
-- optional `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture` for Logitech Spotlight and presenter clickers while the operator uses other apps
-- captured clicker hotkeys route to the PPTBridge source in the current OBS program scene and are suppressed from the focused app
+- Spotlight/Clicker Capture now works out-of-the-box with common presenter keys: `PageDown`, `Right`, `Space`, or `Enter` for next and `PageUp` or `Left` for previous
+- captured clicker keys route to the PPTBridge source in the current OBS program scene and are suppressed from the focused app, so the operator can use Chrome, OBS, or another app during a presentation
+- custom PPTBridge hotkeys are still captured if you bind unusual clicker keys in OBS Settings
 - locked PowerPoint resize behavior keeps OBS output stable when the desktop PowerPoint window is made smaller
 - highlighted `START - Open PowerPoint / Start Live Mode` button in the `PowerPoint Live Start / Stop` group
 - OBS can now open quietly without immediately launching the PowerPoint slideshow
@@ -69,7 +70,7 @@ Default resize behavior is `Lock OBS Output Size`, so shrinking the PowerPoint w
 
 - OBS hotkeys default to `2` for next slide and `1` for previous slide.
 - PPTBridge ignores OBS hotkeys while another app has keyboard focus, so typing elsewhere will not move slides.
-- For a Logitech Spotlight or another presenter clicker while the operator uses Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. It captures the same PPTBridge hotkey bindings globally, routes them to the current OBS program scene, and suppresses the captured keys from the focused app.
+- For a Logitech Spotlight or another presenter clicker while the operator uses Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. It captures `PageDown`, `Right`, `Space`, or `Enter` for next and `PageUp` or `Left` for previous by default, routes them to the current OBS program scene, and suppresses the captured keys from the focused app.
 - If macOS asks, allow OBS in `System Settings > Privacy & Security > Accessibility` and `Input Monitoring`, then restart OBS or toggle the feature again.
 - Companion and Stream Deck workflows should use OBS WebSocket or PPTBridge's local OSC listener.
 - Local OSC can be enabled in OBS from `Tools > PPTBridge SK: Toggle Local OSC Control`.

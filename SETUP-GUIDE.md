@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS Setup Guide
 
-**Created by Srđan Kotarlić** | v0.4.2
+**Created by Srđan Kotarlić** | v0.4.3
 
 For the fastest install path, start with [QUICKSTART.md](QUICKSTART.md). This guide is the fuller walkthrough for setup, controls, multiple decks, and troubleshooting.
 
@@ -99,15 +99,17 @@ operator uses Chrome, OBS, or another app, enable:
 
 `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`
 
-This captures the same PPTBridge hotkey bindings globally, routes them to the
+This captures common presenter remote keys globally, routes them to the
 PPTBridge source in the current OBS program scene, and suppresses those captured
 keys from the focused app. It works for PPTX live mode and PDF/cached decks. If
 macOS asks, allow OBS in `System Settings > Privacy & Security > Accessibility`
 and `Input Monitoring`, then restart OBS or toggle the feature again.
 
-Use clicker-style keys such as PageDown/PageUp when possible. If you bind normal
-typing keys such as `1` and `2`, those keys will be swallowed while
-Spotlight/Clicker Capture is enabled.
+Out of the box it captures `PageDown`, `Right`, `Space`, or `Enter` for next and
+`PageUp` or `Left` for previous. You can still bind custom PPTBridge hotkeys in
+OBS Settings if your clicker sends unusual keys. If you bind normal typing keys
+such as `1` and `2`, those keys will be swallowed while Spotlight/Clicker
+Capture is enabled.
 
 ## PowerPoint Startup And Shutdown
 
@@ -191,14 +193,14 @@ notes.
 | Plugin does not appear in OBS | Restart OBS normally, not Safe Mode |
 | Slides do not load | Confirm the `.pptx` or `.pdf` exists and try `Reload Presentation` |
 | PowerPoint live mode does not start | Confirm Microsoft PowerPoint is installed and allowed to open the deck |
-| Clicker does not move slides | Rebind the hotkeys in OBS; for global stage clicker control, enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture` and grant macOS permissions if prompted |
+| Clicker does not move slides | Enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture` and grant macOS permissions if prompted. For unusual clickers, also bind the clicker's keys in OBS Hotkeys |
 | Notes are missing | Check whether presenter notes exist inside the original `.pptx` |
 
 ## Public Release Notes
 
 For public sharing, use the native plugin release assets in:
 
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.4.2-macOS-Apple-Silicon`
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.4.2-macOS-Intel`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.4.3-macOS-Apple-Silicon`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.4.3-macOS-Intel`
 
 The legacy Python script remains in this repo only as historical reference.

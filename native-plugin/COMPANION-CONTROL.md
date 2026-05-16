@@ -16,9 +16,12 @@ For direct OSC, enable PPTBridge's local listener from the OBS `Tools` menu.
 It listens only on `127.0.0.1`, so it is intended for a control app running on the same machine.
 
 For a physical Logitech Spotlight or presenter clicker, use `Tools > PPTBridge
-SK: Toggle Spotlight/Clicker Capture` instead of Companion. It captures the same
-PPTBridge hotkey bindings globally, routes them to the current OBS program scene,
-and suppresses those captured key presses from the focused app.
+SK: Toggle Spotlight/Clicker Capture` instead of Companion. It captures common
+presenter keys globally, routes them to the current OBS program scene, and
+suppresses those captured key presses from the focused app. Built-in clicker
+keys are `PageDown`, `Right`, `Space`, or `Enter` for next and `PageUp` or
+`Left` for previous. Custom PPTBridge hotkeys are captured too if you bind them
+in OBS Settings.
 
 ## Requirements
 

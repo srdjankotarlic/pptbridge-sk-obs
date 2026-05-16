@@ -117,8 +117,9 @@ Multiple PPTX decks:
 - PPTBridge locks each live PowerPoint session to its exact staged deck file, so several slideshow windows can stay open and scene changes control the right deck.
 
 Spotlight / clicker capture:
-- Bind PPTBridge SK Next Slide / Previous Slide to your presenter clicker keys in OBS Settings > Hotkeys.
 - Enable Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture when the stage clicker must work while Chrome, OBS, or another app is focused.
+- PPTBridge captures PageDown, Right, Space, or Enter for next and PageUp or Left for previous by default.
+- Custom PPTBridge hotkeys are also captured if your presenter sends unusual keys.
 - If macOS asks, allow OBS in System Settings > Privacy & Security > Accessibility and Input Monitoring, then restart OBS or toggle the feature again.
 - Captured clicker hotkeys drive the PPTBridge source in the current OBS Program scene and are suppressed from the focused app.
 
