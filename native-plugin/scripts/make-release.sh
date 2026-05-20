@@ -8,15 +8,13 @@ VERSION="$(sed -n 's/^project(.* VERSION \([0-9.][0-9.]*\).*/\1/p' "$PROJECT_DIR
 BRAND_SLUG="PPTBridge-SK-for-OBS"
 RELEASE_SUFFIX="${PPTBRIDGE_RELEASE_SUFFIX:-macOS-Apple-Silicon}"
 DOWNLOAD_LABEL="${PPTBRIDGE_DOWNLOAD_LABEL:-Apple Silicon}"
+RELEASE_STATUS="${PPTBRIDGE_RELEASE_STATUS:-Stable}"
 RELEASE_DIR="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-$RELEASE_SUFFIX"
 ZIP_PATH="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-$RELEASE_SUFFIX.zip"
 STABLE_ZIP_NAME="${PPTBRIDGE_ZIP_NAME:-pptbridge-obs-macos-apple-silicon.zip}"
 STABLE_ZIP_PATH="$PROJECT_DIR/release/$STABLE_ZIP_NAME"
 BUNDLE_PATH="${PPTBRIDGE_BUNDLE_PATH:-$PROJECT_DIR/build/bundle/pptbridge-obs.plugin}"
-DIST_DIR="${PPTBRIDGE_DIST_DIR:-$PROJECT_DIR/dist}"
-PKG_PATH="$DIST_DIR/PPTBridge-SK-for-OBS-Installer.pkg"
 INSTALLER_NAME="1-Install-PPTBridge-SK.command"
-CHECKSUMS_PATH="$RELEASE_DIR/SHA256SUMS.txt"
 ZIP_CHECKSUM_PATH="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-$RELEASE_SUFFIX.zip.sha256"
 STABLE_ZIP_CHECKSUM_PATH="$PROJECT_DIR/release/$STABLE_ZIP_NAME.sha256"
 
@@ -31,10 +29,6 @@ if [ ! -d "$BUNDLE_PATH" ]; then
   exit 1
 fi
 
-PPTBRIDGE_BUNDLE_PATH="$BUNDLE_PATH" \
-PPTBRIDGE_DIST_DIR="$DIST_DIR" \
-"$SCRIPT_DIR/make-pkg.sh"
-
 mkdir -p "$PROJECT_DIR/release"
 rm -rf "$RELEASE_DIR"
 mkdir -p "$RELEASE_DIR"
@@ -42,118 +36,91 @@ mkdir -p "$RELEASE_DIR"
 cp -R "$BUNDLE_PATH" "$RELEASE_DIR/pptbridge-obs.plugin"
 cp "$PROJECT_DIR/PPTBridge-Install.command" "$RELEASE_DIR/$INSTALLER_NAME"
 cp "$PROJECT_DIR/START-HERE-macOS.txt" "$RELEASE_DIR/START-HERE-macOS.txt"
-cp "$PROJECT_DIR/scripts/cleanup-legacy-python.sh" "$RELEASE_DIR/cleanup-legacy-python.sh"
-cp "$PKG_PATH" "$RELEASE_DIR/"
-cp "$PROJECT_DIR/README.md" "$RELEASE_DIR/README.md"
-cp "$PROJECT_DIR/INSTALL-macOS.md" "$RELEASE_DIR/INSTALL-macOS.md"
-cp "$PROJECT_DIR/PUBLISHING.md" "$RELEASE_DIR/PUBLISHING.md"
-cp "$PROJECT_DIR/COMPANION-CONTROL.md" "$RELEASE_DIR/COMPANION-CONTROL.md"
-cp "$PROJECT_DIR/PRO-AUDIO-MODE.md" "$RELEASE_DIR/PRO-AUDIO-MODE.md"
-cp "$PROJECT_DIR/GITHUB-RELEASE.md" "$RELEASE_DIR/GITHUB-RELEASE.md"
-cp "$PROJECT_DIR/GITHUB-REPO-METADATA.md" "$RELEASE_DIR/GITHUB-REPO-METADATA.md"
-cp "$PROJECT_DIR/LINKEDIN-POST.md" "$RELEASE_DIR/LINKEDIN-POST.md"
-cp "$PROJECT_DIR/OBS-FORUM-POST.md" "$RELEASE_DIR/OBS-FORUM-POST.md"
-cp "$PROJECT_DIR/RELEASE-CHECKLIST.md" "$RELEASE_DIR/RELEASE-CHECKLIST.md"
-cp "$PROJECT_DIR/SCREENSHOT-SHOTLIST.md" "$RELEASE_DIR/SCREENSHOT-SHOTLIST.md"
-cp "$PROJECT_DIR/SIGNING-AND-NOTARIZATION.md" "$RELEASE_DIR/SIGNING-AND-NOTARIZATION.md"
-cp "$PROJECT_DIR/scripts/send-osc.sh" "$RELEASE_DIR/send-osc.sh"
-
 chmod +x "$RELEASE_DIR/$INSTALLER_NAME"
-chmod +x "$RELEASE_DIR/cleanup-legacy-python.sh"
-chmod +x "$RELEASE_DIR/send-osc.sh"
 
-cat > "$RELEASE_DIR/RELEASE-NOTES.md" <<EOF
-# PPTBridge SK for OBS
+cat > "$RELEASE_DIR/README.md" <<EOF
+# PPTBridge SK for OBS - macOS
 
-Version: $VERSION
-Author: Srđan Kotarlić
-macOS package: $DOWNLOAD_LABEL
+Created by **Srdjan Kotarlic**
 
-Included:
-- PPTBridge-SK-for-OBS-Installer.pkg
-- START-HERE-macOS.txt
-- $INSTALLER_NAME
-- pptbridge-obs.plugin
-- README.md
-- INSTALL-macOS.md
-- PUBLISHING.md
-- COMPANION-CONTROL.md
-- PRO-AUDIO-MODE.md
-- GITHUB-RELEASE.md
-- GITHUB-REPO-METADATA.md
-- LINKEDIN-POST.md
-- OBS-FORUM-POST.md
-- RELEASE-CHECKLIST.md
-- SCREENSHOT-SHOTLIST.md
-- SIGNING-AND-NOTARIZATION.md
-- send-osc.sh
+Package: **$DOWNLOAD_LABEL**
+Version: **$VERSION**
+Status: **$RELEASE_STATUS**
 
-What should appear in OBS:
-- PPTBridge SK Slide
-- PPTBridge SK Presenter
+PPTBridge SK is a native OBS plugin that turns PowerPoint and PDF decks into
+OBS sources for live events, conference rooms, webinars, church production, and
+similar presentation workflows.
 
-What the sources do:
-- PPTBridge SK Slide is the clean audience/program slide output.
-- PPTBridge SK Presenter is the speaker confidence view with current slide, next slide, timer, and notes.
+## Included Files
 
-Install:
-1. Double-click \`$INSTALLER_NAME\` for the easiest current-user install.
-2. If OBS is open, allow the installer to quit it and continue.
-3. The installer will copy the plugin and open OBS.
-4. Add \`PPTBridge SK Slide\` or \`PPTBridge SK Presenter\`.
-5. If macOS blocks the command, right-click it and choose \`Open\`.
-6. If the installer says the package does not match this Mac, download the other macOS ZIP.
+- \`$INSTALLER_NAME\` - double-click installer
+- \`START-HERE-macOS.txt\` - quick install and usage guide
+- \`pptbridge-obs.plugin\` - the OBS plugin bundle
+- \`README.md\` - this file
 
-Basic OBS setup:
+## Install
+
+1. Quit OBS if it is open, or let the installer close it for you.
+2. Double-click \`$INSTALLER_NAME\`.
+3. If macOS blocks the command, right-click it and choose \`Open\`.
+4. Let the installer copy the plugin and open OBS.
+5. In OBS, add \`PPTBridge SK Slide\` or \`PPTBridge SK Presenter\`.
+6. If OBS asks about Safe Mode, choose normal launch so third-party plugins load.
+
+If the installer says this package does not match your Mac, download the other
+macOS ZIP:
+
+- Apple Silicon: \`pptbridge-obs-macos-apple-silicon.zip\`
+- Intel Mac: \`pptbridge-obs-macos-intel.zip\`
+
+## What The Sources Do
+
+- \`PPTBridge SK Slide\` is the clean audience/program slide output.
+- \`PPTBridge SK Presenter\` is the speaker confidence view with current slide,
+  next slide, timer, and notes.
+
+## Basic OBS Setup
+
 1. Add \`PPTBridge SK Slide\` to the program/audience scene.
 2. Add \`PPTBridge SK Presenter\` to the speaker/confidence scene.
 3. Select the same .pptx or .pdf in both sources.
 4. For .pptx live mode, click \`START - Open PowerPoint / Start Live Mode\` in the highlighted \`PowerPoint Live Start / Stop\` group when you are ready.
 5. For PDF decks, PowerPoint is not required.
 
-Multiple PPTX decks:
+## Slide Control
+
+- OBS hotkeys default to \`2\` for next slide and \`1\` for previous slide.
+- For a Logitech Spotlight or similar presenter clicker, enable
+  \`Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture\`.
+- Clicker capture supports common next keys such as PageDown, Right, Space, and
+  Enter, plus previous keys such as PageUp and Left.
+- If macOS asks, allow OBS in \`System Settings > Privacy & Security > Accessibility\`
+  and \`Input Monitoring\`, then restart OBS.
+
+## Multiple PPTX Decks
+
 - Create one OBS scene per deck.
 - Select that scene's .pptx in its PPTBridge SK Slide and Presenter sources.
 - PPTBridge locks each live PowerPoint session to its exact staged deck file, so several slideshow windows can stay open and scene changes control the right deck.
 
-Spotlight / clicker capture:
-- Enable Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture when the stage clicker must work while Chrome, OBS, or another app is focused.
-- PPTBridge captures PageDown, Right, Space, or Enter for next and PageUp or Left for previous by default.
-- Custom PPTBridge hotkeys are also captured if your presenter sends unusual keys.
-- If macOS asks, allow OBS in System Settings > Privacy & Security > Accessibility and Input Monitoring, then restart OBS or toggle the feature again.
-- Captured clicker hotkeys drive the PPTBridge source in the current OBS Program scene and are suppressed from the focused app.
+## Requirements
 
-Runtime note:
-- If OBS starts in Safe Mode, third-party plugins are disabled.
-- True live PowerPoint mode is the preferred path on macOS when Microsoft PowerPoint is installed.
-- Default PowerPoint startup is manual. Turn on \`Auto Start PowerPoint When OBS Opens\` only if you want OBS to launch the slideshow automatically.
-- \`Close PowerPoint Slideshow When OBS Closes\` can clean up the slideshow on OBS quit.
-- If live mode is unavailable or disabled, PPTBridge falls back to cached render mode for compatibility.
-- Companion/OSC control can send /pptbridge/next, /previous, /first, /last, /black, and /reload to 127.0.0.1:57130.
+- macOS 12 or newer
+- OBS Studio 30 or newer
+- Microsoft PowerPoint for live .pptx mode
+
+PDF decks work without PowerPoint.
+
+## Support
+
+Project page and latest downloads:
+
+https://github.com/srdjankotarlic/pptbridge-sk-obs
+
+Report issues here:
+
+https://github.com/srdjankotarlic/pptbridge-sk-obs/issues
 EOF
-
-(
-  cd "$RELEASE_DIR"
-  shasum -a 256 \
-    "PPTBridge-SK-for-OBS-Installer.pkg" \
-    "START-HERE-macOS.txt" \
-    "$INSTALLER_NAME" \
-    "README.md" \
-    "INSTALL-macOS.md" \
-    "PUBLISHING.md" \
-    "COMPANION-CONTROL.md" \
-    "PRO-AUDIO-MODE.md" \
-    "GITHUB-RELEASE.md" \
-    "GITHUB-REPO-METADATA.md" \
-    "LINKEDIN-POST.md" \
-    "OBS-FORUM-POST.md" \
-    "RELEASE-CHECKLIST.md" \
-    "RELEASE-NOTES.md" \
-    "SCREENSHOT-SHOTLIST.md" \
-    "SIGNING-AND-NOTARIZATION.md" \
-    "send-osc.sh" \
-    > "$CHECKSUMS_PATH"
-)
 
 /usr/bin/xattr -cr "$RELEASE_DIR" || true
 

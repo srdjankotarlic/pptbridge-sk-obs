@@ -4,10 +4,10 @@
 
 This folder contains the native OBS plugin version of PPTBridge SK.
 
-The main public release path today is the stable macOS ZIP for the user's Mac:
+The main public release path today is the macOS ZIP for the user's Mac:
 
-- [Download for Apple Silicon](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
-- [Download for Intel Mac](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
+- [Download stable Apple Silicon build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
+- [Download Intel Mac beta build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
 - [Open the latest stable macOS release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
 
 The Windows beta path is source-only for validation:
@@ -37,19 +37,21 @@ This native version is built around a practical conference workflow:
 
 ## Platform Status
 
-- macOS: stable public release path, tested and packaged
-- Windows: `v0.5.0-beta.1` source validation pack, not a final installer yet
+- macOS Apple Silicon: stable public release path, tested and packaged
+- macOS Intel: beta download with the same feature set, awaiting more real Intel Mac feedback
+- Windows: beta source validation pack, not a final installer yet
 
 ## Quick Platform Guide
 
 - `v0.5.0-beta.1` = Windows beta source pack for real Windows OBS build/runtime validation
-- `v0.4.3` = macOS stable release with out-of-the-box Spotlight/Clicker Capture keys, multi-deck live routing, locked PowerPoint resize behavior, manual/automatic PowerPoint lifecycle controls, and Companion/OSC control
+- `v0.4.4` = macOS stable release with clean public ZIP packages and easy install
+- `v0.4.3` = previous macOS stable release with out-of-the-box Spotlight/Clicker Capture keys, multi-deck live routing, locked PowerPoint resize behavior, manual/automatic PowerPoint lifecycle controls, and Companion/OSC control
 - `v0.4.2` = previous macOS stable release with Spotlight/Clicker Capture, multi-deck live routing, locked PowerPoint resize behavior, manual/automatic PowerPoint lifecycle controls, and Companion/OSC control
 - `v0.4.1` = previous macOS stable release with manual/automatic PowerPoint lifecycle controls and Companion/OSC control
 - `v0.4.0` = previous macOS stable release with Companion/OSC control
 - `v0.3.0` = previous macOS stable release with presenter customization
 - `v0.2.2` = previous macOS stable release
-- If someone asks "which one should I install?", the safe answer today is: M-series Mac users install the Apple Silicon ZIP; older Intel Mac users install the Intel ZIP.
+- If someone asks "which one should I install?", the safe answer today is: M-series Mac users install the Apple Silicon ZIP; older Intel Mac users can test the Intel beta ZIP and send feedback.
 
 ## What Problem It Solves
 
@@ -131,7 +133,7 @@ Two installer options are included:
    - installs into `/Library/Application Support/obs-studio/plugins`
 3. `scripts/make-release.sh`
    - builds a shareable release folder and zip for other laptops
-   - includes `START-HERE-macOS.txt`, `1-Install-PPTBridge-SK.command`, the `.pkg`, `INSTALL-macOS.md`, the plugin bundle, and publishing docs
+   - includes only the user-facing install files: `START-HERE-macOS.txt`, `1-Install-PPTBridge-SK.command`, `README.md`, and the plugin bundle
 
 Build the package:
 
@@ -143,8 +145,8 @@ Build the package:
 Result:
 
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
-- `release/PPTBridge-SK-for-OBS-v0.4.3-macOS-Apple-Silicon.zip`
-- `release/PPTBridge-SK-for-OBS-v0.4.3-macOS-Intel.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.4-macOS-Apple-Silicon.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.4-macOS-Intel.zip`
 - `release/pptbridge-obs-macos-apple-silicon.zip`
 - `release/pptbridge-obs-macos-intel.zip`
 
@@ -157,7 +159,7 @@ If you want to publish this properly, these files are prepared for you:
 - `GITHUB-RELEASE.md`
 - `WINDOWS-BETA-RELEASE.md`
 - `WINDOWS-ALPHA-TESTING.md`
-- `WINDOWS-CODEX-HANDOFF.md`
+- `WINDOWS-DEVELOPER-HANDOFF.md`
 - `COMPANION-CONTROL.md`
 - `OBS-FORUM-POST.md`
 - `RELEASE-CHECKLIST.md`

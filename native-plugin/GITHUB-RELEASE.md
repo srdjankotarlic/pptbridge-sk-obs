@@ -1,4 +1,4 @@
-## PPTBridge SK for OBS v0.4.3
+## PPTBridge SK for OBS v0.4.4
 
 Created by **Srdjan Kotarlic**
 
@@ -16,14 +16,21 @@ PPTBridge SK is a native macOS OBS plugin for live PowerPoint and PDF workflows.
 
 ### Which Download Should I Use?
 
-| Your Mac | Download |
-| --- | --- |
-| M1, M2, M3, or M4 Mac | `pptbridge-obs-macos-apple-silicon.zip` |
-| Older Intel Mac | `pptbridge-obs-macos-intel.zip` |
+| Your Mac | Download | Status |
+| --- | --- | --- |
+| M1, M2, M3, or M4 Mac | `pptbridge-obs-macos-apple-silicon.zip` | Stable |
+| Older Intel Mac | `pptbridge-obs-macos-intel.zip` | Beta |
 
-Both downloads have the same feature set. Only the CPU build is different.
+Both macOS downloads have the same feature set. Only the CPU build is different. Apple Silicon is the main stable build. Intel Mac is marked beta while more real Intel Mac feedback is collected. Windows remains available separately as a beta source validation track.
 
-### What Is New In v0.4.3
+### What Is New In v0.4.4
+
+- cleaned public Apple Silicon and Intel ZIP packages so users only see the installer, short instructions, and plugin bundle
+- removed development, publishing, marketing, and internal handoff files from the user downloads
+- kept both macOS downloads separate and clearly named: Apple Silicon stable and Intel Mac beta
+- kept the v0.4.3 clicker improvement: Spotlight/Clicker Capture works out-of-the-box with common presenter keys
+
+### Also Included From v0.4.3
 
 - Spotlight/Clicker Capture now works out-of-the-box with common presenter keys: `PageDown`, `Right`, `Space`, or `Enter` for next and `PageUp` or `Left` for previous
 - captured clicker keys route to the PPTBridge source in the current OBS program scene and are suppressed from the focused app, so the operator can use Chrome, OBS, or another app during a presentation
@@ -79,23 +86,21 @@ Default resize behavior is `Lock OBS Output Size`, so shrinking the PowerPoint w
 ### Included Assets
 
 - `pptbridge-obs-macos-apple-silicon.zip`
-- `pptbridge-obs-macos-intel.zip`
+- `pptbridge-obs-macos-intel.zip` - Intel Mac beta
 - `.sha256` checksum files for both downloads
 
-Each ZIP includes:
+Each ZIP now includes only the user-facing files needed to install and use the plugin:
 
 - `START-HERE-macOS.txt`
 - `1-Install-PPTBridge-SK.command`
 - `pptbridge-obs.plugin`
-- `INSTALL-macOS.md`
-- `COMPANION-CONTROL.md`
-- `PRO-AUDIO-MODE.md`
-- `send-osc.sh`
+- `README.md`
 
 ### Notes
 
 - Apple Silicon was runtime-tested locally with manual startup, auto-start, close-on-quit, OBS-focused hotkeys, Spotlight/Clicker Capture menu presence, and Companion/OSC control.
-- Intel is cross-built against the Intel OBS 32.1.1 app with the same feature set and should be validated on a real Intel Mac.
+- Intel is a beta build, cross-built against the Intel OBS app with the same feature set, and needs feedback from real Intel Macs.
+- Windows is not part of this main macOS ZIP release; it remains a separate beta source validation release.
 - The package is currently unsigned and not notarized.
 - Presenter notes appear only when the `.pptx` actually contains notes pages.
 - `PPTBridge SK Presenter` is PPTBridge's own OBS presenter layout, not a direct capture of PowerPoint's native Presenter View.

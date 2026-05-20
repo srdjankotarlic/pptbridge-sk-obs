@@ -8,8 +8,8 @@ Start here:
 
 1. Read native-plugin/WINDOWS-BETA-RELEASE.md
 2. Read native-plugin/WINDOWS-ALPHA-TESTING.md
-3. If you use Codex on the Windows laptop, copy the prompt from:
-   native-plugin/WINDOWS-CODEX-HANDOFF.md
+3. If another developer continues the Windows build, share:
+   native-plugin/WINDOWS-DEVELOPER-HANDOFF.md
 
 Build summary:
 
@@ -41,4 +41,4 @@ Known limits:
 
 - PDF input is not enabled in this Windows beta.
 - This needs real Windows runtime validation before a binary is called usable.
-- The stable public release is still the macOS v0.4.3 release.
+- The stable public release is still the macOS v0.4.4 release.

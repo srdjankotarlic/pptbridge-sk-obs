@@ -1,6 +1,6 @@
-# Windows Codex Handoff
+# Windows Developer Handoff
 
-Copy this into Codex on the Windows laptop.
+Use this note when continuing Windows validation on a Windows laptop.
 
 ```text
 We are validating PPTBridge SK for OBS Windows beta.

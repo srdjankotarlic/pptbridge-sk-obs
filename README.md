@@ -7,10 +7,9 @@ PPTBridge SK gives OBS two dedicated presentation sources:
 - `PPTBridge SK Slide` for the clean audience/program feed
 - `PPTBridge SK Presenter` for the speaker view with notes, next slide, and timer
 
-[![macOS stable](https://img.shields.io/badge/macOS-v0.4.3_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
+[![Apple Silicon stable](https://img.shields.io/badge/Apple_Silicon-v0.4.4_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
+[![Intel Mac beta](https://img.shields.io/badge/Intel_Mac-v0.4.4_beta-f59e0b?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
 [![Windows beta](https://img.shields.io/badge/Windows-v0.5.0--beta.1_source-orange?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1)
-[![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-supported-000000?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
-[![Intel Mac](https://img.shields.io/badge/Intel_Mac-supported-555555?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
 [![License](https://img.shields.io/badge/License-see_LICENSE-lightgrey?style=flat-square)](#license)
 [![Buy me a coffee](https://img.shields.io/badge/Buy_me_a_coffee-Patreon-f96854?style=flat-square&logo=patreon&logoColor=white)](https://www.patreon.com/posts/coffee-158046733)
 
@@ -34,10 +33,10 @@ PPTBridge SK gives OBS two dedicated presentation sources:
 | Platform | Download | Status | Use this when |
 | --- | --- | --- | --- |
 | Apple Silicon Mac | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip) | Stable | Your Mac has an M1, M2, M3, or M4 chip |
-| Intel Mac | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip) | Stable | Your Mac says `Processor: Intel` in About This Mac |
+| Intel Mac | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip) | Beta | Your Mac says `Processor: Intel` in About This Mac |
 | Windows 64-bit | [`PPTBridge-SK-Windows-Beta-v0.5.0-beta.1-source.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0-beta.1/PPTBridge-SK-Windows-Beta-v0.5.0-beta.1-source.zip) | Beta source | You want to build and test the Windows beta on a real Windows OBS machine |
 
-The Apple Silicon and Intel ZIPs contain the same PPTBridge feature set. Only the CPU build is different. The Windows package is source-only for validation and is not a finished installer yet.
+The Apple Silicon and Intel ZIPs contain the same PPTBridge feature set. Only the CPU build is different. Apple Silicon is the main stable build; Intel Mac and Windows are clearly marked as beta paths while real-hardware feedback is collected.
 
 ## What It Solves
 
@@ -161,15 +160,15 @@ This is designed for real stage confidence monitors where the presenter may need
 
 ## Requirements
 
-| Requirement | macOS stable | Windows beta |
-| --- | --- | --- |
-| OS | macOS 12 Monterey or newer | Windows 10/11 64-bit |
-| OBS | OBS Studio 30 or newer | OBS Studio 30 or newer |
-| CPU | Apple Silicon or Intel | x64 |
-| PowerPoint | Required for `.pptx` live mode | Required for Windows beta testing |
-| PDF decks | Supported without PowerPoint | Not enabled in Windows beta yet |
+| Requirement | Apple Silicon stable | Intel Mac beta | Windows beta |
+| --- | --- | --- | --- |
+| OS | macOS 12 Monterey or newer | macOS 12 Monterey or newer | Windows 10/11 64-bit |
+| OBS | OBS Studio 30 or newer | OBS Studio 30 or newer | OBS Studio 30 or newer |
+| CPU | M1, M2, M3, or M4 | Intel Mac | x64 |
+| PowerPoint | Required for `.pptx` live mode | Required for `.pptx` live mode | Required for Windows beta testing |
+| PDF decks | Supported without PowerPoint | Supported without PowerPoint | Not enabled in Windows beta yet |
 
-Apple Silicon has been runtime-tested locally on OBS 32.x. Intel is cross-built with the same feature set and published for real Intel Mac validation. Windows is currently a beta source validation track.
+Apple Silicon has been runtime-tested locally on OBS 32.x. Intel is cross-built with the same feature set and published as a beta download for real Intel Mac feedback. Windows is currently a beta source validation track, not a finished one-click installer.
 
 ## Screenshots
 
@@ -181,8 +180,9 @@ Apple Silicon has been runtime-tested locally on OBS 32.x. Intel is cross-built 
 
 | Release | Status | Use it for |
 | --- | --- | --- |
-| [`v0.4.3`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.3) | Stable | Recommended macOS release for most users |
+| [`v0.4.4`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.4) | Apple Silicon stable, Intel beta | Recommended macOS release page |
 | [`v0.5.0-beta.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1) | Windows beta source | Windows build/runtime validation |
+| [`v0.4.3`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.3) | Previous stable | Default presenter clicker capture |
 | [`v0.4.2`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.2) | Previous stable | Spotlight/Clicker Capture and manual PowerPoint lifecycle controls |
 | [`v0.4.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.1) | Previous stable | Manual PowerPoint lifecycle controls |
 | [`v0.4.0`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.0) | Previous stable | Companion/OSC and presenter customization |

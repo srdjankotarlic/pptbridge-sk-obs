@@ -32,7 +32,7 @@
 
 - create the repository
 - push the code
-- create tag `v0.4.3`
+- create tag `v0.4.4`
 - create a GitHub Release
 - paste the body from `GITHUB-RELEASE.md`
 - upload the release assets

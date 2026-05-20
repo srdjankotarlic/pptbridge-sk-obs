@@ -4,13 +4,13 @@
 
 Created by **Srdjan Kotarlic**
 
-This prerelease is for Windows build and runtime validation. The stable public user release is still the macOS `v0.4.3` release.
+This prerelease is for Windows build and runtime validation. The stable public user release is still the macOS `v0.4.4` release.
 
 ## Start Here
 
 - Windows beta scope: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/native-plugin/WINDOWS-BETA-RELEASE.md
 - Windows test checklist: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/native-plugin/WINDOWS-ALPHA-TESTING.md
-- Windows Codex handoff: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/native-plugin/WINDOWS-CODEX-HANDOFF.md
+- Windows developer handoff: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/native-plugin/WINDOWS-DEVELOPER-HANDOFF.md
 - General FAQ: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/FAQ.md
 
 ## Included Asset

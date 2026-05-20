@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS Setup Guide
 
-**Created by Srđan Kotarlić** | v0.4.3
+**Created by Srđan Kotarlić** | v0.4.4
 
 For the fastest install path, start with [QUICKSTART.md](QUICKSTART.md). This guide is the fuller walkthrough for setup, controls, multiple decks, and troubleshooting.
 
@@ -18,13 +18,13 @@ Use it when you want:
 - slide control from OBS hotkeys, source buttons, Companion, local OSC, or a show-control surface
 - OBS to open quietly until you choose to start PowerPoint
 
-The stable public build is currently macOS. Windows is available as a beta source validation track for testers and developers.
+The stable public build is currently Apple Silicon macOS. Intel Mac is available as a separate beta download with the same feature set while real Intel feedback is collected.
 
 ## Requirements
 
 You need:
 
-- Apple Silicon or Intel Mac
+- Apple Silicon Mac for the stable build, or Intel Mac for the beta build
 - OBS Studio on macOS 12 or newer
 - at least one `.pptx` or `.pdf` file
 - Microsoft PowerPoint installed for `.pptx` live mode
@@ -34,7 +34,7 @@ Recommended:
 - install Microsoft PowerPoint for the preferred true live mode
 - download the ZIP that matches your Mac CPU:
   - Apple Silicon: `pptbridge-obs-macos-apple-silicon.zip`
-  - Intel: `pptbridge-obs-macos-intel.zip`
+  - Intel beta: `pptbridge-obs-macos-intel.zip`
 
 ## Install The Plugin
 
@@ -42,7 +42,7 @@ Recommended:
 
 1. Download and unzip the right ZIP for your Mac:
    - Apple Silicon: `pptbridge-obs-macos-apple-silicon.zip`
-   - Intel: `pptbridge-obs-macos-intel.zip`
+   - Intel beta: `pptbridge-obs-macos-intel.zip`
 2. Quit OBS if it is open
 3. Open `START-HERE-macOS.txt`
 4. Double-click `1-Install-PPTBridge-SK.command`
@@ -200,7 +200,7 @@ notes.
 
 For public sharing, use the native plugin release assets in:
 
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.4.3-macOS-Apple-Silicon`
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.4.3-macOS-Intel`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.4.4-macOS-Apple-Silicon`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.4.4-macOS-Intel`
 
 The legacy Python script remains in this repo only as historical reference.
