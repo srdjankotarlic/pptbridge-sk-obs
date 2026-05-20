@@ -2216,7 +2216,7 @@ bool PresentationDocument::RenderSlideBGRA(
       black = true;
     } else if (impl_->loading) {
       message_title = L"PPTBridge SK";
-      message_subtitle = L"Loading Windows PowerPoint deck…";
+      message_subtitle = L"Loading Windows PowerPoint deck...";
     } else if (!impl_->loaded) {
       message_title = L"PPTBridge SK";
       message_subtitle = impl_->last_error.empty()
@@ -2283,7 +2283,7 @@ bool PresentationDocument::RenderPresenterBGRA(
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     if (impl_->loading) {
-      DrawCenteredMessage(graphics, width, height, L"PPTBridge SK", L"Loading presenter view for Windows…");
+      DrawCenteredMessage(graphics, width, height, L"PPTBridge SK", L"Loading presenter view for Windows...");
       return CopyBitmapToBGRA(canvas, out_pixels, out_stride);
     }
 

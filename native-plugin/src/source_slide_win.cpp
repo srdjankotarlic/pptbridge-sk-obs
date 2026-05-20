@@ -63,10 +63,11 @@ constexpr const char *kAudioHelp =
   "If that path is not ready yet, PPTBridge can still try a dedicated PowerPoint process-audio path as a fallback.";
 
 constexpr auto kLiveRecoverRetryDelay = std::chrono::seconds(3);
-constexpr auto kLiveReloadDelay = std::chrono::seconds(10);
+constexpr auto kLiveReloadDelay = std::chrono::seconds(12);
 constexpr auto kLiveSyncIntervalActive = std::chrono::milliseconds(250);
 constexpr auto kLiveSyncIntervalIdle = std::chrono::seconds(1);
-constexpr int kWindowCaptureMethodAuto = 0;
+constexpr int kWindowCaptureMethodBitBlt = 1;
+constexpr int kWindowPriorityClass = 0;
 constexpr int kWindowPriorityTitle = 1;
 
 PresenterLayoutPreset presenter_layout_from_setting(const char *value)
@@ -287,7 +288,17 @@ std::string build_media_signature(const std::vector<EmbeddedMedia> &media_items)
 
 std::string sanitize_descriptor_value(std::string value)
 {
-  std::replace(value.begin(), value.end(), ':', '_');
+  size_t position = 0;
+  while ((position = value.find('#', position)) != std::string::npos) {
+    value.replace(position, 1, "#22");
+    position += 3;
+  }
+
+  position = 0;
+  while ((position = value.find(':', position)) != std::string::npos) {
+    value.replace(position, 1, "#3A");
+    position += 3;
+  }
   return value;
 }
 
@@ -340,8 +351,32 @@ std::string get_process_executable_name(uint32_t pid)
 struct WindowSearchContext {
   std::string preferred_title;
   std::string deck_name;
+  std::string deck_stem;
   LiveWindowTarget result;
+  int best_score = 0;
 };
+
+std::string filename_stem_for_match(std::string value)
+{
+  const auto separator = value.find_last_of("\\/");
+  if (separator != std::string::npos) {
+    value = value.substr(separator + 1);
+  }
+
+  const auto dot = value.find_last_of('.');
+  if (dot != std::string::npos) {
+    value = value.substr(0, dot);
+  }
+  return value;
+}
+
+bool looks_like_powerpoint_slideshow_title(const std::string &title_lower)
+{
+  return title_lower.find("slide show") != std::string::npos ||
+         title_lower.find("slideshow") != std::string::npos ||
+         title_lower.find("bildschirm") != std::string::npos ||
+         title_lower.find("diaporama") != std::string::npos;
+}
 
 BOOL CALLBACK enum_powerpoint_windows(HWND hwnd, LPARAM param)
 {
@@ -366,37 +401,52 @@ BOOL CALLBACK enum_powerpoint_windows(HWND hwnd, LPARAM param)
     return TRUE;
   }
 
+  const auto class_name = get_class_name_utf8(hwnd);
+  const auto class_lower = ToLowerCopy(class_name);
   const auto title_lower = ToLowerCopy(title);
   const auto preferred_lower = ToLowerCopy(context->preferred_title);
   const auto deck_lower = ToLowerCopy(context->deck_name);
+  const auto deck_stem_lower = ToLowerCopy(context->deck_stem);
+  const bool is_screen_class = class_lower == "screenclass";
+  const bool looks_like_slideshow = looks_like_powerpoint_slideshow_title(title_lower);
 
-  bool title_match = false;
+  int score = 0;
+  if (is_screen_class) {
+    score += 200;
+  } else if (class_lower == "pptframeclass") {
+    score += 40;
+  }
   if (!preferred_lower.empty() && title_lower.find(preferred_lower) != std::string::npos) {
-    title_match = true;
-  } else if (!deck_lower.empty() && title_lower.find(deck_lower) != std::string::npos) {
-    title_match = true;
-  } else if (title_lower.find("powerpoint slide show") != std::string::npos) {
-    title_match = true;
+    score += 100;
+  }
+  if (!deck_lower.empty() && title_lower.find(deck_lower) != std::string::npos) {
+    score += 90;
+  }
+  if (!deck_stem_lower.empty() && title_lower.find(deck_stem_lower) != std::string::npos) {
+    score += 85;
+  }
+  if (looks_like_slideshow) {
+    score += 65;
   }
 
-  if (!title_match) {
+  if (score <= 0 || (!is_screen_class && !looks_like_slideshow)) {
     return TRUE;
   }
 
+  if (score <= context->best_score) {
+    return TRUE;
+  }
+
+  context->best_score = score;
   context->result.hwnd = hwnd;
   context->result.pid = pid;
   context->result.title = title;
-  context->result.class_name = get_class_name_utf8(hwnd);
+  context->result.class_name = class_name;
   context->result.executable_name = "POWERPNT.EXE";
-  if (ToLowerCopy(context->result.class_name) != "screenclass" &&
-      title_lower.find("powerpoint slide show") == std::string::npos) {
-    return TRUE;
-  }
-
-  context->result.descriptor = sanitize_descriptor_value(context->result.class_name) + ":" +
-    sanitize_descriptor_value(title) + ":" +
-    context->result.executable_name;
-  return FALSE;
+  context->result.descriptor = sanitize_descriptor_value(title) + ":" +
+    sanitize_descriptor_value(context->result.class_name) + ":" +
+    sanitize_descriptor_value(context->result.executable_name);
+  return TRUE;
 }
 
 LiveWindowTarget find_powerpoint_window(const std::string &window_title, const std::string &deck_name)
@@ -404,6 +454,7 @@ LiveWindowTarget find_powerpoint_window(const std::string &window_title, const s
   WindowSearchContext search = {};
   search.preferred_title = window_title;
   search.deck_name = deck_name;
+  search.deck_stem = filename_stem_for_match(deck_name);
   EnumWindows(enum_powerpoint_windows, reinterpret_cast<LPARAM>(&search));
   return search.result;
 }
@@ -547,13 +598,12 @@ void set_live_capture_active(SourceContext *context, bool should_be_showing, boo
   }
 
   if (should_be_active && !context->live_capture_active) {
-    if (obs_source_add_active_child(context->source, context->live_capture_source)) {
-      context->live_capture_active = true;
-    }
+    obs_source_inc_active(context->live_capture_source);
+    context->live_capture_active = true;
   }
 
   if (!should_be_active && context->live_capture_active) {
-    obs_source_remove_active_child(context->source, context->live_capture_source);
+    obs_source_dec_active(context->live_capture_source);
     context->live_capture_active = false;
   }
 
@@ -575,13 +625,12 @@ void set_live_audio_active(SourceContext *context, bool should_be_showing, bool 
   }
 
   if (should_be_active && !context->live_audio_active) {
-    if (obs_source_add_active_child(context->source, context->live_audio_source)) {
-      context->live_audio_active = true;
-    }
+    obs_source_inc_active(context->live_audio_source);
+    context->live_audio_active = true;
   }
 
   if (!should_be_active && context->live_audio_active) {
-    obs_source_remove_active_child(context->source, context->live_audio_source);
+    obs_source_dec_active(context->live_audio_source);
     context->live_audio_active = false;
   }
 
@@ -654,6 +703,23 @@ HookedSourceState query_hooked_source_state(obs_source_t *source)
   return state;
 }
 
+void update_live_capture_hook_state(SourceContext *context)
+{
+  if (!context || !context->live_capture_source) {
+    return;
+  }
+
+  const auto state = query_hooked_source_state(context->live_capture_source);
+  if (state.hooked && !context->live_capture_hooked) {
+    blog(
+      LOG_INFO,
+      "[PPTBridge SK] Windows live slideshow capture attached: title='%s', class='%s'",
+      state.title.c_str(),
+      state.class_name.c_str());
+  }
+  context->live_capture_hooked = state.hooked;
+}
+
 obs_source_t *create_live_capture_source(SourceContext *context, const LiveWindowTarget &target)
 {
   if (!context || !context->source || target.descriptor.empty()) {
@@ -662,8 +728,8 @@ obs_source_t *create_live_capture_source(SourceContext *context, const LiveWindo
 
   obs_data_t *settings = obs_data_create();
   obs_data_set_string(settings, "window", target.descriptor.c_str());
-  obs_data_set_int(settings, "method", kWindowCaptureMethodAuto);
-  obs_data_set_int(settings, "priority", kWindowPriorityTitle);
+  obs_data_set_int(settings, "method", kWindowCaptureMethodBitBlt);
+  obs_data_set_int(settings, "priority", kWindowPriorityClass);
   obs_data_set_bool(settings, "cursor", false);
   obs_data_set_bool(settings, "capture_audio", context->use_live_app_audio && context->audio_enabled);
   obs_data_set_bool(settings, "force_sdr", false);
@@ -708,9 +774,9 @@ void sync_live_capture_activity(SourceContext *context)
     return;
   }
 
-  const bool should_be_active = context->source && obs_source_active(context->source);
   const bool should_be_showing =
-    context->source && (obs_source_showing(context->source) || should_be_active);
+    context->source && (obs_source_showing(context->source) || obs_source_active(context->source));
+  const bool should_be_active = should_be_showing;
   set_live_capture_active(context, should_be_showing, should_be_active);
 }
 
@@ -720,9 +786,9 @@ void sync_live_audio_activity(SourceContext *context)
     return;
   }
 
-  const bool should_be_active = context->source && obs_source_active(context->source);
   const bool should_be_showing =
-    context->source && (obs_source_showing(context->source) || should_be_active);
+    context->source && (obs_source_showing(context->source) || obs_source_active(context->source));
+  const bool should_be_active = should_be_showing;
   set_live_audio_active(context, should_be_showing, should_be_active);
 }
 
@@ -766,6 +832,12 @@ void sync_live_capture_source(SourceContext *context)
   context->live_capture_window_id = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(target.hwnd));
   context->live_capture_window_title = target.title;
   context->live_capture_hooked = query_hooked_source_state(context->live_capture_source).hooked;
+  blog(
+    LOG_INFO,
+    "[PPTBridge SK] Windows live slideshow target found: title='%s', class='%s', hooked=%s",
+    target.title.c_str(),
+    target.class_name.c_str(),
+    context->live_capture_hooked ? "true" : "false");
   sync_live_capture_activity(context);
 }
 
@@ -818,6 +890,8 @@ bool render_live_capture(SourceContext *context)
   if (!context || !context->live_capture_source || !context->document || context->document->IsBlackScreen()) {
     return false;
   }
+
+  update_live_capture_hook_state(context);
 
   const uint32_t capture_width = obs_source_get_width(context->live_capture_source);
   const uint32_t capture_height = obs_source_get_height(context->live_capture_source);
@@ -1614,7 +1688,7 @@ void source_tick(SourceContext *context)
 
   const auto now = std::chrono::steady_clock::now();
   if (context->live_capture_source) {
-    context->live_capture_hooked = query_hooked_source_state(context->live_capture_source).hooked;
+    update_live_capture_hook_state(context);
   }
   if (context->live_audio_source) {
     context->live_audio_hooked = query_hooked_source_state(context->live_audio_source).hooked;
@@ -1636,7 +1710,16 @@ void source_tick(SourceContext *context)
     (obs_source_showing(context->source) || obs_source_active(context->source));
 
   if (!should_watchdog) {
+    context->live_watchdog_ready = false;
     return;
+  }
+
+  if (!context->live_watchdog_ready) {
+    context->live_watchdog_ready = true;
+    context->live_capture_last_seen = now;
+    context->live_audio_last_seen = now;
+    context->live_recover_last_attempt = std::chrono::steady_clock::time_point::min();
+    context->live_reload_last_attempt = std::chrono::steady_clock::time_point::min();
   }
 
   if ((!context->live_capture_source || !context->live_capture_hooked) &&
@@ -1654,9 +1737,11 @@ void source_tick(SourceContext *context)
       now - context->live_capture_last_seen >= kLiveReloadDelay &&
       (context->live_reload_last_attempt == std::chrono::steady_clock::time_point::min() ||
        now - context->live_reload_last_attempt >= kLiveReloadDelay)) {
-    blog(LOG_WARNING, "[PPTBridge SK] Windows live slideshow capture did not recover; reloading presentation session");
+    blog(
+      LOG_WARNING,
+      "[PPTBridge SK] Windows live slideshow capture did not recover yet; keeping PowerPoint running and using fallback render");
     context->live_reload_last_attempt = now;
-    context->document->ReloadAsync();
+    context->document->SyncLiveStateAsync();
   }
 }
 

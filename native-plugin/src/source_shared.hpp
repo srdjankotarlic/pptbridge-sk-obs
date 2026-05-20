@@ -75,6 +75,7 @@ struct SourceContext {
   std::chrono::steady_clock::time_point live_audio_last_seen = std::chrono::steady_clock::now();
   std::chrono::steady_clock::time_point live_recover_last_attempt = std::chrono::steady_clock::time_point::min();
   std::chrono::steady_clock::time_point live_reload_last_attempt = std::chrono::steady_clock::time_point::min();
+  bool live_watchdog_ready = false;
   std::mutex media_mutex;
   std::string media_signature;
   std::vector<MediaPlayback> media_playback;
