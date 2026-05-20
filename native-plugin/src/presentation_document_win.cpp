@@ -476,6 +476,26 @@ bool SaveCachedSlides(
   return WriteUtf8File(metadata_path, output.str());
 }
 
+bool CachedSlideImagesExist(const std::vector<CachedSlide> &slides)
+{
+  if (slides.empty()) {
+    return false;
+  }
+
+  for (const auto &slide : slides) {
+    if (slide.image_path.empty()) {
+      return false;
+    }
+
+    std::error_code ec;
+    if (!fs::exists(fs::path(slide.image_path), ec) || ec) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 bool LoadCachedSlides(const fs::path &metadata_path, const std::string &stamp, ParsedDeckData &out_deck)
 {
   const auto contents = ReadUtf8File(metadata_path);
@@ -553,7 +573,7 @@ bool LoadCachedSlides(const fs::path &metadata_path, const std::string &stamp, P
     media_by_slide[slide_index - 1].push_back(std::move(media));
   }
 
-  if (slides.empty()) {
+  if (!CachedSlideImagesExist(slides)) {
     return false;
   }
 
@@ -568,7 +588,9 @@ bool LoadCachedSlides(const fs::path &metadata_path, const std::string &stamp, P
 
 std::string BuildWindowsPowerShellScript()
 {
-  return R"POWERSHELL(
+  std::string script;
+  script.reserve(65536);
+  script += R"POWERSHELL(
 param(
   [Parameter(Mandatory = $true)][string]$Mode,
   [string]$PptxPath,
@@ -582,6 +604,7 @@ $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+Add-Type -AssemblyName System.IO.Compression
 
 function Escape-PPTBridgeValue([string]$Value) {
   if ($null -eq $Value) { return "" }
@@ -590,6 +613,36 @@ function Escape-PPTBridgeValue([string]$Value) {
   $Value = $Value.Replace("`r", '\r')
   $Value = $Value.Replace("`n", '\n')
   return $Value
+}
+
+function Normalize-PPTBridgeFilePath([string]$Path) {
+  if ([string]::IsNullOrWhiteSpace($Path)) { return "" }
+  $normalized = $Path.Trim()
+  if ($normalized.StartsWith("//")) {
+    $normalized = "\\" + $normalized.Substring(2)
+  }
+  return $normalized.Replace('/', '\')
+}
+
+function Open-PPTBridgeZipArchive([string]$Path) {
+  $normalizedPath = Normalize-PPTBridgeFilePath $Path
+  if ([string]::IsNullOrWhiteSpace($normalizedPath)) { return $null }
+
+  $stream = $null
+  try {
+    $share = [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete
+    $stream = [System.IO.File]::Open(
+      $normalizedPath,
+      [System.IO.FileMode]::Open,
+      [System.IO.FileAccess]::Read,
+      $share)
+    return [System.IO.Compression.ZipArchive]::new($stream, [System.IO.Compression.ZipArchiveMode]::Read, $false)
+  } catch {
+    if ($null -ne $stream) {
+      try { $stream.Dispose() } catch {}
+    }
+    return $null
+  }
 }
 
 function Resolve-PPTBridgeZipTarget([string]$BaseEntry, [string]$Target) {
@@ -756,6 +809,91 @@ function Export-PPTBridgeZipEntry($Archive, [string]$EntryPath, [string]$Destina
   return $destinationPath
 }
 
+)POWERSHELL";
+  script += R"POWERSHELL(
+function Get-PPTBridgeTrailingNumber([string]$Name) {
+  if ([string]::IsNullOrWhiteSpace($Name)) { return [int]::MaxValue }
+  if ($Name -match '(\d+)$') { return [int]$Matches[1] }
+  return [int]::MaxValue
+}
+
+function Get-PPTBridgeExportedImageFiles([string]$SlidesDir) {
+  if ([string]::IsNullOrWhiteSpace($SlidesDir) -or -not (Test-Path -LiteralPath $SlidesDir)) {
+    return @()
+  }
+
+  $imageExtensions = @(".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff")
+  $files = @(Get-ChildItem -LiteralPath $SlidesDir -File -ErrorAction SilentlyContinue |
+    Where-Object { $imageExtensions -contains $_.Extension.ToLowerInvariant() })
+
+  return @($files | Sort-Object `
+    @{ Expression = { Get-PPTBridgeTrailingNumber $_.BaseName } }, `
+    @{ Expression = { $_.Name } })
+}
+
+function Wait-PPTBridgeExportedImageFiles([string]$SlidesDir, [int]$ExpectedCount) {
+  if ($ExpectedCount -lt 1) { return @() }
+
+  $deadline = [DateTime]::UtcNow.AddSeconds(30)
+  $lastSignature = ""
+  $stablePolls = 0
+  $files = @()
+
+  do {
+    $files = @(Get-PPTBridgeExportedImageFiles $SlidesDir)
+    if ($files.Count -ge $ExpectedCount) {
+      $current = @($files | Select-Object -First $ExpectedCount)
+      $signature = (($current | ForEach-Object {
+        "{0}|{1}|{2}" -f $_.FullName, $_.Length, $_.LastWriteTimeUtc.Ticks
+      }) -join ";")
+
+      if ($signature -eq $lastSignature) {
+        $stablePolls += 1
+      } else {
+        $lastSignature = $signature
+        $stablePolls = 0
+      }
+
+      if ($stablePolls -ge 1) {
+        return $current
+      }
+    }
+    Start-Sleep -Milliseconds 250
+  } while ([DateTime]::UtcNow -lt $deadline)
+
+  return @($files | Select-Object -First $ExpectedCount)
+}
+
+function Resolve-PPTBridgeExportedSlideFile($ExportedFiles, [int]$Index) {
+  if ($null -eq $ExportedFiles -or $Index -lt 1) { return "" }
+
+  $files = @($ExportedFiles)
+  if ($files.Count -eq 0) { return "" }
+
+  $localizedNames = @(
+    "Slide{0}",
+    "Slide {0}",
+    "Folie{0}",
+    "Folie {0}",
+    "Diapositive{0}",
+    "Diapositive {0}"
+  ) | ForEach-Object { $_ -f $Index }
+
+  foreach ($name in $localizedNames) {
+    $match = @($files | Where-Object { $_.BaseName -ieq $name } | Select-Object -First 1)
+    if ($match.Count -gt 0) { return [string]$match[0].FullName }
+  }
+
+  $numbered = @($files | Where-Object { (Get-PPTBridgeTrailingNumber $_.BaseName) -eq $Index } | Select-Object -First 1)
+  if ($numbered.Count -gt 0) { return [string]$numbered[0].FullName }
+
+  if ($Index -le $files.Count) {
+    return [string]$files[$Index - 1].FullName
+  }
+
+  return ""
+}
+
 function Get-PPTBridgeMediaForSlide($Archive, [string]$SlideEntry, [string]$CacheDir, [double]$SlideWidth, [double]$SlideHeight, $ExtractedCache) {
   $results = New-Object System.Collections.Generic.List[object]
   $signatures = New-Object 'System.Collections.Generic.HashSet[string]'
@@ -842,10 +980,12 @@ function Get-PPTBridgeApp([bool]$CreateIfMissing) {
 
 function Find-PPTBridgePresentation($App, [string]$Path) {
   if ($null -eq $App -or [string]::IsNullOrWhiteSpace($Path)) { return $null }
-  $targetName = [System.IO.Path]::GetFileName($Path)
+  $normalizedPath = Normalize-PPTBridgeFilePath $Path
+  $targetName = [System.IO.Path]::GetFileName($normalizedPath)
   foreach ($presentation in @($App.Presentations)) {
     try {
-      if ($presentation.FullName -eq $Path -or $presentation.Name -eq $targetName) {
+      $presentationPath = Normalize-PPTBridgeFilePath ([string]$presentation.FullName)
+      if ($presentationPath -ieq $normalizedPath -or $presentation.Name -ieq $targetName) {
         return $presentation
       }
     } catch {}
@@ -854,9 +994,10 @@ function Find-PPTBridgePresentation($App, [string]$Path) {
 }
 
 function Open-PPTBridgePresentation($App, [string]$Path, [bool]$WithWindow) {
-  $presentation = Find-PPTBridgePresentation $App $Path
+  $normalizedPath = Normalize-PPTBridgeFilePath $Path
+  $presentation = Find-PPTBridgePresentation $App $normalizedPath
   if ($presentation) { return $presentation }
-  return $App.Presentations.Open($Path, $false, $false, $WithWindow)
+  return $App.Presentations.Open($normalizedPath, $false, $false, $WithWindow)
 }
 
 function Get-PPTBridgeWindow($App, $Presentation) {
@@ -924,36 +1065,39 @@ switch ($Mode) {
       throw "Export mode expects PptxPath and CacheDir."
     }
 
+    $PptxPath = Normalize-PPTBridgeFilePath $PptxPath
     $slidesDir = Join-Path $CacheDir "slides"
     New-Item -ItemType Directory -Force -Path $slidesDir | Out-Null
+    Get-ChildItem -LiteralPath $slidesDir -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
     $archive = $null
     $app = $null
     $presentation = $null
     try {
-      $archive = [System.IO.Compression.ZipFile]::OpenRead($PptxPath)
-      $slideEntries = Get-PPTBridgeSlideEntries $archive
-      $slideSize = Get-PPTBridgeSlideSize $archive
+      $archive = Open-PPTBridgeZipArchive $PptxPath
+      $slideEntries = @()
+      $slideSize = [pscustomobject]@{ Width = 0.0; Height = 0.0 }
+      if ($null -ne $archive) {
+        $slideEntries = Get-PPTBridgeSlideEntries $archive
+        $slideSize = Get-PPTBridgeSlideSize $archive
+      }
       $extractedMediaCache = @{}
 
       $app = New-Object -ComObject PowerPoint.Application
       $app.Visible = $true
       $presentation = Open-PPTBridgePresentation $app $PptxPath $false
       $presentation.Export($slidesDir, "PNG", $Width, $Height)
+      $slideCount = [int]$presentation.Slides.Count
+      $exportedSlideFiles = @(Wait-PPTBridgeExportedImageFiles $slidesDir $slideCount)
 
       Write-Output "OK"
-      Write-Output ("COUNT|{0}" -f [int]$presentation.Slides.Count)
+      Write-Output ("COUNT|{0}" -f $slideCount)
 
       foreach ($slide in @($presentation.Slides)) {
         $index = [int]$slide.SlideIndex
-        $file = Join-Path $slidesDir ("Slide{0}.PNG" -f $index)
-        if (-not (Test-Path -LiteralPath $file)) {
-          $file = Join-Path $slidesDir ("Slide{0}.png" -f $index)
-        }
-        if (-not (Test-Path -LiteralPath $file)) {
-          $fallback = @(Get-ChildItem -LiteralPath $slidesDir -Filter ("Slide{0}.*" -f $index))
-          if ($fallback.Count -gt 0) {
-            $file = $fallback[0].FullName
-          }
+        $file = Resolve-PPTBridgeExportedSlideFile $exportedSlideFiles $index
+        if ([string]::IsNullOrWhiteSpace($file) -or -not (Test-Path -LiteralPath $file)) {
+          $available = (($exportedSlideFiles | ForEach-Object { $_.Name }) -join ", ")
+          throw ("PowerPoint did not export a readable slide image for slide {0}. Exported files: {1}" -f $index, $available)
         }
 
         $title = ""
@@ -965,7 +1109,7 @@ switch ($Mode) {
           (Escape-PPTBridgeValue $title),
           (Escape-PPTBridgeValue $notes))
 
-        if ($index -le $slideEntries.Count) {
+        if ($null -ne $archive -and $index -le $slideEntries.Count) {
           foreach ($media in @(Get-PPTBridgeMediaForSlide $archive $slideEntries[$index - 1] $CacheDir $slideSize.Width $slideSize.Height $extractedMediaCache)) {
             Write-Output ("MEDIA|{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}|{8}|{9}" -f
               $index,
@@ -1085,6 +1229,7 @@ switch ($Mode) {
   }
 }
 )POWERSHELL";
+  return script;
 }
 
 fs::path EnsurePowerShellScript()
@@ -1208,6 +1353,11 @@ bool ParseExportOutput(const std::string &output, ParsedDeckData &out_deck, std:
 
   if (!ok || out_deck.slides.empty()) {
     out_error = output.empty() ? "PowerPoint export produced no usable slide output." : output;
+    return false;
+  }
+
+  if (!CachedSlideImagesExist(out_deck.slides)) {
+    out_error = "PowerPoint export completed, but the exported slide image files were not found.";
     return false;
   }
 
