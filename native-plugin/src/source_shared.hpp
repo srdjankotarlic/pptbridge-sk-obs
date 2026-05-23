@@ -53,6 +53,7 @@ struct SourceContext {
   bool use_live_powerpoint = true;
   bool auto_start_live_powerpoint = false;
   bool close_live_powerpoint_on_shutdown = true;
+  bool started_live_powerpoint_from_this_source = false;
   LiveCaptureResizeMode live_capture_resize_mode = LiveCaptureResizeMode::LockCanvas;
   bool audio_enabled = true;
   bool use_live_app_audio = true;
@@ -64,6 +65,7 @@ struct SourceContext {
   bool live_capture_hooked = false;
   bool live_capture_showing = false;
   bool live_capture_active = false;
+  bool live_capture_suppressed_after_stop = false;
   obs_source_t *live_audio_source = nullptr;
   int live_audio_owner_pid = 0;
   std::string live_audio_application;
@@ -85,6 +87,7 @@ void source_defaults(obs_data_t *settings);
 obs_properties_t *source_properties(SourceContext *context);
 void source_update(SourceContext *context, obs_data_t *settings);
 void source_tick(SourceContext *context);
+void source_destroy(SourceContext *context);
 void source_destroy_texture(SourceContext *context);
 void source_render(SourceContext *context, gs_effect_t *effect);
 uint32_t source_width(const SourceContext *context);

@@ -1,6 +1,6 @@
 # Install PPTBridge SK on macOS
 
-PPTBridge SK ships as separate macOS downloads for Apple Silicon and Intel Macs. The feature set is the same in both downloads; only the CPU build is different.
+PPTBridge SK ships as separate macOS downloads for Apple Silicon and Intel Macs. Apple Silicon is the stable current package; Intel Mac is a beta package from the previous release until new changes are validated on real Intel hardware.
 
 ## Which ZIP Should I Download?
 
@@ -21,11 +21,11 @@ To check, open `Apple menu > About This Mac`. If it says `Chip: Apple M...`, use
 
    Intel:
 
-   <https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip>
+   <https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip>
 
 2. Unzip it.
 3. Double-click `1-Install-PPTBridge-SK.command`.
-4. If OBS is open, let the installer quit it and continue.
+4. If OBS is open, quit OBS manually and run the installer again.
 5. The installer will copy the plugin and open OBS.
 6. If OBS asks about Safe Mode, choose normal launch so third-party plugins load.
 7. Add one of these sources:
@@ -40,7 +40,7 @@ If macOS blocks the command the first time, right-click it and choose `Open`.
 | OBS source | Use it for |
 | --- | --- |
 | `PPTBridge SK Slide` | Clean audience/program slide output |
-| `PPTBridge SK Presenter` | Presenter confidence view with current slide, next slide, timer, and notes |
+| `PPTBridge SK Presenter` | Presenter confidence view with current slide, next slide, timer, notes, and layout customization |
 
 Typical setup:
 
@@ -49,6 +49,12 @@ Typical setup:
 3. Select the same `.pptx` or `.pdf` file in both sources.
 4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `START - Open PowerPoint / Start Live Mode` in the highlighted `PowerPoint Live Start / Stop` group when you are ready.
 5. For PDF decks, PowerPoint is not required.
+
+If the presenter/operator monitor should show live builds, animations, or
+embedded video, keep those in `PPTBridge SK Slide`. `PPTBridge SK Presenter`
+stays lightweight and static for notes, next-slide preview, timer, and layout
+customization. Live-video presenter preview is postponed until it can be
+verified without adding crash risk.
 
 ## Manual Install
 
@@ -80,10 +86,10 @@ You can bind different keys in OBS Settings > Hotkeys if needed.
 
 For a Logitech Spotlight or another stage clicker while the operator works in
 Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Toggle
-Spotlight/Clicker Capture`. It captures `PageDown`, `Right`, `Space`, or
-`Enter` for next and `PageUp` or `Left` for previous by default, sends those
-keys to the current OBS program scene deck, and suppresses them from the focused
-app. It also captures custom PPTBridge hotkeys if you bind them in OBS Settings.
+Spotlight/Clicker Capture`. It captures `PageDown` or `Right` for next and
+`PageUp` or `Left` for previous by default, sends those keys to the current OBS
+program scene deck, and suppresses them from the focused app. It also captures
+custom PPTBridge hotkeys if you bind them in OBS Settings.
 This works in PPTX live mode and PDF/cached mode.
 
 If macOS asks, allow OBS in `System Settings > Privacy & Security >

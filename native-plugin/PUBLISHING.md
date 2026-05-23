@@ -7,7 +7,7 @@ Author credit:
 
 Recommended free launch:
 1. Publish the source code on GitHub.
-2. Attach the Apple Silicon and Intel release ZIPs to a GitHub Release.
+2. Attach the Apple Silicon release ZIP to a GitHub Release.
 3. Publish the plugin on the OBS Forums plugin/resources section.
 
 Official links:
@@ -35,10 +35,8 @@ cd native-plugin
 
 Main outputs:
 
-- `release/PPTBridge-SK-for-OBS-v0.4.4-macOS-Apple-Silicon.zip`
-- `release/PPTBridge-SK-for-OBS-v0.4.4-macOS-Intel.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.5-macOS-Apple-Silicon.zip`
 - `release/pptbridge-obs-macos-apple-silicon.zip`
-- `release/pptbridge-obs-macos-intel.zip`
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
 
 ## 2. Create The GitHub Repository
@@ -66,8 +64,8 @@ git commit -m "Initial public release of PPTBridge SK for OBS"
 git branch -M main
 git remote add origin <your-github-repo-url>
 git push -u origin main
-git tag v0.4.4
-git push origin v0.4.4
+git tag v0.4.5
+git push origin v0.4.5
 ```
 
 ## 4. Create The GitHub Release
@@ -77,14 +75,12 @@ In GitHub:
 1. Open the repository
 2. Click `Releases`
 3. Click `Draft a new release`
-4. Choose tag `v0.4.4`
-5. Title it `PPTBridge SK for OBS v0.4.4`
+4. Choose tag `v0.4.5`
+5. Title it `PPTBridge SK for OBS v0.4.5`
 6. Paste the text from `GITHUB-RELEASE.md`
 7. Upload:
    - `pptbridge-obs-macos-apple-silicon.zip`
    - `pptbridge-obs-macos-apple-silicon.zip.sha256`
-   - `pptbridge-obs-macos-intel.zip`
-   - `pptbridge-obs-macos-intel.zip.sha256`
 8. Publish the release
 
 ## 5. Create The OBS Forums Resource
@@ -118,13 +114,11 @@ Suggested repository:
 - Description: `PowerPoint/PDF slide and presenter sources for OBS on macOS. Apple Silicon and Intel builds.`
 
 Suggested release title:
-- `PPTBridge SK for OBS v0.4.4`
+- `PPTBridge SK for OBS v0.4.5`
 
 Suggested release assets:
 - `pptbridge-obs-macos-apple-silicon.zip`
 - `pptbridge-obs-macos-apple-silicon.zip.sha256`
-- `pptbridge-obs-macos-intel.zip`
-- `pptbridge-obs-macos-intel.zip.sha256`
 
 Suggested OBS Forums title:
 - `PPTBridge SK for OBS`
@@ -134,11 +128,11 @@ Suggested short pitch:
 
 Release checklist:
 1. Run `./scripts/make-release.sh`
-2. Build both Apple Silicon and Intel ZIPs
+2. Build the Apple Silicon ZIP
 3. Verify the source picker shows `PPTBridge SK Slide` and `PPTBridge SK Presenter`
 4. Verify default/manual PowerPoint startup, optional auto-start, close-on-quit, OBS-focused hotkeys, and Spotlight/Clicker Capture
 5. Verify local OSC or Companion can send `/pptbridge/next`
-6. Upload both ZIPs and checksum files to GitHub Release
+6. Upload the ZIP and checksum file to GitHub Release
 7. Copy the short pitch into the OBS Forums listing
 
 Portfolio angle:

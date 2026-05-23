@@ -419,8 +419,6 @@ void append_default_clicker_bindings(std::vector<ClickerBinding> &bindings)
   // Capture should work out-of-the-box while another app has focus.
   append_clicker_binding_if_missing(bindings, kVK_PageDown, 0, HotkeyAction::Next);
   append_clicker_binding_if_missing(bindings, kVK_RightArrow, 0, HotkeyAction::Next);
-  append_clicker_binding_if_missing(bindings, kVK_Space, 0, HotkeyAction::Next);
-  append_clicker_binding_if_missing(bindings, kVK_Return, 0, HotkeyAction::Next);
   append_clicker_binding_if_missing(bindings, kVK_PageUp, 0, HotkeyAction::Previous);
   append_clicker_binding_if_missing(bindings, kVK_LeftArrow, 0, HotkeyAction::Previous);
 }

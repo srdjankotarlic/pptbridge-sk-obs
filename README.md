@@ -7,8 +7,8 @@ PPTBridge SK gives OBS two dedicated presentation sources:
 - `PPTBridge SK Slide` for the clean audience/program feed
 - `PPTBridge SK Presenter` for the speaker view with notes, next slide, and timer
 
-[![Apple Silicon stable](https://img.shields.io/badge/Apple_Silicon-v0.4.4_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
-[![Intel Mac beta](https://img.shields.io/badge/Intel_Mac-v0.4.4_beta-f59e0b?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
+[![Apple Silicon stable](https://img.shields.io/badge/Apple_Silicon-v0.4.5_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
+[![Intel Mac beta](https://img.shields.io/badge/Intel_Mac-v0.4.4_beta-f59e0b?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip)
 [![Windows beta](https://img.shields.io/badge/Windows-v0.5.0--beta.1_source-orange?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1)
 [![License](https://img.shields.io/badge/License-see_LICENSE-lightgrey?style=flat-square)](#license)
 [![Buy me a coffee](https://img.shields.io/badge/Buy_me_a_coffee-Patreon-f96854?style=flat-square&logo=patreon&logoColor=white)](https://www.patreon.com/posts/coffee-158046733)
@@ -33,10 +33,10 @@ PPTBridge SK gives OBS two dedicated presentation sources:
 | Platform | Download | Status | Use this when |
 | --- | --- | --- | --- |
 | Apple Silicon Mac | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip) | Stable | Your Mac has an M1, M2, M3, or M4 chip |
-| Intel Mac | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip) | Beta | Your Mac says `Processor: Intel` in About This Mac |
+| Intel Mac | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip) | Beta v0.4.4 | Your Mac says `Processor: Intel` in About This Mac |
 | Windows 64-bit | [`PPTBridge-SK-Windows-Beta-v0.5.0-beta.1-source.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0-beta.1/PPTBridge-SK-Windows-Beta-v0.5.0-beta.1-source.zip) | Beta source | You want to build and test the Windows beta on a real Windows OBS machine |
 
-The Apple Silicon and Intel ZIPs contain the same PPTBridge feature set. Only the CPU build is different. Apple Silicon is the main stable build; Intel Mac and Windows are clearly marked as beta paths while real-hardware feedback is collected.
+Apple Silicon is the main stable build. Intel Mac and Windows are clearly marked as beta paths while real-hardware feedback is collected.
 
 ## What It Solves
 
@@ -74,6 +74,7 @@ After OBS opens, click `+` in `Sources` and add:
 4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `START - Open PowerPoint / Start Live Mode`.
 5. Control slides from OBS hotkeys, the source property buttons, Companion, local OSC, or Spotlight/Clicker Capture.
 6. Resize and position the OBS sources like normal OBS sources.
+7. Keep live animations and embedded video in `PPTBridge SK Slide`; `PPTBridge SK Presenter` stays a lightweight notes, next-slide, and timer monitor.
 
 For PDF decks, PowerPoint is not required on macOS. For `.pptx` live mode, install Microsoft PowerPoint.
 
@@ -88,7 +89,7 @@ The presenter view is rendered by PPTBridge inside OBS. It is not a screen captu
 
 ## PowerPoint Live Controls
 
-`PPTBridge SK Slide` has a highlighted `PowerPoint Live Start / Stop` section in source properties.
+`PPTBridge SK Slide` has a highlighted `PowerPoint Live Start / Stop` section in source properties. `PPTBridge SK Presenter` also has the same start/stop buttons for shows where the presenter source should launch or stop live mode for the deck, but animated/video rendering stays in the Slide source.
 
 | Control | What it does |
 | --- | --- |
@@ -97,6 +98,8 @@ The presenter view is rendered by PPTBridge inside OBS. It is not a screen captu
 | `Auto Start PowerPoint When OBS Opens` | Starts the slideshow automatically when OBS loads the source |
 | `Close PowerPoint Slideshow When OBS Closes` | Cleans up the slideshow when OBS quits |
 | `PowerPoint Resize Behavior` | Keeps OBS locked to its canvas or follows the current PowerPoint window shape |
+
+Presenter live-video preview is intentionally postponed for now. It will only return when it can be verified without adding crash risk to OBS.
 
 Default behavior is safe for production: OBS can open quietly, and PowerPoint starts only when you click `START`.
 
@@ -119,7 +122,7 @@ PPTBridge ignores normal OBS hotkey callbacks while OBS is not the active app, s
 
 When clicker capture is enabled, PPTBridge captures common presenter remote keys by default:
 
-- `PageDown`, `Right Arrow`, `Space`, or `Enter` for next slide
+- `PageDown` or `Right Arrow` for next slide
 - `PageUp` or `Left Arrow` for previous slide
 
 It also captures any custom PPTBridge hotkeys you bind in OBS. Captured keys route to the PPTBridge source in the current OBS Program scene. The keys are suppressed from the focused app, so the presenter can change slides while the operator uses Chrome, OBS, or another tool.
@@ -155,6 +158,7 @@ Hotkeys, local OSC, and clicker capture follow the PPTBridge source in the curre
 - notes zoom
 - notes area size
 - notes vertical position
+- lightweight static current-slide preview for stable confidence-monitor use
 
 This is designed for real stage confidence monitors where the presenter may need larger notes or a larger current-slide preview.
 
@@ -168,7 +172,7 @@ This is designed for real stage confidence monitors where the presenter may need
 | PowerPoint | Required for `.pptx` live mode | Required for `.pptx` live mode | Required for Windows beta testing |
 | PDF decks | Supported without PowerPoint | Supported without PowerPoint | Not enabled in Windows beta yet |
 
-Apple Silicon has been runtime-tested locally on OBS 32.x. Intel is cross-built with the same feature set and published as a beta download for real Intel Mac feedback. Windows is currently a beta source validation track, not a finished one-click installer.
+Apple Silicon has been runtime-tested locally on OBS 32.x. Intel remains a beta package from the previous macOS release while real Intel Mac feedback is collected. Windows is currently a beta source validation track, not a finished one-click installer.
 
 ## Screenshots
 
@@ -180,7 +184,8 @@ Apple Silicon has been runtime-tested locally on OBS 32.x. Intel is cross-built 
 
 | Release | Status | Use it for |
 | --- | --- | --- |
-| [`v0.4.4`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.4) | Apple Silicon stable, Intel beta | Recommended macOS release page |
+| [`v0.4.5`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.5) | Apple Silicon stable | Recommended Apple Silicon release with conservative presenter stability, clearer live controls, and updated docs |
+| [`v0.4.4`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.4) | Apple Silicon stable, Intel beta | Previous macOS release and current Intel beta |
 | [`v0.5.0-beta.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1) | Windows beta source | Windows build/runtime validation |
 | [`v0.4.3`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.3) | Previous stable | Default presenter clicker capture |
 | [`v0.4.2`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.2) | Previous stable | Spotlight/Clicker Capture and manual PowerPoint lifecycle controls |

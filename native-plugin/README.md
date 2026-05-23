@@ -7,7 +7,7 @@ This folder contains the native OBS plugin version of PPTBridge SK.
 The main public release path today is the macOS ZIP for the user's Mac:
 
 - [Download stable Apple Silicon build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
-- [Download Intel Mac beta build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip)
+- [Download Intel Mac beta build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip)
 - [Open the latest stable macOS release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
 
 The Windows beta path is source-only for validation:
@@ -38,13 +38,14 @@ This native version is built around a practical conference workflow:
 ## Platform Status
 
 - macOS Apple Silicon: stable public release path, tested and packaged
-- macOS Intel: beta download with the same feature set, awaiting more real Intel Mac feedback
+- macOS Intel: v0.4.4 beta download, awaiting more real Intel Mac feedback
 - Windows: beta source validation pack, not a final installer yet
 
 ## Quick Platform Guide
 
 - `v0.5.0-beta.1` = Windows beta source pack for real Windows OBS build/runtime validation
-- `v0.4.4` = macOS stable release with clean public ZIP packages and easy install
+- `v0.4.5` = Apple Silicon stable release with conservative presenter stability, clearer live controls, and updated docs
+- `v0.4.4` = previous macOS stable release with clean public ZIP packages and easy install; current Intel beta
 - `v0.4.3` = previous macOS stable release with out-of-the-box Spotlight/Clicker Capture keys, multi-deck live routing, locked PowerPoint resize behavior, manual/automatic PowerPoint lifecycle controls, and Companion/OSC control
 - `v0.4.2` = previous macOS stable release with Spotlight/Clicker Capture, multi-deck live routing, locked PowerPoint resize behavior, manual/automatic PowerPoint lifecycle controls, and Companion/OSC control
 - `v0.4.1` = previous macOS stable release with manual/automatic PowerPoint lifecycle controls and Companion/OSC control
@@ -126,7 +127,7 @@ Two installer options are included:
 1. `PPTBridge-Install.command`
    - easiest double-click installer for the current macOS user
    - installs into `~/Library/Application Support/obs-studio/plugins`
-   - offers to quit OBS before replacing the plugin
+   - asks you to quit OBS manually before replacing the plugin
    - opens OBS after a successful install
 2. `scripts/make-pkg.sh`
    - builds a distributable `.pkg` installer
@@ -145,10 +146,8 @@ Build the package:
 Result:
 
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
-- `release/PPTBridge-SK-for-OBS-v0.4.4-macOS-Apple-Silicon.zip`
-- `release/PPTBridge-SK-for-OBS-v0.4.4-macOS-Intel.zip`
+- `release/PPTBridge-SK-for-OBS-v0.4.5-macOS-Apple-Silicon.zip`
 - `release/pptbridge-obs-macos-apple-silicon.zip`
-- `release/pptbridge-obs-macos-intel.zip`
 
 ## Public Launch Kit
 
@@ -218,7 +217,7 @@ Quick setup for stage control:
 
 After that, the speaker can drive the deck from OBS with the clicker and the active PPTBridge source will move forward/back.
 PPTBridge ignores hotkey callbacks while OBS is not the active app, so typing in another app will not move the presentation.
-For a Logitech Spotlight or other presenter clicker that should work while the operator uses Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. It captures `PageDown`, `Right`, `Space`, or `Enter` for next and `PageUp` or `Left` for previous by default. It also captures any custom PPTBridge hotkeys, routes them to the PPTBridge source in the current OBS program scene, and suppresses those captured key presses from the focused app. This works for PPTX live mode and PDF/cached decks.
+For a Logitech Spotlight or other presenter clicker that should work while the operator uses Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. It captures `PageDown` or `Right` for next and `PageUp` or `Left` for previous by default. It also captures any custom PPTBridge hotkeys, routes them to the PPTBridge source in the current OBS program scene, and suppresses those captured key presses from the focused app. This works for PPTX live mode and PDF/cached decks.
 If macOS asks, allow OBS in `System Settings > Privacy & Security > Accessibility` and `Input Monitoring`, then restart OBS or toggle the feature again. Normal typing keys such as `1` and `2` will be swallowed while Spotlight/Clicker Capture is enabled if you bind them as custom clicker keys.
 For Stream Deck or Bitfocus Companion control that must work while another app is focused, use the OBS WebSocket workflow in `COMPANION-CONTROL.md` instead of keyboard hotkeys.
 For direct local OSC, enable `Tools > PPTBridge SK: Toggle Local OSC Control` and send OSC messages such as `/pptbridge/next` to `127.0.0.1:57130`.
@@ -250,6 +249,7 @@ By default, PowerPoint live mode waits for `START - Open PowerPoint / Start Live
 Enable `Close PowerPoint Slideshow When OBS Closes` when the live slideshow should be cleaned up as OBS shuts down.
 `PPTBridge SK Presenter` is PPTBridge's own presenter layout, synchronized with the deck and fed by PPTX notes pages and slide thumbnails.
 The presenter source exposes balanced, large-preview, large-notes, compact, and confidence-monitor layout presets, plus presenter split, preview scale/position, notes zoom, notes text position, and notes sizing controls.
+Live builds, animations, and embedded video stay in `PPTBridge SK Slide`. Presenter-side live video preview is postponed until it can be verified without adding crash risk to OBS.
 Presenter notes will only appear when the `.pptx` really contains notes pages for those slides.
 If live mode is unavailable or disabled, PPTBridge falls back to cached render mode for compatibility.
 If you want strict OBS control over local PowerPoint audio during a live show, see `PRO-AUDIO-MODE.md` for the BlackHole and Loopback routing setups.

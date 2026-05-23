@@ -1918,6 +1918,7 @@ struct PresentationDocument::Impl {
   uint64_t version = 1;
   Clock::time_point started_at = Clock::now();
   PDFDocument *__strong pdf_document = nil;
+  mutable std::mutex render_mutex;
 };
 
 PresentationDocument::PresentationDocument(std::string pptx_path)
@@ -2663,6 +2664,7 @@ bool PresentationDocument::RenderSlideBGRA(
   uint32_t &out_stride) const
 {
   @autoreleasepool {
+    std::lock_guard<std::mutex> render_lock(impl_->render_mutex);
     PDFDocument *document = nil;
     bool loading = false;
     bool loaded = false;
@@ -2735,6 +2737,7 @@ bool PresentationDocument::RenderPresenterBGRA(
   const PresenterRenderOptions &options) const
 {
   @autoreleasepool {
+    std::lock_guard<std::mutex> render_lock(impl_->render_mutex);
     PDFDocument *document = nil;
     std::vector<SlideMetadata> slides;
     bool loading = false;

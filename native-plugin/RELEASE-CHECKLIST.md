@@ -20,19 +20,18 @@
   - `START - Open PowerPoint / Start Live Mode` opens PowerPoint if needed and starts the slideshow from the highlighted `PowerPoint Live Start / Stop` group
   - `Auto Start PowerPoint When OBS Opens` starts PowerPoint automatically
   - `Close PowerPoint Slideshow When OBS Closes` stops the slideshow when OBS quits
+  - `PPTBridge SK Presenter` stays static and lightweight; live PowerPoint/video playback remains in `PPTBridge SK Slide`
 
 ## Assets To Upload
 
 - `pptbridge-obs-macos-apple-silicon.zip`
 - `pptbridge-obs-macos-apple-silicon.zip.sha256`
-- `pptbridge-obs-macos-intel.zip`
-- `pptbridge-obs-macos-intel.zip.sha256`
 
 ## GitHub Release
 
 - create the repository
 - push the code
-- create tag `v0.4.4`
+- create tag `v0.4.5`
 - create a GitHub Release
 - paste the body from `GITHUB-RELEASE.md`
 - upload the release assets

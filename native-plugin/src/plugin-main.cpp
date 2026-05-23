@@ -387,9 +387,36 @@ void append_clicker_bindings_from_hotkey(
   obs_data_array_release(saved);
 }
 
+void append_clicker_binding_if_missing(
+  std::vector<ClickerBinding> &bindings,
+  DWORD virtual_key,
+  uint32_t modifiers,
+  HotkeyAction action)
+{
+  for (const auto &binding : bindings) {
+    if (binding.virtual_key == virtual_key && binding.modifiers == modifiers && binding.action == action) {
+      return;
+    }
+  }
+
+  bindings.push_back(ClickerBinding{ virtual_key, modifiers, action });
+}
+
+void append_default_clicker_bindings(std::vector<ClickerBinding> &bindings)
+{
+  // Presenter remotes such as Logitech Spotlight usually send these keys.
+  // Normal OBS hotkeys stay intentionally narrow (2/1), but Stage Clicker
+  // Capture should work out-of-the-box while another app has focus.
+  append_clicker_binding_if_missing(bindings, VK_NEXT, 0, HotkeyAction::Next);
+  append_clicker_binding_if_missing(bindings, VK_RIGHT, 0, HotkeyAction::Next);
+  append_clicker_binding_if_missing(bindings, VK_PRIOR, 0, HotkeyAction::Previous);
+  append_clicker_binding_if_missing(bindings, VK_LEFT, 0, HotkeyAction::Previous);
+}
+
 std::vector<ClickerBinding> collect_clicker_bindings_from_obs_hotkeys()
 {
   std::vector<ClickerBinding> bindings;
+  append_default_clicker_bindings(bindings);
   append_clicker_bindings_from_hotkey(g_next_hotkey, HotkeyAction::Next, bindings);
   append_clicker_bindings_from_hotkey(g_previous_hotkey, HotkeyAction::Previous, bindings);
   append_clicker_bindings_from_hotkey(g_black_hotkey, HotkeyAction::Black, bindings);

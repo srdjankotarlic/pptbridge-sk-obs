@@ -60,7 +60,7 @@ similar presentation workflows.
 
 ## Install
 
-1. Quit OBS if it is open, or let the installer close it for you.
+1. Quit OBS if it is open.
 2. Double-click \`$INSTALLER_NAME\`.
 3. If macOS blocks the command, right-click it and choose \`Open\`.
 4. Let the installer copy the plugin and open OBS.
@@ -77,7 +77,7 @@ macOS ZIP:
 
 - \`PPTBridge SK Slide\` is the clean audience/program slide output.
 - \`PPTBridge SK Presenter\` is the speaker confidence view with current slide,
-  next slide, timer, and notes.
+  next slide, timer, notes, and layout customization.
 
 ## Basic OBS Setup
 
@@ -85,15 +85,16 @@ macOS ZIP:
 2. Add \`PPTBridge SK Presenter\` to the speaker/confidence scene.
 3. Select the same .pptx or .pdf in both sources.
 4. For .pptx live mode, click \`START - Open PowerPoint / Start Live Mode\` in the highlighted \`PowerPoint Live Start / Stop\` group when you are ready.
-5. For PDF decks, PowerPoint is not required.
+5. Use \`PPTBridge SK Presenter\` for notes, next slide, timer, and confidence-monitor layouts. Live animations and video stay in \`PPTBridge SK Slide\`.
+6. For PDF decks, PowerPoint is not required.
 
 ## Slide Control
 
 - OBS hotkeys default to \`2\` for next slide and \`1\` for previous slide.
 - For a Logitech Spotlight or similar presenter clicker, enable
   \`Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture\`.
-- Clicker capture supports common next keys such as PageDown, Right, Space, and
-  Enter, plus previous keys such as PageUp and Left.
+- Clicker capture supports common next keys such as PageDown and Right, plus
+  previous keys such as PageUp and Left.
 - If macOS asks, allow OBS in \`System Settings > Privacy & Security > Accessibility\`
   and \`Input Monitoring\`, then restart OBS.
 
@@ -123,6 +124,9 @@ https://github.com/srdjankotarlic/pptbridge-sk-obs/issues
 EOF
 
 /usr/bin/xattr -cr "$RELEASE_DIR" || true
+if command -v codesign >/dev/null 2>&1; then
+  codesign --force --deep --sign - "$RELEASE_DIR/pptbridge-obs.plugin"
+fi
 
 (
   cd "$PROJECT_DIR/release"

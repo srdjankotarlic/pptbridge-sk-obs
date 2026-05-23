@@ -25,9 +25,10 @@ constexpr const char *kHotkeyHelp =
   "   clicker button. Keep those bindings narrow for live use.\n"
   "4. For a stage clicker while you use Chrome, OBS, or another app, enable\n"
   "   Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture. It captures\n"
-  "   the same PPTBridge hotkeys globally, sends them to the current program\n"
-  "   scene deck, and suppresses those key presses from the focused app. This\n"
-  "   works for PPTX live mode and for PDF/cached decks without live mode.\n"
+  "   PageDown/Right for next, PageUp/Left for previous, plus any custom\n"
+  "   PPTBridge hotkeys. It sends them to the current program scene deck and\n"
+  "   suppresses those key presses from the focused app. This works for PPTX\n"
+  "   live mode and for PDF/cached decks without live mode.\n"
   "5. If you brought a PDF presentation instead of a PPTX, pick the .pdf in\n"
   "   the file field above - PPTBridge renders pages natively, no PowerPoint\n"
   "   required, and all hotkeys work identically.\n"
@@ -146,6 +147,11 @@ PresenterRenderOptions presenter_options_from_settings(obs_data_t *settings)
   options.notes_position_y =
     clamp_setting(obs_data_get_double(settings, "presenter_notes_position_y"), -100.0, 100.0, 0.0);
   return options;
+}
+
+bool visual_child_sources_wanted(const SourceContext *context)
+{
+  return context && context->mode == ViewMode::Slide;
 }
 
 bool presenter_options_equal(const PresenterRenderOptions &left, const PresenterRenderOptions &right)
@@ -312,7 +318,7 @@ void clear_media_sources(SourceContext *context)
 
 void sync_media_playback_activity(SourceContext *context)
 {
-  if (!context || context->mode != ViewMode::Slide) {
+  if (!visual_child_sources_wanted(context)) {
     return;
   }
 
@@ -403,9 +409,13 @@ CGWindowID find_powerpoint_window_id(const std::string &window_title, const std:
       break;
     }
 
-    if (deck_stem && [name localizedCaseInsensitiveContainsString:deck_stem]) {
+    const bool is_slideshow_window =
+      [name localizedCaseInsensitiveContainsString:@"PowerPoint Slide Show"] ||
+      [name localizedCaseInsensitiveContainsString:@"Slide Show"];
+
+    if (deck_stem && is_slideshow_window && [name localizedCaseInsensitiveContainsString:deck_stem]) {
       fallback_id = static_cast<CGWindowID>(window_id.unsignedIntValue);
-    } else if (!fallback_id && [name localizedCaseInsensitiveContainsString:@"PowerPoint Slide Show"]) {
+    } else if (!fallback_id && is_slideshow_window) {
       fallback_id = static_cast<CGWindowID>(window_id.unsignedIntValue);
     }
   }
@@ -476,12 +486,21 @@ void clear_live_capture_source(SourceContext *context)
   }
 
   set_live_capture_active(context, false, false);
+  context->live_capture_window_id = 0;
+  context->live_capture_window_title.clear();
+}
+
+void release_live_capture_source(SourceContext *context)
+{
+  if (!context) {
+    return;
+  }
+
+  clear_live_capture_source(context);
   if (context->live_capture_source) {
     obs_source_release(context->live_capture_source);
     context->live_capture_source = nullptr;
   }
-  context->live_capture_window_id = 0;
-  context->live_capture_window_title.clear();
 }
 
 void clear_live_audio_source(SourceContext *context)
@@ -558,6 +577,28 @@ obs_source_t *create_live_capture_source(SourceContext *context, uint32_t window
   }
 
   return capture;
+}
+
+void update_live_capture_source(SourceContext *context, uint32_t window_id, const std::string &window_title)
+{
+  if (!context || !context->live_capture_source || window_id == 0) {
+    return;
+  }
+
+  obs_data_t *settings = obs_source_get_settings(context->live_capture_source);
+  if (!settings) {
+    return;
+  }
+
+  obs_data_set_int(settings, "type", 1);
+  obs_data_set_int(settings, "window", window_id);
+  obs_data_set_string(settings, "window_name", window_title.c_str());
+  obs_data_set_string(settings, "owner_name", "Microsoft PowerPoint");
+  obs_data_set_bool(settings, "show_cursor", false);
+  obs_data_set_bool(settings, "show_hidden_windows", true);
+  obs_data_set_bool(settings, "show_empty_names", true);
+  obs_source_update(context->live_capture_source, settings);
+  obs_data_release(settings);
 }
 
 LiveAudioTarget find_powerpoint_audio_target()
@@ -648,9 +689,18 @@ void sync_live_audio_activity(SourceContext *context)
 
 void sync_live_capture_source(SourceContext *context)
 {
-  if (!context || context->mode != ViewMode::Slide || !context->document || !context->use_live_powerpoint) {
+  if (!context || !visual_child_sources_wanted(context) || !context->document || !context->use_live_powerpoint) {
     clear_live_capture_source(context);
     return;
+  }
+
+  if (context->live_capture_suppressed_after_stop) {
+    if (!context->document->IsLivePowerPointReady()) {
+      context->live_capture_suppressed_after_stop = false;
+    } else {
+      clear_live_capture_source(context);
+      return;
+    }
   }
 
   if (!context->document->IsLivePowerPointReady()) {
@@ -677,7 +727,11 @@ void sync_live_capture_source(SourceContext *context)
   }
 
   clear_live_capture_source(context);
-  context->live_capture_source = create_live_capture_source(context, window_id, window_title);
+  if (context->live_capture_source) {
+    update_live_capture_source(context, window_id, window_title);
+  } else {
+    context->live_capture_source = create_live_capture_source(context, window_id, window_title);
+  }
   context->live_capture_window_id = window_id;
   context->live_capture_window_title = window_title;
   sync_live_capture_activity(context);
@@ -718,7 +772,8 @@ void sync_live_audio_source(SourceContext *context)
 
 bool render_live_capture(SourceContext *context)
 {
-  if (!context || !context->live_capture_source || !context->document || context->document->IsBlackScreen()) {
+  if (!context || !context->live_capture_source || !context->document || context->document->IsBlackScreen() ||
+      !context->document->IsLivePowerPointReady() || context->live_capture_window_id == 0) {
     return false;
   }
 
@@ -759,7 +814,7 @@ std::vector<ChildAudioSnapshot> snapshot_audio_children(SourceContext *context)
     return snapshot;
   }
 
-  if (context->live_capture_source) {
+  if (context->live_capture_source && context->live_capture_window_id != 0) {
     ChildAudioSnapshot live;
     live.source = obs_source_get_ref(context->live_capture_source);
     live.is_audio = true;
@@ -810,7 +865,7 @@ SourceContext::MediaPlayback create_media_playback(SourceContext *context, const
   playback.signature = build_media_signature({ media });
   playback.file_path = media.file_path;
   playback.is_video = media.kind == EmbeddedMediaKind::Video;
-  playback.is_audio = true;
+  playback.is_audio = context && context->mode == ViewMode::Slide;
   playback.x = static_cast<float>(media.x);
   playback.y = static_cast<float>(media.y);
   playback.width = static_cast<float>(media.width);
@@ -845,7 +900,14 @@ SourceContext::MediaPlayback create_media_playback(SourceContext *context, const
 
 void sync_media_sources(SourceContext *context)
 {
-  if (!context || context->mode != ViewMode::Slide) {
+  if (!visual_child_sources_wanted(context)) {
+    {
+      if (context) {
+        std::lock_guard<std::mutex> lock(context->media_mutex);
+        context->media_signature.clear();
+      }
+    }
+    clear_media_sources(context);
     return;
   }
 
@@ -898,7 +960,7 @@ void sync_media_sources(SourceContext *context)
 
 void render_media_overlay(SourceContext *context)
 {
-  if (!context || context->mode != ViewMode::Slide || !context->document || context->document->IsBlackScreen()) {
+  if (!visual_child_sources_wanted(context) || !context->document || context->document->IsBlackScreen()) {
     return;
   }
 
@@ -1007,7 +1069,7 @@ std::string build_status_text(SourceContext *context)
     status << "\n";
 
     status << "Live capture: ";
-    if (context->live_capture_source) {
+    if (context->live_capture_source && context->live_capture_window_id != 0) {
       status << "attached";
     } else if (live_ready) {
       status << "searching for slideshow window";
@@ -1173,6 +1235,8 @@ bool control_start_live(obs_properties_t *, obs_property_t *, void *data)
   Registry::Instance().SetActive(context->document);
   clear_live_capture_source(context);
   clear_live_audio_source(context);
+  context->live_capture_suppressed_after_stop = false;
+  context->started_live_powerpoint_from_this_source = true;
   context->document->StartLivePowerPointAsync();
   return false;
 }
@@ -1186,6 +1250,8 @@ bool control_stop_live(obs_properties_t *, obs_property_t *, void *data)
 
   clear_live_capture_source(context);
   clear_live_audio_source(context);
+  context->live_capture_suppressed_after_stop = true;
+  context->started_live_powerpoint_from_this_source = false;
   context->document->StopLivePowerPoint();
   return false;
 }
@@ -1287,6 +1353,32 @@ obs_properties_t *source_properties(SourceContext *context)
     obs_properties_add_int(props, "canvas_width", "Canvas Width", 320, 7680, 1);
     obs_properties_add_int(props, "canvas_height", "Canvas Height", 240, 4320, 1);
     add_presenter_customization_properties(props);
+
+    obs_properties_t *presenter_live_controls = obs_properties_create();
+    obs_property_t *presenter_live_control_help =
+      obs_properties_add_text(
+        presenter_live_controls,
+        "pptbridge_presenter_live_control_help",
+        "Use START if this presenter source should launch the PowerPoint slideshow for this deck. Presenter view stays lightweight and static; use PPTBridge SK Slide for live animations and video.",
+        OBS_TEXT_INFO);
+    obs_property_text_set_info_type(presenter_live_control_help, OBS_TEXT_INFO_WARNING);
+    obs_property_text_set_info_word_wrap(presenter_live_control_help, true);
+    obs_properties_add_button(
+      presenter_live_controls,
+      "pptbridge_presenter_start_live_btn",
+      "START - Open PowerPoint / Start Live Mode",
+      control_start_live);
+    obs_properties_add_button(
+      presenter_live_controls,
+      "pptbridge_presenter_stop_live_btn",
+      "STOP - Stop PowerPoint Live Mode",
+      control_stop_live);
+    obs_properties_add_group(
+      props,
+      "pptbridge_presenter_live_controls_group",
+      "PowerPoint Live Start / Stop",
+      OBS_GROUP_NORMAL,
+      presenter_live_controls);
   }
   if (context && context->mode == ViewMode::Slide) {
     obs_properties_add_bool(props, "use_live_powerpoint", "Use True Live PowerPoint Mode");
@@ -1484,7 +1576,8 @@ void source_update(SourceContext *context, obs_data_t *settings)
     }
   }
 
-  if (path_changed || size_changed || live_mode_changed || live_auto_start_changed || presenter_options_changed) {
+  if (path_changed || size_changed || live_mode_changed || live_auto_start_changed ||
+      presenter_options_changed) {
     source_destroy_texture(context);
   }
 
@@ -1511,7 +1604,7 @@ void source_tick(SourceContext *context)
   }
 
   const auto now = std::chrono::steady_clock::now();
-  if (context->live_capture_source) {
+  if (context->live_capture_source && context->live_capture_window_id != 0) {
     context->live_capture_last_seen = now;
   }
   if (context->live_audio_source) {
@@ -1530,7 +1623,7 @@ void source_tick(SourceContext *context)
     return;
   }
 
-  if (!context->live_capture_source &&
+  if ((!context->live_capture_source || context->live_capture_window_id == 0) &&
       now - context->live_capture_last_seen >= kLiveRecoverRetryDelay &&
       (context->live_recover_last_attempt == std::chrono::steady_clock::time_point::min() ||
        now - context->live_recover_last_attempt >= kLiveRecoverRetryDelay)) {
@@ -1541,7 +1634,7 @@ void source_tick(SourceContext *context)
     context->document->SyncLiveStateAsync();
   }
 
-  if (!context->live_capture_source &&
+  if ((!context->live_capture_source || context->live_capture_window_id == 0) &&
       now - context->live_capture_last_seen >= kLiveReloadDelay &&
       (context->live_reload_last_attempt == std::chrono::steady_clock::time_point::min() ||
        now - context->live_reload_last_attempt >= kLiveReloadDelay)) {
@@ -1549,6 +1642,28 @@ void source_tick(SourceContext *context)
     context->live_reload_last_attempt = now;
     context->document->ReloadAsync();
   }
+}
+
+void source_destroy(SourceContext *context)
+{
+  if (!context) {
+    return;
+  }
+
+  const bool owns_live_session =
+    context->mode == ViewMode::Slide || context->started_live_powerpoint_from_this_source;
+  Registry::Instance().DetachSource(context);
+  if (owns_live_session &&
+      context->close_live_powerpoint_on_shutdown &&
+      context->document &&
+      Registry::Instance().CountSources(context->pptx_path, RegisteredSourceKind::Slide) == 0) {
+    context->document->StopLivePowerPoint();
+  }
+
+  release_live_capture_source(context);
+  clear_live_audio_source(context);
+  clear_media_sources(context);
+  source_destroy_texture(context);
 }
 
 void source_destroy_texture(SourceContext *context)
@@ -1569,7 +1684,7 @@ void source_render(SourceContext *context, gs_effect_t *effect)
     return;
   }
 
-  if (render_live_capture(context)) {
+  if (context->mode == ViewMode::Slide && render_live_capture(context)) {
     return;
   }
 
@@ -1621,17 +1736,7 @@ static void slide_source_destroy(void *data)
   if (!context) {
     return;
   }
-  Registry::Instance().DetachSource(context);
-  if (context->mode == ViewMode::Slide &&
-      context->close_live_powerpoint_on_shutdown &&
-      context->document &&
-      Registry::Instance().CountSources(context->pptx_path, RegisteredSourceKind::Slide) == 0) {
-    context->document->StopLivePowerPoint();
-  }
-  clear_live_capture_source(context);
-  clear_live_audio_source(context);
-  clear_media_sources(context);
-  source_destroy_texture(context);
+  source_destroy(context);
   delete context;
 }
 
@@ -1772,7 +1877,7 @@ static void slide_source_enum_active_sources(void *data, obs_source_enum_proc_t 
   }
 
   std::lock_guard<std::mutex> lock(context->media_mutex);
-  if (context->live_capture_source && context->live_capture_active) {
+  if (context->live_capture_source && context->live_capture_active && context->live_capture_window_id != 0) {
     enum_callback(context->source, context->live_capture_source, param);
   }
   if (context->live_audio_source && context->live_audio_active) {
@@ -1793,7 +1898,7 @@ static void slide_source_enum_all_sources(void *data, obs_source_enum_proc_t enu
   }
 
   std::lock_guard<std::mutex> lock(context->media_mutex);
-  if (context->live_capture_source) {
+  if (context->live_capture_source && context->live_capture_window_id != 0) {
     enum_callback(context->source, context->live_capture_source, param);
   }
   if (context->live_audio_source) {

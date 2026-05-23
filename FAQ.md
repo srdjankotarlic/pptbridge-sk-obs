@@ -25,6 +25,8 @@ For `.pdf` decks on macOS, PowerPoint is not required.
 
 `PPTBridge SK Presenter` is for the person presenting. It shows the current slide, next slide, timer, and notes.
 
+In Apple Silicon v0.4.5 and newer, the presenter source can also show live PowerPoint builds, animations, and embedded video inside the current-slide panel. Enable `Enable Live/Video Current-Slide Preview` in `PPTBridge SK Presenter` properties when you need that.
+
 ## Is the presenter view PowerPoint Presenter View?
 
 No. PPTBridge renders its own presenter view inside OBS. That makes it easier to resize, crop, place on a confidence monitor, and customize for live production.

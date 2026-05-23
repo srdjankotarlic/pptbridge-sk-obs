@@ -17,7 +17,7 @@ FAST INSTALL
 
    1-Install-PPTBridge-SK.command
 
-3. If OBS is open, let the installer quit it and continue.
+3. If OBS is open, quit OBS manually and run this installer again.
 4. If macOS blocks it, right-click the file and choose Open.
 5. The installer will copy the plugin and open OBS.
 6. If OBS asks about Safe Mode, choose normal launch.
@@ -49,6 +49,9 @@ BASIC OBS SETUP
    START - Open PowerPoint / Start Live Mode
 
 5. For PDF decks, PowerPoint is not needed.
+6. PPTBridge SK Presenter stays lightweight and static for notes, next slide,
+   timer, and confidence-monitor layouts. Live animations and video are shown
+   through PPTBridge SK Slide.
 
 HOTKEYS
 
@@ -69,7 +72,7 @@ operator uses Chrome, OBS, or another app:
 
 1. In OBS, open Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture.
 2. Use the clicker's normal next/previous buttons. PPTBridge captures
-   PageDown, Right, Space, or Enter for next and PageUp or Left for previous
+   PageDown or Right for next and PageUp or Left for previous
    by default.
 3. If macOS asks, allow OBS in System Settings > Privacy & Security >
    Accessibility and Input Monitoring.

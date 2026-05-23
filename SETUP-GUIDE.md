@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS Setup Guide
 
-**Created by Srđan Kotarlić** | v0.4.4
+**Created by Srđan Kotarlić** | v0.4.5
 
 For the fastest install path, start with [QUICKSTART.md](QUICKSTART.md). This guide is the fuller walkthrough for setup, controls, multiple decks, and troubleshooting.
 
@@ -18,7 +18,7 @@ Use it when you want:
 - slide control from OBS hotkeys, source buttons, Companion, local OSC, or a show-control surface
 - OBS to open quietly until you choose to start PowerPoint
 
-The stable public build is currently Apple Silicon macOS. Intel Mac is available as a separate beta download with the same feature set while real Intel feedback is collected.
+The stable public build is currently Apple Silicon macOS. Intel Mac remains available as a separate v0.4.4 beta download while real Intel feedback is collected.
 
 ## Requirements
 
@@ -105,8 +105,8 @@ keys from the focused app. It works for PPTX live mode and PDF/cached decks. If
 macOS asks, allow OBS in `System Settings > Privacy & Security > Accessibility`
 and `Input Monitoring`, then restart OBS or toggle the feature again.
 
-Out of the box it captures `PageDown`, `Right`, `Space`, or `Enter` for next and
-`PageUp` or `Left` for previous. You can still bind custom PPTBridge hotkeys in
+Out of the box it captures `PageDown` or `Right` for next and `PageUp` or `Left`
+for previous. You can still bind custom PPTBridge hotkeys in
 OBS Settings if your clicker sends unusual keys. If you bind normal typing keys
 such as `1` and `2`, those keys will be swallowed while Spotlight/Clicker
 Capture is enabled.
@@ -179,6 +179,11 @@ preview fit/fill/crop behavior, preview scale and position, notes font size,
 notes zoom, notes text position, and the split between next-slide preview and
 notes.
 
+PowerPoint builds, animations, and embedded video are shown through
+`PPTBridge SK Slide`. `PPTBridge SK Presenter` stays lightweight and static for
+notes, next slide, timer, and layout customization. Live-video presenter
+preview is postponed until it can be verified without adding crash risk.
+
 ## Current Limitations
 
 - true live PowerPoint mode is the preferred path for builds, animations, and embedded media on macOS
@@ -200,7 +205,6 @@ notes.
 
 For public sharing, use the native plugin release assets in:
 
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.4.4-macOS-Apple-Silicon`
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.4.4-macOS-Intel`
+- `native-plugin/release/PPTBridge-SK-for-OBS-v0.4.5-macOS-Apple-Silicon`
 
 The legacy Python script remains in this repo only as historical reference.

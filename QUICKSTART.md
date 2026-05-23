@@ -7,7 +7,7 @@ This is the shortest path from download to a working OBS presentation scene.
 | Your Mac | Download |
 | --- | --- |
 | M1, M2, M3, or M4 | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip) |
-| Intel Mac | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-intel.zip) |
+| Intel Mac | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip) |
 
 To check your Mac type, open `Apple menu > About This Mac`.
 
@@ -50,6 +50,8 @@ For PowerPoint decks:
 
 By default, OBS opens quietly and does not start PowerPoint until you click `START`.
 
+Live builds, animations, and embedded video are handled by `PPTBridge SK Slide`. `PPTBridge SK Presenter` stays lightweight and static for notes, next slide, timer, and confidence-monitor layouts.
+
 ## 6. Control Slides
 
 Default OBS hotkeys:
@@ -71,7 +73,7 @@ PPTBridge only accepts normal OBS hotkeys while OBS is the active app, so typing
 If a presenter clicker must work while the operator uses Chrome, OBS, or another app:
 
 1. In OBS, open `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`.
-2. Use the clicker's normal next/previous buttons. PPTBridge captures `PageDown`, `Right`, `Space`, or `Enter` for next and `PageUp` or `Left` for previous by default.
+2. Use the clicker's normal next/previous buttons. PPTBridge captures `PageDown` or `Right` for next and `PageUp` or `Left` for previous by default.
 3. If macOS asks, allow OBS in:
    - `System Settings > Privacy & Security > Accessibility`
    - `System Settings > Privacy & Security > Input Monitoring`

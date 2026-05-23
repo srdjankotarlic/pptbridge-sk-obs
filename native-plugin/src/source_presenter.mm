@@ -23,7 +23,7 @@ obs_source_info *pptbridge_presenter_source_info()
     if (!context) {
       return;
     }
-    source_destroy_texture(context);
+    source_destroy(context);
     delete context;
   };
 

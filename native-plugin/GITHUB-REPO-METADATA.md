@@ -8,11 +8,11 @@ Created by **Srdjan Kotarlic**
 
 ## Repository Description
 
-`PowerPoint/PDF slide and presenter sources for OBS on macOS. Apple Silicon and Intel builds.`
+`PowerPoint/PDF slide and presenter sources for OBS on macOS. Apple Silicon stable, Intel beta.`
 
 ## GitHub "About" Short Text
 
-`PowerPoint/PDF slide and presenter sources for OBS on macOS. Apple Silicon + Intel.`
+`PowerPoint/PDF slide and presenter sources for OBS on macOS.`
 
 ## Suggested Homepage Field
 
@@ -47,11 +47,11 @@ Copy these into GitHub topics:
 
 ## Suggested Release Tag
 
-`v0.4.4`
+`v0.4.5`
 
 ## Suggested Release Title
 
-`PPTBridge SK for OBS v0.4.4`
+`PPTBridge SK for OBS v0.4.5`
 
 ## README Tagline
 

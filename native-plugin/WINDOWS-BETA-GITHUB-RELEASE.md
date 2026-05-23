@@ -4,7 +4,7 @@
 
 Created by **Srdjan Kotarlic**
 
-This prerelease is for Windows build and runtime validation. The stable public user release is still the macOS `v0.4.4` release.
+This prerelease is for Windows build and runtime validation. The stable public user release is the macOS Apple Silicon `v0.4.5` release.
 
 ## Start Here
 
