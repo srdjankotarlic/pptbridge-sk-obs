@@ -1,6 +1,6 @@
 # Signing and Notarization Notes
 
-This build is currently usable for local installs and release sharing, but the v1.0 public macOS release should be signed and notarized.
+This build is currently usable for local installs and release sharing, but signing and notarization should move ahead of the next broad public push. OBS Forums / obsproject.com users are more likely to try the plugin when macOS shows a normal trusted installer path.
 
 ## What you need
 
@@ -57,4 +57,4 @@ It signs the plugin bundle, rebuilds the installer package, signs the `.pkg`, su
 
 ## Recommendation
 
-Do not call the macOS release v1.0 until `spctl` accepts the signed installer and a second Mac can open it without Gatekeeper warnings.
+Treat this as the next trust milestone, not distant v1.0 polish. Do not push a broad OBS Forums/plugin-directory campaign until `spctl` accepts the signed installer and a second Mac can open it without Gatekeeper warnings.

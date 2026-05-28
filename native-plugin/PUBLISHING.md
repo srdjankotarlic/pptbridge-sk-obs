@@ -7,12 +7,14 @@ Author credit:
 
 Recommended free launch:
 1. Publish the source code on GitHub.
-2. Attach the Apple Silicon release ZIP to a GitHub Release.
-3. Publish the plugin on the OBS Forums plugin/resources section.
+2. Attach one clear Apple Silicon release ZIP to a GitHub Release.
+3. Publish the plugin on the OBS Forums / obsproject.com resources section.
+4. Treat LinkedIn as a secondary announcement channel, not the main distribution path.
 
 Official links:
 - GitHub Releases docs: [Releasing projects on GitHub](https://docs.github.com/en/repositories/releasing-projects-on-github?apiVersion=2022-11-28)
-- OBS Forums resources: [OBS Studio Plugins category](https://obsproject.com/forum/resources/?prefix_id=9)
+- OBS Forums resources: [OBS Studio Plugins category](https://obsproject.com/forum/plugins/)
+- OBS resources directory: [Resources](https://obsproject.com/forum/resources/)
 - OBS plugin template reference: [obs-plugintemplate](https://github.com/obsproject/obs-plugintemplate)
 
 ## Best Publish Order
@@ -20,9 +22,10 @@ Official links:
 1. Prepare release assets locally
 2. Create the GitHub repository
 3. Push the source code
-4. Create the GitHub Release and upload assets
-5. Create the OBS Forums resource page
-6. Link the GitHub Release from the OBS Forums post
+4. Create the GitHub Release and upload only the canonical ZIP plus checksum
+5. Prepare signing/notarization for the next trust-focused package
+6. Create the OBS Forums / obsproject.com resource page
+7. Link the GitHub Release from the OBS resource page
 
 ## 1. Prepare Release Assets
 
@@ -35,8 +38,8 @@ cd native-plugin
 
 Main outputs:
 
-- `release/PPTBridge-SK-for-OBS-v0.4.5-macOS-Apple-Silicon.zip`
 - `release/pptbridge-obs-macos-apple-silicon.zip`
+- `release/pptbridge-obs-macos-apple-silicon.zip.sha256`
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
 
 ## 2. Create The GitHub Repository
@@ -83,7 +86,18 @@ In GitHub:
    - `pptbridge-obs-macos-apple-silicon.zip.sha256`
 8. Publish the release
 
-## 5. Create The OBS Forums Resource
+Do not upload a second, longer-named duplicate ZIP for the same build. One stable download path is easier for OBS users and keeps download metrics readable.
+
+## 5. Signing / Notarization Priority
+
+Before pushing hard outside GitHub, make signing/notarization the next trust item:
+
+1. Use `SIGNING-AND-NOTARIZATION.md` as the working checklist.
+2. Produce a signed/notarized `.pkg` when Apple Developer credentials are ready.
+3. Keep the ZIP available for technical users, but make the signed installer the recommended public path once it exists.
+4. Use OBS Forums/resource traffic as the main audience signal after the signed installer is available.
+
+## 6. Create The OBS Forums Resource
 
 In OBS Forums:
 
@@ -132,8 +146,8 @@ Release checklist:
 3. Verify the source picker shows `PPTBridge SK Slide` and `PPTBridge SK Presenter`
 4. Verify default/manual PowerPoint startup, optional auto-start, close-on-quit, OBS-focused hotkeys, and Spotlight/Clicker Capture
 5. Verify local OSC or Companion can send `/pptbridge/next`
-6. Upload the ZIP and checksum file to GitHub Release
-7. Copy the short pitch into the OBS Forums listing
+6. Upload only `pptbridge-obs-macos-apple-silicon.zip` and its `.sha256` to GitHub Release
+7. Copy the short pitch into the OBS Forums / obsproject.com resource listing
 
 Portfolio angle:
 - Keep the plugin free first to maximize adoption and visibility.
@@ -142,4 +156,4 @@ Portfolio angle:
 
 Important note:
 - The package is currently unsigned and not notarized.
-- For public distribution outside your own machines, code signing and notarization are the next polish step.
+- For public distribution outside your own machines, code signing and notarization are the next trust step, not distant v1.0 polish.

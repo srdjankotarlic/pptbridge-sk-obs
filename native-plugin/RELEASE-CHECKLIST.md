@@ -27,6 +27,8 @@
 - `pptbridge-obs-macos-apple-silicon.zip`
 - `pptbridge-obs-macos-apple-silicon.zip.sha256`
 
+Upload only this canonical ZIP plus checksum. Do not add a second duplicate ZIP with a longer release-specific filename.
+
 ## GitHub Release
 
 - create the repository
@@ -38,12 +40,14 @@
 
 ## OBS Forums
 
-- create a new resource in the `OBS Studio Plugins` category
+- create a new resource in the `OBS Studio Plugins` category on obsproject.com
 - use the text from `OBS-FORUM-POST.md`
 - attach or link the GitHub release
 - add 2 screenshots:
   - clean slide source
   - presenter source with notes
+
+OBS Forums / obsproject.com resources are the primary audience channel for this plugin. LinkedIn is secondary.
 
 ## After Publishing
 

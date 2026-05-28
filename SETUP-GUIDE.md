@@ -203,8 +203,8 @@ preview is postponed until it can be verified without adding crash risk.
 
 ## Public Release Notes
 
-For public sharing, use the native plugin release assets in:
+For public sharing, use the native plugin release asset:
 
-- `native-plugin/release/PPTBridge-SK-for-OBS-v0.4.5-macOS-Apple-Silicon`
+- `native-plugin/release/pptbridge-obs-macos-apple-silicon.zip`
 
 The legacy Python script remains in this repo only as historical reference.

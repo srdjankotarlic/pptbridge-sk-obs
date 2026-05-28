@@ -240,13 +240,14 @@ PPTBridge SK is free, open source, and built around real shows I run myself — 
 | Support the gear fund ($100) | [patreon.com/SrdjanKotarlic](https://www.patreon.com/SrdjanKotarlic) |
 | Just browse what's on the page | [patreon.com/SrdjanKotarlic](https://www.patreon.com/SrdjanKotarlic) |
 
-Coffee tips go into more testing time, more docs, real-hardware validation on Intel Macs and Windows, and notarized installers down the road. The plugin itself stays free for everyone — supporters or not. If you can't chip in, a star on the repo or telling one fellow AV operator about PPTBridge SK helps just as much.
+Coffee tips go into more testing time, more docs, real-hardware validation on Intel Macs and Windows, and the signed/notarized macOS installer that should come next for wider public use. The plugin itself stays free for everyone — supporters or not. If you can't chip in, a star on the repo or telling one fellow AV operator about PPTBridge SK helps just as much.
 
 Thanks for using it. It genuinely means a lot.
 
 ## Roadmap
 
-- Signed and notarized macOS installer for v1.0
+- Signed and notarized macOS installer before the next broad public push
+- OBS Forums / obsproject.com resource listing with screenshots and a short demo
 - More real Intel Mac validation
 - Windows beta build/runtime validation
 - Optional Windows installer after beta validation

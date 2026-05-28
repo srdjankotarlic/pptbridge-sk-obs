@@ -52,7 +52,7 @@ The goal is to support a real event workflow inside OBS:
 
 1. Download the ZIP for your Mac from GitHub Releases:
    - Apple Silicon: `pptbridge-obs-macos-apple-silicon.zip`
-   - Intel: `pptbridge-obs-macos-intel.zip`
+   - Intel: use the older v0.4.4 beta `pptbridge-obs-macos-intel.zip`
 2. Open `START-HERE-macOS.txt`
 3. Double-click `1-Install-PPTBridge-SK.command`
 4. Add `PPTBridge SK Slide`

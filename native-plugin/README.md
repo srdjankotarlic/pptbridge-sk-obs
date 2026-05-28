@@ -146,8 +146,11 @@ Build the package:
 Result:
 
 - `dist/PPTBridge-SK-for-OBS-Installer.pkg`
-- `release/PPTBridge-SK-for-OBS-v0.4.5-macOS-Apple-Silicon.zip`
 - `release/pptbridge-obs-macos-apple-silicon.zip`
+
+For public GitHub releases, upload only `release/pptbridge-obs-macos-apple-silicon.zip`
+and its `.sha256` checksum. Do not upload a second longer-named ZIP with the
+same contents.
 
 ## Public Launch Kit
 
