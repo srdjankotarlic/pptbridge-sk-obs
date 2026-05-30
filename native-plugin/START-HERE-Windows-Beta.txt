@@ -41,4 +41,4 @@ Known limits:
 
 - PDF input is not enabled in this Windows beta.
 - This needs real Windows runtime validation before a binary is called usable.
-- The stable public release is the macOS Apple Silicon v0.4.5 release.
+- The stable public release is the macOS Apple Silicon v0.4.6 release.

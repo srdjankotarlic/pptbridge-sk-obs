@@ -7,7 +7,7 @@ PPTBridge SK gives OBS two dedicated presentation sources:
 - `PPTBridge SK Slide` for the clean audience/program feed
 - `PPTBridge SK Presenter` for the speaker view with notes, next slide, and timer
 
-[![Apple Silicon stable](https://img.shields.io/badge/Apple_Silicon-v0.4.5_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
+[![Apple Silicon stable](https://img.shields.io/badge/Apple_Silicon-v0.4.6_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
 [![Intel Mac beta](https://img.shields.io/badge/Intel_Mac-v0.4.4_beta-f59e0b?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip)
 [![Windows beta](https://img.shields.io/badge/Windows-v0.5.0--beta.1_source-orange?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1)
 [![License](https://img.shields.io/badge/License-see_LICENSE-lightgrey?style=flat-square)](#license)
@@ -184,7 +184,8 @@ Apple Silicon has been runtime-tested locally on OBS 32.x. Intel remains a beta 
 
 | Release | Status | Use it for |
 | --- | --- | --- |
-| [`v0.4.5`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.5) | Apple Silicon stable | Recommended Apple Silicon release with conservative presenter stability, clearer live controls, and updated docs |
+| [`v0.4.6`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.6) | Apple Silicon stable | Recommended Apple Silicon release with live PowerPoint control stability, safer process handling, and cleaner release packaging |
+| [`v0.4.5`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.5) | Previous stable | Conservative presenter stability, clearer live controls, and updated docs |
 | [`v0.4.4`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.4) | Apple Silicon stable, Intel beta | Previous macOS release and current Intel beta |
 | [`v0.5.0-beta.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1) | Windows beta source | Windows build/runtime validation |
 | [`v0.4.3`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.3) | Previous stable | Default presenter clicker capture |

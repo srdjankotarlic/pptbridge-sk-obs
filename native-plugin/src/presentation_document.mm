@@ -6,6 +6,7 @@
 
 #include <obs-module.h>
 
+#include <csignal>
 #include <algorithm>
 #include <cctype>
 #include <chrono>
@@ -21,6 +22,10 @@ namespace pptbridge {
 namespace {
 
 using Clock = std::chrono::steady_clock;
+
+constexpr NSTimeInterval kDefaultTaskTimeoutSeconds = 300.0;
+constexpr NSTimeInterval kTerminateGraceSeconds = 2.0;
+constexpr NSTimeInterval kPipeDrainGraceSeconds = 2.0;
 
 NSString *ToNSString(const std::string &value)
 {
@@ -45,7 +50,8 @@ bool RunTask(
   NSArray<NSString *> *arguments,
   std::string &std_out,
   std::string &std_err,
-  int &exit_code)
+  int &exit_code,
+  NSTimeInterval timeout_seconds = kDefaultTaskTimeoutSeconds)
 {
   @autoreleasepool {
     std_out.clear();
@@ -63,6 +69,10 @@ bool RunTask(
     task.arguments = arguments;
     task.standardOutput = out_pipe;
     task.standardError = err_pipe;
+    dispatch_semaphore_t finished = dispatch_semaphore_create(0);
+    task.terminationHandler = ^(NSTask *) {
+      dispatch_semaphore_signal(finished);
+    };
 
     if (@available(macOS 10.13, *)) {
       task.executableURL = [NSURL fileURLWithPath:launch_path];
@@ -86,19 +96,101 @@ bool RunTask(
         [task launch];
 #pragma clang diagnostic pop
       }
-      [task waitUntilExit];
     } @catch (NSException *exception) {
       std_err = ToStdString(exception.reason ?: @"Unknown task launch error");
       return false;
     }
 
-    NSData *stdout_data = [[out_pipe fileHandleForReading] readDataToEndOfFile];
-    NSData *stderr_data = [[err_pipe fileHandleForReading] readDataToEndOfFile];
+    @try {
+      [[out_pipe fileHandleForWriting] closeFile];
+      [[err_pipe fileHandleForWriting] closeFile];
+    } @catch (NSException *) {
+      // The child process owns its inherited write handles; parent-side close
+      // failures should not mask the real process result.
+    }
 
-    std_out = ToStdString([[NSString alloc] initWithData:stdout_data encoding:NSUTF8StringEncoding] ?: @"");
-    std_err = ToStdString([[NSString alloc] initWithData:stderr_data encoding:NSUTF8StringEncoding] ?: @"");
+    NSFileHandle *stdout_handle = [out_pipe fileHandleForReading];
+    NSFileHandle *stderr_handle = [err_pipe fileHandleForReading];
+    dispatch_queue_t io_queue = dispatch_get_global_queue(QOS_CLASS_UTILITY, 0);
+    dispatch_group_t io_group = dispatch_group_create();
+    __block NSData *stdout_data = nil;
+    __block NSData *stderr_data = nil;
+    __block NSString *stdout_read_error = nil;
+    __block NSString *stderr_read_error = nil;
+
+    dispatch_group_async(io_group, io_queue, ^{
+      @autoreleasepool {
+        @try {
+          stdout_data = [stdout_handle readDataToEndOfFile];
+        } @catch (NSException *exception) {
+          stdout_read_error = exception.reason ?: @"Could not read process stdout.";
+        }
+      }
+    });
+
+    dispatch_group_async(io_group, io_queue, ^{
+      @autoreleasepool {
+        @try {
+          stderr_data = [stderr_handle readDataToEndOfFile];
+        } @catch (NSException *exception) {
+          stderr_read_error = exception.reason ?: @"Could not read process stderr.";
+        }
+      }
+    });
+
+    const dispatch_time_t timeout_deadline = timeout_seconds > 0
+      ? dispatch_time(DISPATCH_TIME_NOW, static_cast<int64_t>(timeout_seconds * NSEC_PER_SEC))
+      : DISPATCH_TIME_FOREVER;
+    bool timed_out = dispatch_semaphore_wait(finished, timeout_deadline) != 0;
+    if (timed_out) {
+      [task terminate];
+      const dispatch_time_t terminate_deadline =
+        dispatch_time(DISPATCH_TIME_NOW, static_cast<int64_t>(kTerminateGraceSeconds * NSEC_PER_SEC));
+      if (dispatch_semaphore_wait(finished, terminate_deadline) != 0 && task.isRunning) {
+        kill(task.processIdentifier, SIGKILL);
+        dispatch_semaphore_wait(finished, terminate_deadline);
+      }
+    }
+
+    const dispatch_time_t drain_deadline =
+      dispatch_time(DISPATCH_TIME_NOW, static_cast<int64_t>(kPipeDrainGraceSeconds * NSEC_PER_SEC));
+    if (dispatch_group_wait(io_group, drain_deadline) != 0) {
+      @try {
+        [stdout_handle closeFile];
+        [stderr_handle closeFile];
+      } @catch (NSException *) {
+      }
+      dispatch_group_wait(io_group, drain_deadline);
+    }
+
+    std_out = ToStdString(
+      [[NSString alloc] initWithData:(stdout_data ?: [NSData data]) encoding:NSUTF8StringEncoding] ?: @"");
+    std_err = ToStdString(
+      [[NSString alloc] initWithData:(stderr_data ?: [NSData data]) encoding:NSUTF8StringEncoding] ?: @"");
+    if (stdout_read_error || stderr_read_error) {
+      if (!std_err.empty()) {
+        std_err += "\n";
+      }
+      if (stdout_read_error) {
+        std_err += ToStdString(stdout_read_error);
+      }
+      if (stderr_read_error) {
+        if (stdout_read_error) {
+          std_err += "\n";
+        }
+        std_err += ToStdString(stderr_read_error);
+      }
+    }
+    if (timed_out) {
+      if (!std_err.empty()) {
+        std_err += "\n";
+      }
+      std_err += "Process timed out after " + std::to_string(static_cast<int>(timeout_seconds)) + " seconds.";
+      return false;
+    }
+
     exit_code = task.terminationStatus;
-    return true;
+    return !stdout_read_error && !stderr_read_error;
   }
 }
 
@@ -1919,6 +2011,7 @@ struct PresentationDocument::Impl {
   Clock::time_point started_at = Clock::now();
   PDFDocument *__strong pdf_document = nil;
   mutable std::mutex render_mutex;
+  mutable std::mutex live_command_mutex;
 };
 
 PresentationDocument::PresentationDocument(std::string pptx_path)
@@ -2073,6 +2166,14 @@ void PresentationDocument::StopLivePowerPoint()
   impl_->version += 1;
 }
 
+void PresentationDocument::StopLivePowerPointAsync()
+{
+  auto self = shared_from_this();
+  std::thread([self]() {
+    self->StopLivePowerPoint();
+  }).detach();
+}
+
 void PresentationDocument::SetPresenterAssetsWanted(bool wanted)
 {
   std::lock_guard<std::mutex> lock(impl_->mutex);
@@ -2157,6 +2258,58 @@ void PresentationDocument::SyncLiveStateAsync()
     if (changed) {
       self->impl_->version += 1;
     }
+  }).detach();
+}
+
+void PresentationDocument::RunLivePowerPointCommandAsync(std::string command_line, bool clear_black)
+{
+  std::string cache_dir;
+  std::string presentation_path;
+  {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    if (!impl_->live_powerpoint_enabled || !impl_->live_ready) {
+      return;
+    }
+    cache_dir = impl_->cache_dir;
+    presentation_path = impl_->live_presentation_path;
+  }
+
+  auto self = shared_from_this();
+  std::thread([
+    self,
+    cache_dir = std::move(cache_dir),
+    presentation_path = std::move(presentation_path),
+    command_line = std::move(command_line),
+    clear_black
+  ]() {
+    LivePowerPointSnapshot snapshot;
+    std::string error;
+    bool ok = false;
+    {
+      std::lock_guard<std::mutex> command_lock(self->impl_->live_command_mutex);
+      ok = RunPowerPointLiveCommand(cache_dir, presentation_path, command_line, snapshot, error);
+    }
+
+    std::lock_guard<std::mutex> lock(self->impl_->mutex);
+    if (!self->impl_->live_powerpoint_enabled) {
+      return;
+    }
+
+    if (ok) {
+      self->impl_->current = snapshot.current_index;
+      self->impl_->live_slide_count = snapshot.slide_count;
+      self->impl_->live_window_title = snapshot.window_title;
+      if (!snapshot.presentation_path.empty()) {
+        self->impl_->live_presentation_path = snapshot.presentation_path;
+      }
+      self->impl_->live_error.clear();
+      if (clear_black) {
+        self->impl_->black = false;
+      }
+    } else {
+      self->impl_->live_error = error;
+    }
+    self->impl_->version += 1;
   }).detach();
 }
 
@@ -2406,38 +2559,14 @@ bool PresentationDocument::IsBlackScreen() const
 void PresentationDocument::Next()
 {
   bool use_live = false;
-  std::string cache_dir;
-  std::string presentation_path;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     use_live = impl_->live_powerpoint_enabled && impl_->live_ready;
-    cache_dir = impl_->cache_dir;
-    presentation_path = impl_->live_presentation_path;
   }
   if (use_live) {
-    LivePowerPointSnapshot snapshot;
-    std::string error;
-    if (RunPowerPointLiveCommand(
-          cache_dir,
-          presentation_path,
-          R"(go to next slide (slideshow view of slide show window of targetPresentation))",
-          snapshot,
-          error)) {
-      std::lock_guard<std::mutex> lock(impl_->mutex);
-      impl_->current = snapshot.current_index;
-      impl_->live_slide_count = snapshot.slide_count;
-      impl_->live_window_title = snapshot.window_title;
-      if (!snapshot.presentation_path.empty()) {
-        impl_->live_presentation_path = snapshot.presentation_path;
-      }
-      impl_->live_error.clear();
-      impl_->black = false;
-      impl_->version += 1;
-    } else {
-      std::lock_guard<std::mutex> lock(impl_->mutex);
-      impl_->live_error = error;
-      impl_->version += 1;
-    }
+    RunLivePowerPointCommandAsync(
+      R"(go to next slide (slideshow view of slide show window of targetPresentation))",
+      true);
     return;
   }
 
@@ -2465,38 +2594,14 @@ void PresentationDocument::Next()
 void PresentationDocument::Previous()
 {
   bool use_live = false;
-  std::string cache_dir;
-  std::string presentation_path;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     use_live = impl_->live_powerpoint_enabled && impl_->live_ready;
-    cache_dir = impl_->cache_dir;
-    presentation_path = impl_->live_presentation_path;
   }
   if (use_live) {
-    LivePowerPointSnapshot snapshot;
-    std::string error;
-    if (RunPowerPointLiveCommand(
-          cache_dir,
-          presentation_path,
-          R"(go to previous slide (slideshow view of slide show window of targetPresentation))",
-          snapshot,
-          error)) {
-      std::lock_guard<std::mutex> lock(impl_->mutex);
-      impl_->current = snapshot.current_index;
-      impl_->live_slide_count = snapshot.slide_count;
-      impl_->live_window_title = snapshot.window_title;
-      if (!snapshot.presentation_path.empty()) {
-        impl_->live_presentation_path = snapshot.presentation_path;
-      }
-      impl_->live_error.clear();
-      impl_->black = false;
-      impl_->version += 1;
-    } else {
-      std::lock_guard<std::mutex> lock(impl_->mutex);
-      impl_->live_error = error;
-      impl_->version += 1;
-    }
+    RunLivePowerPointCommandAsync(
+      R"(go to previous slide (slideshow view of slide show window of targetPresentation))",
+      true);
     return;
   }
 
@@ -2522,38 +2627,14 @@ void PresentationDocument::Previous()
 void PresentationDocument::First()
 {
   bool use_live = false;
-  std::string cache_dir;
-  std::string presentation_path;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     use_live = impl_->live_powerpoint_enabled && impl_->live_ready;
-    cache_dir = impl_->cache_dir;
-    presentation_path = impl_->live_presentation_path;
   }
   if (use_live) {
-    LivePowerPointSnapshot snapshot;
-    std::string error;
-    if (RunPowerPointLiveCommand(
-          cache_dir,
-          presentation_path,
-          R"(go to first slide (slideshow view of slide show window of targetPresentation))",
-          snapshot,
-          error)) {
-      std::lock_guard<std::mutex> lock(impl_->mutex);
-      impl_->current = snapshot.current_index;
-      impl_->live_slide_count = snapshot.slide_count;
-      impl_->live_window_title = snapshot.window_title;
-      if (!snapshot.presentation_path.empty()) {
-        impl_->live_presentation_path = snapshot.presentation_path;
-      }
-      impl_->live_error.clear();
-      impl_->black = false;
-      impl_->version += 1;
-    } else {
-      std::lock_guard<std::mutex> lock(impl_->mutex);
-      impl_->live_error = error;
-      impl_->version += 1;
-    }
+    RunLivePowerPointCommandAsync(
+      R"(go to first slide (slideshow view of slide show window of targetPresentation))",
+      true);
     return;
   }
 
@@ -2569,38 +2650,14 @@ void PresentationDocument::First()
 void PresentationDocument::Last()
 {
   bool use_live = false;
-  std::string cache_dir;
-  std::string presentation_path;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     use_live = impl_->live_powerpoint_enabled && impl_->live_ready;
-    cache_dir = impl_->cache_dir;
-    presentation_path = impl_->live_presentation_path;
   }
   if (use_live) {
-    LivePowerPointSnapshot snapshot;
-    std::string error;
-    if (RunPowerPointLiveCommand(
-          cache_dir,
-          presentation_path,
-          R"(go to last slide (slideshow view of slide show window of targetPresentation))",
-          snapshot,
-          error)) {
-      std::lock_guard<std::mutex> lock(impl_->mutex);
-      impl_->current = snapshot.current_index;
-      impl_->live_slide_count = snapshot.slide_count;
-      impl_->live_window_title = snapshot.window_title;
-      if (!snapshot.presentation_path.empty()) {
-        impl_->live_presentation_path = snapshot.presentation_path;
-      }
-      impl_->live_error.clear();
-      impl_->black = false;
-      impl_->version += 1;
-    } else {
-      std::lock_guard<std::mutex> lock(impl_->mutex);
-      impl_->live_error = error;
-      impl_->version += 1;
-    }
+    RunLivePowerPointCommandAsync(
+      R"(go to last slide (slideshow view of slide show window of targetPresentation))",
+      true);
     return;
   }
 

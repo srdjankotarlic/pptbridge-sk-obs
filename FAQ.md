@@ -23,9 +23,7 @@ For `.pdf` decks on macOS, PowerPoint is not required.
 
 `PPTBridge SK Slide` is the clean audience output. Put it in the scene that goes to the projector, stream, switcher, or recording.
 
-`PPTBridge SK Presenter` is for the person presenting. It shows the current slide, next slide, timer, and notes.
-
-In Apple Silicon v0.4.5 and newer, the presenter source can also show live PowerPoint builds, animations, and embedded video inside the current-slide panel. Enable `Enable Live/Video Current-Slide Preview` in `PPTBridge SK Presenter` properties when you need that.
+`PPTBridge SK Presenter` is for the person presenting. It shows the current slide, next slide, timer, and notes. It is kept lightweight for confidence-monitor stability; live builds, animations, and embedded video should stay in `PPTBridge SK Slide`.
 
 ## Is the presenter view PowerPoint Presenter View?
 

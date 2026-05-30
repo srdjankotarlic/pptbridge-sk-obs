@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS Setup Guide
 
-**Created by Srđan Kotarlić** | v0.4.5
+**Created by Srđan Kotarlić** | v0.4.6
 
 For the fastest install path, start with [QUICKSTART.md](QUICKSTART.md). This guide is the fuller walkthrough for setup, controls, multiple decks, and troubleshooting.
 

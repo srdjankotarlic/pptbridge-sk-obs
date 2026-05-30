@@ -1,4 +1,4 @@
-## PPTBridge SK for OBS v0.4.5
+## PPTBridge SK for OBS v0.4.6
 
 Created by **Srdjan Kotarlic**
 
@@ -23,15 +23,24 @@ PPTBridge SK is a native macOS OBS plugin for live PowerPoint and PDF workflows.
 
 Apple Silicon is the main stable build. Intel Mac and Windows remain separate beta paths while real-hardware feedback is collected.
 
-### What Is New In v0.4.5
+### What Is New In v0.4.6
+
+- fixes a live PowerPoint control stall where next/previous/first/last could block the OBS UI while PowerPoint or AppleScript responded
+- runs live PowerPoint navigation on a serialized worker path so rapid commands stay ordered without freezing the OBS interface
+- adds timeout-safe macOS process handling for PowerPoint/LibreOffice helper calls so stuck subprocesses can be terminated instead of hanging forever
+- adds matching timeout protection to the Windows process helper path
+- makes the `STOP - Stop PowerPoint Live Mode` property button asynchronous on macOS and Windows, while shutdown cleanup still waits intentionally
+- cleans stale deck registry entries and avoids constructing new deck documents while holding the registry lock
+- release packaging now creates only the canonical `pptbridge-obs-macos-apple-silicon.zip` plus checksum, without the duplicate long ZIP filename
+- adds a narrow audit guardrail test for these concurrency and packaging regressions
+
+### Also Included From Recent Releases
 
 - keeps live builds, animations, and embedded video in `PPTBridge SK Slide`, where they are already verified for live production
 - keeps `PPTBridge SK Presenter` lightweight and static for notes, next slide, timer, and presenter layout customization
 - adds clear `PowerPoint Live Start / Stop` controls to presenter properties too, so the presenter source can launch or stop PowerPoint live mode for the deck when needed
 - postpones live-video presenter preview until it can be verified without adding crash risk to OBS
 - Apple Silicon package only: this release does not replace the Intel beta download
-
-### Also Included From Recent Releases
 
 - Spotlight/Clicker Capture works out-of-the-box with common presenter keys: `PageDown` or `Right` for next and `PageUp` or `Left` for previous
 - captured clicker keys route to the PPTBridge source in the current OBS program scene and are suppressed from the focused app, so the operator can use Chrome, OBS, or another app during a presentation
@@ -100,7 +109,7 @@ The ZIP includes only the user-facing files needed to install and use the plugin
 
 ### Notes
 
-- Apple Silicon was runtime-tested locally with manual startup, source property controls, OBS-focused hotkeys, and existing presenter/slide rendering.
+- Apple Silicon was runtime-tested locally with install/restart, plugin loading, local OSC next/previous, manual startup, source property controls, OBS-focused hotkeys, and existing presenter/slide rendering.
 - Intel stays on the previous beta package until these Apple Silicon changes are separately validated there.
 - Windows is not part of this main macOS ZIP release; it remains a separate beta source validation release.
 - The package is currently unsigned and not notarized.

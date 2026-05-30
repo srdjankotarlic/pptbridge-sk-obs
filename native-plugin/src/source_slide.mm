@@ -1252,7 +1252,7 @@ bool control_stop_live(obs_properties_t *, obs_property_t *, void *data)
   clear_live_audio_source(context);
   context->live_capture_suppressed_after_stop = true;
   context->started_live_powerpoint_from_this_source = false;
-  context->document->StopLivePowerPoint();
+  context->document->StopLivePowerPointAsync();
   return false;
 }
 

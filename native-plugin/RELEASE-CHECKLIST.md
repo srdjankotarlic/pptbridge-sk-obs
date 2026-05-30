@@ -33,7 +33,7 @@ Upload only this canonical ZIP plus checksum. Do not add a second duplicate ZIP 
 
 - create the repository
 - push the code
-- create tag `v0.4.5`
+- create tag `v0.4.6`
 - create a GitHub Release
 - paste the body from `GITHUB-RELEASE.md`
 - upload the release assets

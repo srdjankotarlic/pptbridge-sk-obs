@@ -37,6 +37,8 @@ namespace {
 constexpr const wchar_t *kPowerShellExe = L"powershell.exe";
 constexpr uint32_t kExportWidth = 1920;
 constexpr uint32_t kExportHeight = 1080;
+constexpr DWORD kProcessTimeoutMs = 300000;
+constexpr DWORD kProcessPollMs = 20;
 
 struct CachedSlide {
   std::wstring image_path;
@@ -238,20 +240,68 @@ bool RunProcessCapture(const std::vector<std::wstring> &args, std::string &out_o
   }
 
   char buffer[4096];
-  DWORD bytes_read = 0;
-  while (ReadFile(read_pipe, buffer, sizeof(buffer), &bytes_read, nullptr) && bytes_read > 0) {
-    out_output.append(buffer, buffer + bytes_read);
+  const ULONGLONG started_at = GetTickCount64();
+  bool process_done = false;
+  bool timed_out = false;
+
+  while (true) {
+    DWORD available = 0;
+    if (!PeekNamedPipe(read_pipe, nullptr, 0, nullptr, &available, nullptr)) {
+      break;
+    }
+
+    while (available > 0) {
+      DWORD bytes_read = 0;
+      const DWORD to_read = std::min<DWORD>(available, sizeof(buffer));
+      if (!ReadFile(read_pipe, buffer, to_read, &bytes_read, nullptr) || bytes_read == 0) {
+        available = 0;
+        break;
+      }
+      out_output.append(buffer, buffer + bytes_read);
+
+      available = 0;
+      if (!PeekNamedPipe(read_pipe, nullptr, 0, nullptr, &available, nullptr)) {
+        break;
+      }
+    }
+
+    const DWORD wait_result = WaitForSingleObject(process.hProcess, process_done ? 0 : kProcessPollMs);
+    if (wait_result == WAIT_OBJECT_0) {
+      if (process_done) {
+        break;
+      }
+      process_done = true;
+      continue;
+    }
+    if (wait_result == WAIT_FAILED) {
+      break;
+    }
+    if (process_done && wait_result == WAIT_TIMEOUT) {
+      break;
+    }
+
+    if (!process_done && GetTickCount64() - started_at >= kProcessTimeoutMs) {
+      timed_out = true;
+      TerminateProcess(process.hProcess, 1);
+      WaitForSingleObject(process.hProcess, 2000);
+      process_done = true;
+    }
   }
 
-  WaitForSingleObject(process.hProcess, INFINITE);
   DWORD exit_code = 0;
   GetExitCodeProcess(process.hProcess, &exit_code);
   out_exit_code = static_cast<int>(exit_code);
+  if (timed_out) {
+    if (!out_output.empty()) {
+      out_output.append("\n");
+    }
+    out_output.append("Process timed out after 300 seconds.");
+  }
 
   CloseHandle(process.hThread);
   CloseHandle(process.hProcess);
   CloseHandle(read_pipe);
-  return true;
+  return !timed_out;
 }
 
 std::wstring GetLocalAppDataPath()
@@ -1812,6 +1862,14 @@ void PresentationDocument::StopLivePowerPoint()
       impl_->last_error.c_str());
   }
   impl_->state_version += 1;
+}
+
+void PresentationDocument::StopLivePowerPointAsync()
+{
+  auto self = shared_from_this();
+  std::thread([self]() {
+    self->StopLivePowerPoint();
+  }).detach();
 }
 
 void PresentationDocument::SyncLiveStateAsync()

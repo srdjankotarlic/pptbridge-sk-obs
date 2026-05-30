@@ -4,6 +4,21 @@
 
 namespace pptbridge {
 
+namespace {
+
+void RemoveExpiredDocuments(std::unordered_map<std::string, std::weak_ptr<PresentationDocument>> &documents)
+{
+  for (auto it = documents.begin(); it != documents.end();) {
+    if (it->second.expired()) {
+      it = documents.erase(it);
+    } else {
+      ++it;
+    }
+  }
+}
+
+}  // namespace
+
 Registry &Registry::Instance()
 {
   static Registry instance;
@@ -16,13 +31,28 @@ std::shared_ptr<PresentationDocument> Registry::Acquire(const std::string &pptx_
     return nullptr;
   }
 
-  std::lock_guard<std::mutex> lock(mutex_);
-  auto existing = documents_[pptx_path].lock();
-  if (existing) {
-    return existing;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    RemoveExpiredDocuments(documents_);
+    auto found = documents_.find(pptx_path);
+    if (found != documents_.end()) {
+      if (auto existing = found->second.lock()) {
+        return existing;
+      }
+      documents_.erase(found);
+    }
   }
 
   auto created = std::make_shared<PresentationDocument>(pptx_path);
+  std::lock_guard<std::mutex> lock(mutex_);
+  RemoveExpiredDocuments(documents_);
+  auto found = documents_.find(pptx_path);
+  if (found != documents_.end()) {
+    if (auto existing = found->second.lock()) {
+      return existing;
+    }
+  }
+
   documents_[pptx_path] = created;
   return created;
 }

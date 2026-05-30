@@ -10,12 +10,12 @@ RELEASE_SUFFIX="${PPTBRIDGE_RELEASE_SUFFIX:-macOS-Apple-Silicon}"
 DOWNLOAD_LABEL="${PPTBRIDGE_DOWNLOAD_LABEL:-Apple Silicon}"
 RELEASE_STATUS="${PPTBRIDGE_RELEASE_STATUS:-Stable}"
 RELEASE_DIR="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-$RELEASE_SUFFIX"
-ZIP_PATH="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-$RELEASE_SUFFIX.zip"
 STABLE_ZIP_NAME="${PPTBRIDGE_ZIP_NAME:-pptbridge-obs-macos-apple-silicon.zip}"
 STABLE_ZIP_PATH="$PROJECT_DIR/release/$STABLE_ZIP_NAME"
+LEGACY_ZIP_PATH="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-$RELEASE_SUFFIX.zip"
+LEGACY_ZIP_CHECKSUM_PATH="$LEGACY_ZIP_PATH.sha256"
 BUNDLE_PATH="${PPTBRIDGE_BUNDLE_PATH:-$PROJECT_DIR/build/bundle/pptbridge-obs.plugin}"
 INSTALLER_NAME="1-Install-PPTBridge-SK.command"
-ZIP_CHECKSUM_PATH="$PROJECT_DIR/release/$BRAND_SLUG-v$VERSION-$RELEASE_SUFFIX.zip.sha256"
 STABLE_ZIP_CHECKSUM_PATH="$PROJECT_DIR/release/$STABLE_ZIP_NAME.sha256"
 
 export COPYFILE_DISABLE=1
@@ -130,14 +130,8 @@ fi
 
 (
   cd "$PROJECT_DIR/release"
-  rm -f "$ZIP_PATH" "$STABLE_ZIP_PATH"
-  /usr/bin/zip -qryX "$(basename "$ZIP_PATH")" "$(basename "$RELEASE_DIR")"
-)
-
-cp "$ZIP_PATH" "$STABLE_ZIP_PATH"
-(
-  cd "$PROJECT_DIR/release"
-  shasum -a 256 "$(basename "$ZIP_PATH")" > "$ZIP_CHECKSUM_PATH"
+  rm -f "$STABLE_ZIP_PATH" "$LEGACY_ZIP_PATH" "$LEGACY_ZIP_CHECKSUM_PATH"
+  /usr/bin/zip -qryX "$(basename "$STABLE_ZIP_PATH")" "$(basename "$RELEASE_DIR")"
   shasum -a 256 "$(basename "$STABLE_ZIP_PATH")" > "$STABLE_ZIP_CHECKSUM_PATH"
 )
 
@@ -146,6 +140,5 @@ echo "Created release folder:"
 echo "$RELEASE_DIR"
 echo ""
 echo "Created release zip:"
-echo "$ZIP_PATH"
 echo "$STABLE_ZIP_PATH"
 echo ""

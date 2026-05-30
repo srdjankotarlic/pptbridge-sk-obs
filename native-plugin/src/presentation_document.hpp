@@ -72,6 +72,7 @@ public:
   std::string LiveWindowTitle() const;
   void StartLivePowerPointAsync();
   void StopLivePowerPoint();
+  void StopLivePowerPointAsync();
   void SyncLiveStateAsync();
   void SetPresenterAssetsWanted(bool wanted);
 
@@ -120,6 +121,7 @@ private:
 
   void StartLoadIfNeeded(bool force_reload);
   void LoadOnWorker();
+  void RunLivePowerPointCommandAsync(std::string command_line, bool clear_black);
 };
 
 }  // namespace pptbridge

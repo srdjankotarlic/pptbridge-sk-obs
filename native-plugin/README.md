@@ -44,7 +44,8 @@ This native version is built around a practical conference workflow:
 ## Quick Platform Guide
 
 - `v0.5.0-beta.1` = Windows beta source pack for real Windows OBS build/runtime validation
-- `v0.4.5` = Apple Silicon stable release with conservative presenter stability, clearer live controls, and updated docs
+- `v0.4.6` = Apple Silicon stable release with live PowerPoint control stability, timeout-safe process handling, and cleaner release packaging
+- `v0.4.5` = previous Apple Silicon stable release with conservative presenter stability, clearer live controls, and updated docs
 - `v0.4.4` = previous macOS stable release with clean public ZIP packages and easy install; current Intel beta
 - `v0.4.3` = previous macOS stable release with out-of-the-box Spotlight/Clicker Capture keys, multi-deck live routing, locked PowerPoint resize behavior, manual/automatic PowerPoint lifecycle controls, and Companion/OSC control
 - `v0.4.2` = previous macOS stable release with Spotlight/Clicker Capture, multi-deck live routing, locked PowerPoint resize behavior, manual/automatic PowerPoint lifecycle controls, and Companion/OSC control
