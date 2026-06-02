@@ -1973,6 +1973,11 @@ std::string FormatTimer(uint64_t seconds)
   return buffer;
 }
 
+long long ElapsedMs(Clock::time_point start)
+{
+  return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - start).count();
+}
+
 }  // namespace
 
 struct PresentationDocument::Impl {
@@ -2338,6 +2343,7 @@ void PresentationDocument::StartLoadIfNeeded(bool force_reload)
 void PresentationDocument::LoadOnWorker()
 {
   @autoreleasepool {
+    const auto load_started = Clock::now();
     std::string pdf_path;
     std::string error;
     auto cache_dir = CacheDirectoryForDeck(impl_->path);
@@ -2376,10 +2382,13 @@ void PresentationDocument::LoadOnWorker()
       already_live_ready = impl_->live_ready;
     }
 
+    bool live_started_now = false;
     if (live_enabled && live_start_requested && !already_live_ready) {
       LivePowerPointSnapshot live_snapshot;
       std::string live_error;
+      const auto live_start_started = Clock::now();
       if (StartPowerPointLiveSession(impl_->path, cache_dir, live_snapshot, live_error)) {
+        live_started_now = true;
         std::lock_guard<std::mutex> lock(impl_->mutex);
         impl_->cache_dir = cache_dir;
         impl_->live_ready = true;
@@ -2395,9 +2404,10 @@ void PresentationDocument::LoadOnWorker()
         impl_->started_at = Clock::now();
         impl_->version += 1;
         blog(LOG_INFO,
-          "[PPTBridge] PowerPoint live mode started for '%s' (%s)",
+          "[PPTBridge] PowerPoint live mode started for '%s' (%s) in %lld ms",
           impl_->path.c_str(),
-          live_snapshot.window_title.c_str());
+          live_snapshot.window_title.c_str(),
+          ElapsedMs(live_start_started));
       } else {
         std::lock_guard<std::mutex> lock(impl_->mutex);
         impl_->live_ready = false;
@@ -2406,17 +2416,37 @@ void PresentationDocument::LoadOnWorker()
         impl_->live_presentation_path.clear();
         impl_->live_slide_count = 0;
         impl_->version += 1;
-        blog(LOG_WARNING, "[PPTBridge] Live mode failed for '%s': %s", impl_->path.c_str(), live_error.c_str());
+        blog(LOG_WARNING,
+          "[PPTBridge] Live mode failed for '%s' after %lld ms: %s",
+          impl_->path.c_str(),
+          ElapsedMs(live_start_started),
+          live_error.c_str());
       }
     }
 
     if (live_enabled && !presenter_assets_wanted) {
-      std::lock_guard<std::mutex> lock(impl_->mutex);
-      impl_->cache_dir = cache_dir;
-      impl_->loading = false;
-      impl_->loaded = false;
-      impl_->error.clear();
-      impl_->version += 1;
+      bool requested_presenter_preload = false;
+      {
+        std::lock_guard<std::mutex> lock(impl_->mutex);
+        impl_->cache_dir = cache_dir;
+        impl_->loading = false;
+        impl_->loaded = false;
+        impl_->error.clear();
+
+        if ((live_started_now || impl_->live_ready) && !impl_->presenter_assets_wanted) {
+          impl_->presenter_assets_wanted = true;
+          impl_->load_requested = true;
+          requested_presenter_preload = true;
+        }
+
+        impl_->version += 1;
+      }
+
+      if (requested_presenter_preload) {
+        blog(LOG_INFO,
+          "[PPTBridge] Preloading presenter notes/thumbnails for '%s' after live mode start",
+          impl_->path.c_str());
+      }
       return;
     }
 
@@ -2433,22 +2463,31 @@ void PresentationDocument::LoadOnWorker()
       std::error_code cache_error;
       fs::create_directories(cache_dir, cache_error);
       pdf_path = impl_->path;
-    } else if (!ConvertPptxToPdf(
-                 impl_->path,
-                 cache_dir,
-                 pdf_path,
-                 error,
-                 !live_enabled || live_auto_start || live_start_requested || already_live_ready)) {
-      std::lock_guard<std::mutex> lock(impl_->mutex);
-      impl_->loading = false;
-      impl_->loaded = false;
-      impl_->error = error;
-      impl_->version += 1;
-      blog(LOG_WARNING, "[PPTBridge] Failed to load '%s': %s", impl_->path.c_str(), error.c_str());
-      return;
+    } else {
+      const auto convert_started = Clock::now();
+      if (!ConvertPptxToPdf(
+            impl_->path,
+            cache_dir,
+            pdf_path,
+            error,
+            !live_enabled || live_auto_start || live_start_requested || already_live_ready || live_started_now)) {
+        std::lock_guard<std::mutex> lock(impl_->mutex);
+        impl_->loading = false;
+        impl_->loaded = false;
+        impl_->error = error;
+        impl_->version += 1;
+        blog(LOG_WARNING, "[PPTBridge] Failed to load '%s': %s", impl_->path.c_str(), error.c_str());
+        return;
+      }
+      blog(LOG_INFO,
+        "[PPTBridge] Prepared static PDF for '%s' in %lld ms",
+        impl_->path.c_str(),
+        ElapsedMs(convert_started));
     }
 
+    const auto pdf_open_started = Clock::now();
     PDFDocument *document = [[PDFDocument alloc] initWithURL:[NSURL fileURLWithPath:ToNSString(pdf_path)]];
+    const auto pdf_open_ms = ElapsedMs(pdf_open_started);
     if (!document || document.pageCount <= 0) {
       std::lock_guard<std::mutex> lock(impl_->mutex);
       impl_->loading = false;
@@ -2463,6 +2502,7 @@ void PresentationDocument::LoadOnWorker()
     // pptx-only metadata extractors read inside the .pptx zip; skip them
     // entirely when the source is a standalone .pdf so we don't spawn
     // unzip processes against a file that is not a zip archive.
+    const auto metadata_started = Clock::now();
     std::vector<SlideMetadata> metadata;
     std::vector<std::vector<EmbeddedMedia>> media_by_slide;
     if (!is_pdf_source) {
@@ -2475,6 +2515,7 @@ void PresentationDocument::LoadOnWorker()
         metadata[index].title = "Page " + std::to_string(index + 1);
       }
     }
+    const auto metadata_ms = ElapsedMs(metadata_started);
 
     std::lock_guard<std::mutex> lock(impl_->mutex);
     impl_->cache_dir = cache_dir;
@@ -2493,9 +2534,12 @@ void PresentationDocument::LoadOnWorker()
     impl_->error.clear();
     impl_->version += 1;
     blog(LOG_INFO,
-      "[PPTBridge] Loaded '%s' with %ld slide(s)",
+      "[PPTBridge] Loaded '%s' with %ld slide(s) in %lld ms (PDF open %lld ms, metadata/media %lld ms)",
       impl_->path.c_str(),
-      static_cast<long>(document.pageCount));
+      static_cast<long>(document.pageCount),
+      ElapsedMs(load_started),
+      pdf_open_ms,
+      metadata_ms);
   }
 }
 
@@ -2565,7 +2609,13 @@ void PresentationDocument::Next()
   }
   if (use_live) {
     RunLivePowerPointCommandAsync(
-      R"(go to next slide (slideshow view of slide show window of targetPresentation))",
+      R"(set targetWindow to slide show window of targetPresentation
+		set targetView to slideshow view of targetWindow
+		set currentLiveSlide to slide index of slide of targetView
+		set targetSlideCount to count of slides of targetPresentation
+		if currentLiveSlide < targetSlideCount then
+			go to next slide (slideshow view of targetWindow)
+		end if)",
       true);
     return;
   }

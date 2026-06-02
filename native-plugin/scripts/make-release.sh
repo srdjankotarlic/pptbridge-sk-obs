@@ -88,6 +88,11 @@ macOS ZIP:
 5. Use \`PPTBridge SK Presenter\` for notes, next slide, timer, and confidence-monitor layouts. Live animations and video stay in \`PPTBridge SK Slide\`.
 6. For PDF decks, PowerPoint is not required.
 
+In PowerPoint live mode, extra next commands on the final slide are ignored so
+the slideshow stays open in OBS at the end of the deck. Presenter notes and
+thumbnails are prepared in the background after live mode starts, so the slide
+source can appear first while the confidence view catches up.
+
 ## Slide Control
 
 - OBS hotkeys default to \`2\` for next slide and \`1\` for previous slide.

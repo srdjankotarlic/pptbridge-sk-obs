@@ -49,8 +49,22 @@ def main() -> int:
         if "RunLivePowerPointCommandAsync(" not in body:
             raise AssertionError(f"{name} should dispatch live PowerPoint commands to a worker")
 
+    next_body = extract_function(source, "void PresentationDocument::Next(")
+    if "currentLiveSlide" not in next_body or "targetSlideCount" not in next_body:
+        raise AssertionError("Live Next needs a final-slide guard before asking PowerPoint to advance")
+    if "if currentLiveSlide < targetSlideCount then" not in next_body:
+        raise AssertionError("Live Next must ignore extra next commands on the final PowerPoint slide")
+
     if "void PresentationDocument::StopLivePowerPointAsync(" not in source:
         raise AssertionError("UI controls need async PowerPoint live stop support")
+
+    load_worker = extract_function(source, "void PresentationDocument::LoadOnWorker(")
+    if "live_started_now" not in load_worker:
+        raise AssertionError("Live startup should track whether this worker just opened PowerPoint")
+    if "Preloading presenter notes/thumbnails" not in load_worker:
+        raise AssertionError("Live slide startup should prewarm presenter assets in the background")
+    if "impl_->presenter_assets_wanted = true" not in load_worker:
+        raise AssertionError("Live slide startup should request presenter assets before the presenter source waits")
 
     source_slide = (ROOT / "src" / "source_slide.mm").read_text(encoding="utf-8")
     stop_control = extract_function(source_slide, "bool control_stop_live(")

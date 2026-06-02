@@ -1047,8 +1047,19 @@ std::string build_status_text(SourceContext *context)
 
   status << "Presentation: " << context->document->Name() << "\n";
   status << "Mode: " << (live_enabled ? "True Live PowerPoint" : "Legacy Render") << "\n";
-  status << "Load state: "
-         << (loading ? "loading" : (live_ready ? "live ready" : (loaded ? "ready" : "idle"))) << "\n";
+  status << "Load state: ";
+  if (live_ready && loading) {
+    status << "live ready, preparing presenter";
+  } else if (loading) {
+    status << "loading";
+  } else if (live_ready) {
+    status << "live ready";
+  } else if (loaded) {
+    status << "ready";
+  } else {
+    status << "idle";
+  }
+  status << "\n";
   status << "Slide: " << current_slide << " / " << slide_count << "\n";
 
   const auto kind = context->mode == ViewMode::Slide ? RegisteredSourceKind::Slide : RegisteredSourceKind::Presenter;

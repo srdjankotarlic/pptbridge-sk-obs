@@ -33,7 +33,7 @@ This is a Windows beta preview of `PPTBridge SK`. It is prepared so the Windows 
 - it is not yet a one-click Windows installer
 - PDF input is not enabled in this Windows beta path
 - exact audio ownership can vary by OBS build and Windows capture support available on that machine
-- the macOS `v0.4.6` Apple Silicon ZIP remains the stable public release for normal users
+- the macOS `v0.4.7` Apple Silicon ZIP remains the stable public release for normal users
 
 ## Best Current Usage Goal
 
