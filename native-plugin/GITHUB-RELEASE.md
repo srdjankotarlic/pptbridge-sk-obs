@@ -7,6 +7,12 @@ PPTBridge SK is a native macOS OBS plugin for live PowerPoint and PDF workflows.
 - `PPTBridge SK Slide` - clean audience/program output
 - `PPTBridge SK Presenter` - speaker confidence view with current slide, next slide, timer, and notes
 
+### Demo Video
+
+Watch a short silent demo of PPTBridge SK running inside OBS:
+
+https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov
+
 ### Start Here
 
 - Quick install: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/QUICKSTART.md
@@ -96,6 +102,7 @@ Default resize behavior is `Lock OBS Output Size`, so shrinking the PowerPoint w
 
 - `pptbridge-obs-macos-apple-silicon.zip`
 - `pptbridge-obs-macos-apple-silicon.zip.sha256`
+- `pptbridge-sk-demo.mov`
 
 The ZIP includes only the user-facing files needed to install and use the plugin:
 

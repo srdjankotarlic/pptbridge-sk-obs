@@ -15,6 +15,13 @@ PPTBridge SK gives OBS two dedicated presentation sources:
 
 ![PPTBridge SK overview](native-plugin/media/github/pptbridge-sk-social-preview.png)
 
+## Demo Video
+
+[![Watch the PPTBridge SK demo](native-plugin/media/github/pptbridge-demo-preview.png)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov)
+
+Watch a short silent demo of PPTBridge SK running inside OBS:
+[pptbridge-sk-demo.mov](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov)
+
 ## Start Here
 
 | Need | Link |
