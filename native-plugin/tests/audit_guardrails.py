@@ -41,6 +41,22 @@ def main() -> int:
         raise AssertionError("RunTask must not wait before draining stdout/stderr pipes")
     if "dispatch_semaphore_wait" not in run_task:
         raise AssertionError("RunTask needs a timeout-backed wait")
+    if "pipes_drained" not in run_task:
+        raise AssertionError("RunTask must not read pipe output unless the drain workers finished")
+    if "kStopTaskTimeoutSeconds" not in source:
+        raise AssertionError("PowerPoint live stop needs its own short timeout, not the default task timeout")
+
+    stop_session = extract_function(source, "bool StopPowerPointLiveSession(")
+    if "kStopTaskTimeoutSeconds" not in stop_session:
+        raise AssertionError("PowerPoint live stop must pass the short stop timeout to osascript")
+    live_query = extract_function(source, "bool QueryPowerPointLiveState(")
+    if "kLiveTaskTimeoutSeconds" not in live_query:
+        raise AssertionError("PowerPoint live state sync must use a short live-task timeout")
+    live_runner = extract_function(source, "bool RunPowerPointLiveCommand(")
+    if "kLiveTaskTimeoutSeconds" not in live_runner:
+        raise AssertionError("PowerPoint live commands must use a short live-task timeout")
+    if "dispatch_queue_create(\"com.srdjankotarlic.pptbridge.live\", DISPATCH_QUEUE_SERIAL)" not in source:
+        raise AssertionError("Live PowerPoint AppleScript operations need one FIFO serial queue")
 
     for name in ("Next", "Previous", "First", "Last"):
         body = extract_function(source, f"void PresentationDocument::{name}(")
@@ -57,6 +73,25 @@ def main() -> int:
 
     if "void PresentationDocument::StopLivePowerPointAsync(" not in source:
         raise AssertionError("UI controls need async PowerPoint live stop support")
+    stop_async = extract_function(source, "void PresentationDocument::StopLivePowerPointAsync(")
+    if "std::thread" in stop_async or "detach(" in stop_async:
+        raise AssertionError("Async live stop should use the FIFO live queue, not one detached thread per stop")
+    if "dispatch_async(impl_->live_queue" not in stop_async:
+        raise AssertionError("Async live stop must dispatch through the FIFO live queue")
+
+    sync_live = extract_function(source, "void PresentationDocument::SyncLiveStateAsync(")
+    if "std::thread" in sync_live or "detach(" in sync_live:
+        raise AssertionError("Live state sync should use the FIFO live queue, not detached threads")
+    if "dispatch_async(impl_->live_queue" not in sync_live:
+        raise AssertionError("Live state sync must dispatch through the FIFO live queue")
+
+    live_command = extract_function(source, "void PresentationDocument::RunLivePowerPointCommandAsync(")
+    if "std::thread" in live_command or "detach(" in live_command:
+        raise AssertionError("Live PowerPoint commands should use the FIFO live queue, not detached threads")
+    if "live_command_mutex" in live_command:
+        raise AssertionError("The FIFO live queue should serialize live commands instead of a non-FIFO mutex")
+    if "dispatch_async(impl_->live_queue" not in live_command:
+        raise AssertionError("Live PowerPoint commands must dispatch through the FIFO live queue")
 
     load_worker = extract_function(source, "void PresentationDocument::LoadOnWorker(")
     if "live_started_now" not in load_worker:

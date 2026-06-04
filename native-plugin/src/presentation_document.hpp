@@ -121,6 +121,7 @@ private:
 
   void StartLoadIfNeeded(bool force_reload);
   void LoadOnWorker();
+  void StopLivePowerPointOnLiveQueue();
   void RunLivePowerPointCommandAsync(std::string command_line, bool clear_black);
 };
 

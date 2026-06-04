@@ -1,6 +1,7 @@
 #import "presentation_document.hpp"
 
 #import <AppKit/AppKit.h>
+#import <dispatch/dispatch.h>
 #import <Foundation/Foundation.h>
 #import <PDFKit/PDFKit.h>
 
@@ -24,6 +25,10 @@ namespace {
 using Clock = std::chrono::steady_clock;
 
 constexpr NSTimeInterval kDefaultTaskTimeoutSeconds = 300.0;
+constexpr NSTimeInterval kLibreOfficeExportTimeoutSeconds = 90.0;
+constexpr NSTimeInterval kPowerPointExportTimeoutSeconds = 60.0;
+constexpr NSTimeInterval kLiveTaskTimeoutSeconds = 12.0;
+constexpr NSTimeInterval kStopTaskTimeoutSeconds = 8.0;
 constexpr NSTimeInterval kTerminateGraceSeconds = 2.0;
 constexpr NSTimeInterval kPipeDrainGraceSeconds = 2.0;
 
@@ -37,6 +42,21 @@ std::string ToStdString(NSString *value)
   return value ? std::string(value.UTF8String) : std::string();
 }
 
+std::string NormalizePathForCacheIdentity(const std::string &path)
+{
+  NSString *path_ns = ToNSString(path);
+  if (!path_ns) {
+    return path;
+  }
+
+  // macOS may hand us visually identical file names in different Unicode
+  // normalization forms (for example "Guć" vs "Guć"). Normalize before
+  // hashing so one deck maps to one cache directory.
+  NSString *standardized = [path_ns stringByStandardizingPath];
+  NSString *precomposed = [standardized precomposedStringWithCanonicalMapping];
+  return ToStdString(precomposed ?: standardized ?: path_ns);
+}
+
 NSString *JoinLines(NSArray<NSString *> *lines)
 {
   return [lines componentsJoinedByString:@"\n"];
@@ -44,6 +64,12 @@ NSString *JoinLines(NSArray<NSString *> *lines)
 
 NSString *ReadZipEntry(const std::string &pptx_path, const std::string &entry_path);
 NSArray<NSXMLNode *> *XPath(NSXMLNode *node, NSString *query);
+
+void *LiveQueueSpecificKey()
+{
+  static int key;
+  return &key;
+}
 
 bool RunTask(
   NSString *launch_path,
@@ -154,32 +180,38 @@ bool RunTask(
 
     const dispatch_time_t drain_deadline =
       dispatch_time(DISPATCH_TIME_NOW, static_cast<int64_t>(kPipeDrainGraceSeconds * NSEC_PER_SEC));
-    if (dispatch_group_wait(io_group, drain_deadline) != 0) {
+    bool pipes_drained = dispatch_group_wait(io_group, drain_deadline) == 0;
+    if (!pipes_drained) {
       @try {
         [stdout_handle closeFile];
         [stderr_handle closeFile];
       } @catch (NSException *) {
       }
-      dispatch_group_wait(io_group, drain_deadline);
+      pipes_drained = dispatch_group_wait(io_group, drain_deadline) == 0;
     }
 
-    std_out = ToStdString(
-      [[NSString alloc] initWithData:(stdout_data ?: [NSData data]) encoding:NSUTF8StringEncoding] ?: @"");
-    std_err = ToStdString(
-      [[NSString alloc] initWithData:(stderr_data ?: [NSData data]) encoding:NSUTF8StringEncoding] ?: @"");
-    if (stdout_read_error || stderr_read_error) {
-      if (!std_err.empty()) {
-        std_err += "\n";
-      }
-      if (stdout_read_error) {
-        std_err += ToStdString(stdout_read_error);
-      }
-      if (stderr_read_error) {
-        if (stdout_read_error) {
+    if (pipes_drained) {
+      std_out = ToStdString(
+        [[NSString alloc] initWithData:(stdout_data ?: [NSData data]) encoding:NSUTF8StringEncoding] ?: @"");
+      std_err = ToStdString(
+        [[NSString alloc] initWithData:(stderr_data ?: [NSData data]) encoding:NSUTF8StringEncoding] ?: @"");
+      if (stdout_read_error || stderr_read_error) {
+        if (!std_err.empty()) {
           std_err += "\n";
         }
-        std_err += ToStdString(stderr_read_error);
+        if (stdout_read_error) {
+          std_err += ToStdString(stdout_read_error);
+        }
+        if (stderr_read_error) {
+          if (stdout_read_error) {
+            std_err += "\n";
+          }
+          std_err += ToStdString(stderr_read_error);
+        }
       }
+    } else {
+      std_out.clear();
+      std_err = "Process output could not be drained safely.";
     }
     if (timed_out) {
       if (!std_err.empty()) {
@@ -311,8 +343,9 @@ bool IsPowerPointRunning()
 
 std::string DeckCacheHash(const std::string &pptx_path)
 {
+  const auto normalized_path = NormalizePathForCacheIdentity(pptx_path);
   std::stringstream stream;
-  stream << std::hash<std::string>{}(pptx_path);
+  stream << std::hash<std::string>{}(normalized_path);
   return stream.str();
 }
 
@@ -641,7 +674,8 @@ bool ConvertPptxToPdfWithLibreOffice(
     pptx_path_ns,
   ]];
 
-  if (!RunTask(soffice_ns, arguments, std_out, std_err, exit_code) || exit_code != 0) {
+  if (!RunTask(soffice_ns, arguments, std_out, std_err, exit_code, kLibreOfficeExportTimeoutSeconds) ||
+      exit_code != 0) {
     out_error = BuildTaskErrorMessage(std_out, std_err, exit_code);
     return false;
   }
@@ -731,7 +765,8 @@ bool RunAppleScriptFile(
   const std::vector<std::string> &script_arguments,
   std::string &std_out,
   std::string &std_err,
-  int &exit_code)
+  int &exit_code,
+  NSTimeInterval timeout_seconds = kDefaultTaskTimeoutSeconds)
 {
   auto script_path = fs::path(cache_dir) / script_name;
   std::string write_error;
@@ -748,7 +783,7 @@ bool RunAppleScriptFile(
     [arguments addObject:ToNSString(argument)];
   }
 
-  return RunTask(@"/usr/bin/osascript", arguments, std_out, std_err, exit_code);
+  return RunTask(@"/usr/bin/osascript", arguments, std_out, std_err, exit_code, timeout_seconds);
 }
 
 bool RunAppleScriptLines(
@@ -1007,7 +1042,8 @@ bool QueryPowerPointLiveState(
     { presentation_path },
     std_out,
     std_err,
-    exit_code);
+    exit_code,
+    kLiveTaskTimeoutSeconds);
 
   if (!ok || exit_code != 0) {
     out_error = "PowerPoint live query failed: " + BuildTaskErrorMessage(std_out, std_err, exit_code);
@@ -1085,7 +1121,8 @@ bool StartPowerPointLiveSession(
     { copied_input.string() },
     std_out,
     std_err,
-    exit_code);
+    exit_code,
+    kPowerPointExportTimeoutSeconds);
 
   if (!launched || exit_code != 0) {
     out_error = "PowerPoint live mode failed to start: " + BuildTaskErrorMessage(std_out, std_err, exit_code);
@@ -1120,7 +1157,8 @@ bool StopPowerPointLiveSession(
     { presentation_path, window_title },
     std_out,
     std_err,
-    exit_code);
+    exit_code,
+    kStopTaskTimeoutSeconds);
 
   if (!stopped || exit_code != 0) {
     out_error = "PowerPoint live mode failed to stop: " + BuildTaskErrorMessage(std_out, std_err, exit_code);
@@ -1173,7 +1211,8 @@ bool RunPowerPointLiveCommand(
     { presentation_path },
     std_out,
     std_err,
-    exit_code);
+    exit_code,
+    kLiveTaskTimeoutSeconds);
   if (!ok || exit_code != 0) {
     out_error = "PowerPoint live command failed: " + BuildTaskErrorMessage(std_out, std_err, exit_code);
     return false;
@@ -1262,6 +1301,18 @@ bool ConvertPptxToPdf(
     return true;
   }
 
+  std::string libreoffice_error;
+  if (ConvertPptxToPdfWithLibreOffice(pptx_path, cache_dir, out_pdf_path, libreoffice_error)) {
+    return true;
+  }
+
+  blog(
+    LOG_WARNING,
+    "[PPTBridge] LibreOffice export failed for '%s'%s%s",
+    pptx_path.c_str(),
+    libreoffice_error.empty() ? "" : ": ",
+    libreoffice_error.c_str());
+
   std::string powerpoint_error;
   if (allow_powerpoint_export && !FindPowerPointBundle().empty()) {
     if (ConvertPptxToPdfWithPowerPoint(pptx_path, cache_dir, out_pdf_path, powerpoint_error)) {
@@ -1270,21 +1321,18 @@ bool ConvertPptxToPdf(
 
     blog(
       LOG_WARNING,
-      "[PPTBridge] PowerPoint export failed for '%s'; trying LibreOffice fallback: %s",
+      "[PPTBridge] PowerPoint fallback export failed for '%s': %s",
       pptx_path.c_str(),
       powerpoint_error.c_str());
   }
 
-  std::string libreoffice_error;
-  if (ConvertPptxToPdfWithLibreOffice(pptx_path, cache_dir, out_pdf_path, libreoffice_error)) {
-    return true;
-  }
-
-  out_error = allow_powerpoint_export
-    ? "PowerPoint export failed: " + (powerpoint_error.empty() ? std::string("PowerPoint was not found.") : powerpoint_error)
-    : "PowerPoint export is waiting for manual live start.";
-  if (!libreoffice_error.empty()) {
-    out_error += " LibreOffice fallback failed: " + libreoffice_error;
+  out_error = "LibreOffice export failed: " +
+    (libreoffice_error.empty() ? std::string("LibreOffice was not available.") : libreoffice_error);
+  if (allow_powerpoint_export) {
+    out_error += " PowerPoint fallback failed: " +
+      (powerpoint_error.empty() ? std::string("PowerPoint was not found.") : powerpoint_error);
+  } else {
+    out_error += " PowerPoint fallback is disabled until manual live mode is started.";
   }
   return false;
 }
@@ -1983,8 +2031,10 @@ long long ElapsedMs(Clock::time_point start)
 struct PresentationDocument::Impl {
   explicit Impl(std::string input_path)
     : path(std::move(input_path)),
-      name(fs::path(path).filename().string())
+      name(fs::path(path).filename().string()),
+      live_queue(dispatch_queue_create("com.srdjankotarlic.pptbridge.live", DISPATCH_QUEUE_SERIAL))
   {
+    dispatch_queue_set_specific(live_queue, LiveQueueSpecificKey(), (__bridge void *)live_queue, nullptr);
   }
 
   mutable std::mutex mutex;
@@ -2015,8 +2065,8 @@ struct PresentationDocument::Impl {
   uint64_t version = 1;
   Clock::time_point started_at = Clock::now();
   PDFDocument *__strong pdf_document = nil;
+  dispatch_queue_t live_queue = nil;
   mutable std::mutex render_mutex;
-  mutable std::mutex live_command_mutex;
 };
 
 PresentationDocument::PresentationDocument(std::string pptx_path)
@@ -2135,6 +2185,18 @@ void PresentationDocument::StartLivePowerPointAsync()
 
 void PresentationDocument::StopLivePowerPoint()
 {
+  if (dispatch_get_specific(LiveQueueSpecificKey()) == (__bridge void *)impl_->live_queue) {
+    StopLivePowerPointOnLiveQueue();
+    return;
+  }
+
+  dispatch_sync(impl_->live_queue, ^{
+    StopLivePowerPointOnLiveQueue();
+  });
+}
+
+void PresentationDocument::StopLivePowerPointOnLiveQueue()
+{
   std::string cache_dir;
   std::string window_title;
   std::string presentation_path;
@@ -2174,9 +2236,9 @@ void PresentationDocument::StopLivePowerPoint()
 void PresentationDocument::StopLivePowerPointAsync()
 {
   auto self = shared_from_this();
-  std::thread([self]() {
-    self->StopLivePowerPoint();
-  }).detach();
+  dispatch_async(impl_->live_queue, ^{
+    self->StopLivePowerPointOnLiveQueue();
+  });
 }
 
 void PresentationDocument::SetPresenterAssetsWanted(bool wanted)
@@ -2229,7 +2291,7 @@ void PresentationDocument::SyncLiveStateAsync()
   }
 
   auto self = shared_from_this();
-  std::thread([self, cache_dir, presentation_path]() {
+  dispatch_async(impl_->live_queue, ^{
     LivePowerPointSnapshot snapshot;
     std::string error;
     const bool ok = QueryPowerPointLiveState(cache_dir, presentation_path, snapshot, error);
@@ -2263,7 +2325,7 @@ void PresentationDocument::SyncLiveStateAsync()
     if (changed) {
       self->impl_->version += 1;
     }
-  }).detach();
+  });
 }
 
 void PresentationDocument::RunLivePowerPointCommandAsync(std::string command_line, bool clear_black)
@@ -2280,20 +2342,10 @@ void PresentationDocument::RunLivePowerPointCommandAsync(std::string command_lin
   }
 
   auto self = shared_from_this();
-  std::thread([
-    self,
-    cache_dir = std::move(cache_dir),
-    presentation_path = std::move(presentation_path),
-    command_line = std::move(command_line),
-    clear_black
-  ]() {
+  dispatch_async(impl_->live_queue, ^{
     LivePowerPointSnapshot snapshot;
     std::string error;
-    bool ok = false;
-    {
-      std::lock_guard<std::mutex> command_lock(self->impl_->live_command_mutex);
-      ok = RunPowerPointLiveCommand(cache_dir, presentation_path, command_line, snapshot, error);
-    }
+    const bool ok = RunPowerPointLiveCommand(cache_dir, presentation_path, command_line, snapshot, error);
 
     std::lock_guard<std::mutex> lock(self->impl_->mutex);
     if (!self->impl_->live_powerpoint_enabled) {
@@ -2315,7 +2367,7 @@ void PresentationDocument::RunLivePowerPointCommandAsync(std::string command_lin
       self->impl_->live_error = error;
     }
     self->impl_->version += 1;
-  }).detach();
+  });
 }
 
 void PresentationDocument::StartLoadIfNeeded(bool force_reload)
