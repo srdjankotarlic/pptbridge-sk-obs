@@ -15,6 +15,23 @@ PPTBridge SK gives OBS two dedicated presentation sources:
 
 ![PPTBridge SK overview](native-plugin/media/github/pptbridge-sk-social-preview.png)
 
+## Windows Users: Download This
+
+For Windows OBS, download only:
+
+[`pptbridge-obs-windows-x64-v0.5.0-beta.1.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0-beta.1/pptbridge-obs-windows-x64-v0.5.0-beta.1.zip)
+
+Install it like this:
+
+1. Extract the ZIP.
+2. Double-click `INSTALL.cmd`.
+3. Open OBS Studio.
+4. In `Sources`, click `+` and add `PPTBridge SK Slide` or `PPTBridge SK Presenter`.
+
+The Windows ZIP is intentionally small. It contains only `INSTALL.cmd`, `README.txt`, the OBS plugin DLL, and two tiny language files. It does not include project folders or developer-only files.
+
+For stage clickers such as Logitech Spotlight, enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture` in OBS. The clicker controls only visible PPTBridge sources in the current OBS Program scene, while normal typing keys such as letters, numbers, `Space`, `Enter`, `Tab`, and `Backspace` stay available for the operator.
+
 ## Demo Video
 
 [![Watch the PPTBridge SK demo](native-plugin/media/github/pptbridge-demo-preview.png)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov)
@@ -58,6 +75,18 @@ PPTBridge SK keeps the audience feed and speaker view separate inside OBS:
 - OBS-safe slide control through hotkeys, source buttons, Companion, OSC, or a stage clicker
 - multi-deck scene routing for shows with several presentations
 - optional PowerPoint slideshow cleanup when OBS closes
+
+## Quick Windows Install
+
+1. Download [`pptbridge-obs-windows-x64-v0.5.0-beta.1.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0-beta.1/pptbridge-obs-windows-x64-v0.5.0-beta.1.zip).
+2. Extract the ZIP.
+3. Double-click `INSTALL.cmd`.
+4. Open OBS Studio.
+5. Add `PPTBridge SK Slide` for the clean audience output.
+6. Add `PPTBridge SK Presenter` only when you need speaker notes, next slide, and timer.
+7. Select your PowerPoint file and click `START - Open PowerPoint / Start Live Mode`.
+
+Windows beta supports PowerPoint live-mode testing on OBS 30+ with Microsoft PowerPoint installed. PDF input is not enabled on Windows yet.
 
 ## Quick macOS Install
 
