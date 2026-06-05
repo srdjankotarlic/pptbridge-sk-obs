@@ -1,44 +1,46 @@
-PPTBridge SK for OBS - Windows Beta Source Validation
-=====================================================
+PPTBridge SK for OBS - Windows Beta
+===================================
 
-This package is NOT a final Windows installer.
-It is a source beta prepared for building and testing on a real Windows OBS machine.
+Use this file only if you are looking at the source tree.
+Normal Windows users should download:
 
-Start here:
+  pptbridge-obs-windows-x64-v0.5.0-beta.1.zip
 
-1. Read native-plugin/WINDOWS-BETA-RELEASE.md
-2. Read native-plugin/WINDOWS-ALPHA-TESTING.md
-3. If another developer continues the Windows build, share:
-   native-plugin/WINDOWS-DEVELOPER-HANDOFF.md
+Then:
 
-Build summary:
+  1. Extract the ZIP.
+  2. Double-click INSTALL.cmd.
+  3. Open OBS.
+  4. Add PPTBridge SK Slide or PPTBridge SK Presenter from Sources.
 
-  cmake -S native-plugin -B native-plugin/build-win ^
-    -DOBS_SOURCE_DIR=C:\path\to\obs-studio ^
-    -DOBS_APP_DIR="C:\Program Files\obs-studio"
+What the installer copies:
 
-  cmake --build native-plugin/build-win --config RelWithDebInfo
+  obs-plugins\64bit\pptbridge-obs.dll
+  data\obs-plugins\pptbridge-obs\locale\en-US.ini
+  data\obs-plugins\pptbridge-obs\locale\en-GB.ini
 
-Expected install layout after a successful build:
+Windows beta scope:
 
-  C:\Program Files\obs-studio\obs-plugins\64bit\pptbridge-obs.dll
-  C:\Program Files\obs-studio\data\obs-plugins\pptbridge-obs\...
+- PowerPoint decks are supported for live-mode testing.
+- .pptx is the best-tested format.
+- Legacy .ppt decks can be selected and opened through Microsoft PowerPoint.
+- PDF input is not enabled on Windows yet.
 
-Beta features to validate:
+Production check before a show:
 
-- PPTBridge SK Slide and PPTBridge SK Presenter appear in OBS
-- START opens PowerPoint / starts live mode
-- STOP stops PowerPoint live mode
-- Auto Start PowerPoint When OBS Opens is optional
-- Close PowerPoint Slideshow When OBS Closes is optional
-- Lock OBS Output Size ignores PowerPoint window resizing
-- Follow PowerPoint Window Size intentionally follows the PPT window shape
-- Hotkeys and OSC target the current OBS Program scene
-- Spotlight/Clicker Capture works while another app is focused
-- Multiple OBS scenes can control different PowerPoint decks
+- Confirm both OBS sources appear.
+- Load the deck in PPTBridge SK Slide.
+- Click START - Open PowerPoint / Start Live Mode.
+- Confirm OBS attaches to the live PowerPoint slideshow.
+- Test next/previous from OBS and from the presenter clicker.
+- Test audio if the deck contains embedded media.
+- Confirm Lock OBS Output Size ignores PowerPoint window resizing.
+- Confirm hotkeys, OSC, and clicker capture target the current OBS Program scene.
+- Confirm multiple OBS scenes can control different PowerPoint decks.
+- Keep a normal PowerPoint backup ready until this beta has passed your own venue test.
 
 Known limits:
 
 - PDF input is not enabled in this Windows beta.
-- This needs real Windows runtime validation before a binary is called usable.
+- This is a beta; test it on the target OBS/PowerPoint computer before a live show.
 - The stable public release is the macOS Apple Silicon v0.4.7 release.

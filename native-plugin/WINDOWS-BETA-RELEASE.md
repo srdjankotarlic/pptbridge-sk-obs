@@ -1,8 +1,8 @@
 # PPTBridge SK Windows Beta Preview
 
-**Current beta:** `v0.5.0-beta.1` source validation pack
+**Current beta:** `v0.5.0-beta.1` Windows plugin ZIP
 
-This is a Windows beta preview of `PPTBridge SK`. It is prepared so the Windows version can be built and tested on a real Windows OBS machine. It is not a final one-click installer yet.
+This is a Windows beta preview of `PPTBridge SK`. It includes a compiled 64-bit OBS plugin, a double-click `INSTALL.cmd` installer, and a short user README so it can be installed on another Windows OBS computer without technical setup.
 
 ## What This Windows Beta Is Meant To Do
 
@@ -20,26 +20,26 @@ This is a Windows beta preview of `PPTBridge SK`. It is prepared so the Windows 
 - attempt to bring PowerPoint audio into OBS through the live window path or Windows process-audio fallback
 - fall back to exported slide rendering plus extracted embedded media if the live path is not ready
 
-## What The Beta Pack Includes
+## What The Beta ZIP Includes
 
-- current Windows-oriented native plugin source tree
-- Windows build and test instructions
-- Windows developer handoff prompt for the validation laptop
-- current docs and release notes
+- `INSTALL.cmd`
+- `README.txt`
+- `obs-plugins\64bit\pptbridge-obs.dll`
+- `data\obs-plugins\pptbridge-obs\locale\en-US.ini`
+- `data\obs-plugins\pptbridge-obs\locale\en-GB.ini`
 
 ## Honest Current Limits
 
-- this Windows beta still needs runtime proof on a real Windows OBS machine
-- it is not yet a one-click Windows installer
+- this is still a beta and should be tested before paid/live production use
 - PDF input is not enabled in this Windows beta path
 - exact audio ownership can vary by OBS build and Windows capture support available on that machine
 - the macOS `v0.4.7` Apple Silicon ZIP remains the stable public release for normal users
 
 ## Best Current Usage Goal
 
-Use this beta on a Windows test machine to answer these questions:
+Use this beta on a Windows test machine to answer these questions before a real show:
 
-- does the source compile and load into OBS
+- does `INSTALL.cmd` copy the plugin into the correct OBS folder
 - do the two source types appear in OBS
 - does manual `START` open PowerPoint and attach the live slideshow
 - does `STOP` end the slideshow

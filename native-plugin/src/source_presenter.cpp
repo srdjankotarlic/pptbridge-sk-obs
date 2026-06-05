@@ -23,6 +23,11 @@ obs_source_info *pptbridge_presenter_source_info()
     if (!context) {
       return;
     }
+    Registry::Instance().DetachSource(context);
+    if (context->document &&
+        Registry::Instance().CountSources(context->pptx_path, RegisteredSourceKind::Presenter) == 0) {
+      context->document->SetPresenterAssetsWanted(false);
+    }
     source_destroy_texture(context);
     delete context;
   };

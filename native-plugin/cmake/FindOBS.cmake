@@ -17,6 +17,10 @@ if(NOT OBS_APP_DIR)
   set(OBS_APP_DIR "/Applications/OBS.app")
 endif()
 
+if(NOT OBS_LIBRARY_DIR AND DEFINED ENV{OBS_LIBRARY_DIR})
+  set(OBS_LIBRARY_DIR "$ENV{OBS_LIBRARY_DIR}")
+endif()
+
 find_path(OBS_INCLUDE_DIR
   NAMES obs-module.h
   HINTS
@@ -34,11 +38,18 @@ find_path(OBS_FRONTEND_INCLUDE_DIR
 if(EXISTS "${OBS_APP_DIR}/Contents/Frameworks/libobs.framework")
   set(OBS_LIBOBS_LIBRARY "${OBS_APP_DIR}/Contents/Frameworks/libobs.framework")
 else()
+  set(_PPTBRIDGE_OBS_LIB_NAMES libobs)
+  if(WIN32)
+    set(_PPTBRIDGE_OBS_LIB_NAMES obs libobs)
+  endif()
   find_library(OBS_LIBOBS_LIBRARY
-    NAMES libobs
+    NAMES ${_PPTBRIDGE_OBS_LIB_NAMES}
     HINTS
+      "${OBS_LIBRARY_DIR}"
       "${OBS_APP_DIR}/Contents/Frameworks"
       "${OBS_APP_DIR}/Contents/Frameworks/libobs.framework"
+      "${OBS_APP_DIR}/lib"
+      "${OBS_APP_DIR}/bin/64bit"
   )
 endif()
 
@@ -48,7 +59,10 @@ else()
   find_library(OBS_FRONTEND_LIBRARY
     NAMES obs-frontend-api
     HINTS
+      "${OBS_LIBRARY_DIR}"
       "${OBS_APP_DIR}/Contents/Frameworks"
+      "${OBS_APP_DIR}/lib"
+      "${OBS_APP_DIR}/bin/64bit"
   )
 endif()
 

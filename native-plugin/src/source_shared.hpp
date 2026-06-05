@@ -36,6 +36,13 @@ struct SourceContext {
     obs_source_t *source = nullptr;
     bool showing_child = false;
     bool active_child = false;
+    std::vector<float> wav_samples;
+    uint32_t wav_channels = 0;
+    uint32_t wav_sample_rate = 0;
+    double wav_cursor = 0.0;
+    bool wav_started = false;
+    bool wav_finished = false;
+    bool wav_mix_logged = false;
   };
 
   obs_source_t *source = nullptr;

@@ -412,6 +412,83 @@ void append_clicker_binding_if_missing(
   bindings.push_back(ClickerBinding{ key_code, modifiers, action });
 }
 
+bool is_plain_typing_key_for_clicker(CGKeyCode key_code, CGEventFlags modifiers)
+{
+  if (modifiers != 0) {
+    return false;
+  }
+
+  // Stage clicker capture is global, so plain typing keys stay reserved for
+  // the operator's focused app. Presenter remotes still work through nav keys.
+  switch (key_code) {
+  case kVK_Space:
+  case kVK_Return:
+  case kVK_ANSI_KeypadEnter:
+  case kVK_Tab:
+  case kVK_Delete:
+  case kVK_ANSI_0:
+  case kVK_ANSI_1:
+  case kVK_ANSI_2:
+  case kVK_ANSI_3:
+  case kVK_ANSI_4:
+  case kVK_ANSI_5:
+  case kVK_ANSI_6:
+  case kVK_ANSI_7:
+  case kVK_ANSI_8:
+  case kVK_ANSI_9:
+  case kVK_ANSI_A:
+  case kVK_ANSI_B:
+  case kVK_ANSI_C:
+  case kVK_ANSI_D:
+  case kVK_ANSI_E:
+  case kVK_ANSI_F:
+  case kVK_ANSI_G:
+  case kVK_ANSI_H:
+  case kVK_ANSI_I:
+  case kVK_ANSI_J:
+  case kVK_ANSI_K:
+  case kVK_ANSI_L:
+  case kVK_ANSI_M:
+  case kVK_ANSI_N:
+  case kVK_ANSI_O:
+  case kVK_ANSI_P:
+  case kVK_ANSI_Q:
+  case kVK_ANSI_R:
+  case kVK_ANSI_S:
+  case kVK_ANSI_T:
+  case kVK_ANSI_U:
+  case kVK_ANSI_V:
+  case kVK_ANSI_W:
+  case kVK_ANSI_X:
+  case kVK_ANSI_Y:
+  case kVK_ANSI_Z:
+    return true;
+  default:
+    return false;
+  }
+}
+
+void append_clicker_bindings_from_hotkey_without_plain_typing_keys(
+  obs_hotkey_id id,
+  HotkeyAction action,
+  std::vector<ClickerBinding> &bindings)
+{
+  const size_t before = bindings.size();
+  append_clicker_bindings_from_hotkey(id, action, bindings);
+  size_t write_index = before;
+  for (size_t read_index = before; read_index < bindings.size(); ++read_index) {
+    const auto &binding = bindings[read_index];
+    if (is_plain_typing_key_for_clicker(binding.key_code, binding.modifiers)) {
+      continue;
+    }
+    if (write_index != read_index) {
+      bindings[write_index] = binding;
+    }
+    ++write_index;
+  }
+  bindings.resize(write_index);
+}
+
 void append_default_clicker_bindings(std::vector<ClickerBinding> &bindings)
 {
   // Presenter remotes such as Logitech Spotlight usually send these keys.
@@ -427,11 +504,11 @@ std::vector<ClickerBinding> collect_clicker_bindings_from_obs_hotkeys()
 {
   std::vector<ClickerBinding> bindings;
   append_default_clicker_bindings(bindings);
-  append_clicker_bindings_from_hotkey(g_next_hotkey, HotkeyAction::Next, bindings);
-  append_clicker_bindings_from_hotkey(g_previous_hotkey, HotkeyAction::Previous, bindings);
-  append_clicker_bindings_from_hotkey(g_black_hotkey, HotkeyAction::Black, bindings);
-  append_clicker_bindings_from_hotkey(g_first_hotkey, HotkeyAction::First, bindings);
-  append_clicker_bindings_from_hotkey(g_last_hotkey, HotkeyAction::Last, bindings);
+  append_clicker_bindings_from_hotkey_without_plain_typing_keys(g_next_hotkey, HotkeyAction::Next, bindings);
+  append_clicker_bindings_from_hotkey_without_plain_typing_keys(g_previous_hotkey, HotkeyAction::Previous, bindings);
+  append_clicker_bindings_from_hotkey_without_plain_typing_keys(g_black_hotkey, HotkeyAction::Black, bindings);
+  append_clicker_bindings_from_hotkey_without_plain_typing_keys(g_first_hotkey, HotkeyAction::First, bindings);
+  append_clicker_bindings_from_hotkey_without_plain_typing_keys(g_last_hotkey, HotkeyAction::Last, bindings);
   return bindings;
 }
 

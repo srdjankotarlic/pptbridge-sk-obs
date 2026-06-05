@@ -9,7 +9,7 @@ PPTBridge SK gives OBS two dedicated presentation sources:
 
 [![Apple Silicon stable](https://img.shields.io/badge/Apple_Silicon-v0.4.7_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
 [![Intel Mac beta](https://img.shields.io/badge/Intel_Mac-v0.4.4_beta-f59e0b?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip)
-[![Windows beta](https://img.shields.io/badge/Windows-v0.5.0--beta.1_source-orange?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1)
+[![Windows beta](https://img.shields.io/badge/Windows-v0.5.0--beta.1_installer-orange?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1)
 [![License](https://img.shields.io/badge/License-see_LICENSE-lightgrey?style=flat-square)](#license)
 [![Buy me a coffee](https://img.shields.io/badge/Buy_me_a_coffee-Patreon-f96854?style=flat-square&logo=patreon&logoColor=white)](https://www.patreon.com/posts/coffee-158046733)
 
@@ -29,8 +29,9 @@ Watch a short silent demo of PPTBridge SK running inside OBS:
 | Install in 5 minutes | [QUICKSTART.md](QUICKSTART.md) |
 | Full setup guide | [SETUP-GUIDE.md](SETUP-GUIDE.md) |
 | macOS install details | [native-plugin/INSTALL-macOS.md](native-plugin/INSTALL-macOS.md) |
+| Windows install details | [native-plugin/INSTALL-Windows.md](native-plugin/INSTALL-Windows.md) |
 | Companion / Stream Deck / OSC | [native-plugin/COMPANION-CONTROL.md](native-plugin/COMPANION-CONTROL.md) |
-| Windows beta validation | [native-plugin/WINDOWS-BETA-RELEASE.md](native-plugin/WINDOWS-BETA-RELEASE.md) |
+| Windows beta notes | [native-plugin/WINDOWS-BETA-RELEASE.md](native-plugin/WINDOWS-BETA-RELEASE.md) |
 | Common questions | [FAQ.md](FAQ.md) |
 | Report a problem | [SUPPORT.md](SUPPORT.md) |
 | Contribute or test beta builds | [CONTRIBUTING.md](CONTRIBUTING.md) |
@@ -41,7 +42,7 @@ Watch a short silent demo of PPTBridge SK running inside OBS:
 | --- | --- | --- | --- |
 | Apple Silicon Mac | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip) | Stable | Your Mac has an M1, M2, M3, or M4 chip |
 | Intel Mac | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip) | Beta v0.4.4 | Your Mac says `Processor: Intel` in About This Mac |
-| Windows 64-bit | [`PPTBridge-SK-Windows-Beta-v0.5.0-beta.1-source.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0-beta.1/PPTBridge-SK-Windows-Beta-v0.5.0-beta.1-source.zip) | Beta source | You want to build and test the Windows beta on a real Windows OBS machine |
+| Windows 64-bit | [`pptbridge-obs-windows-x64-v0.5.0-beta.1.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0-beta.1/pptbridge-obs-windows-x64-v0.5.0-beta.1.zip) | Beta installer | You want to test PowerPoint live mode on Windows OBS |
 
 Apple Silicon is the main stable build. Intel Mac and Windows are clearly marked as beta paths while real-hardware feedback is collected.
 
@@ -133,7 +134,7 @@ When clicker capture is enabled, PPTBridge captures common presenter remote keys
 - `PageDown` or `Right Arrow` for next slide
 - `PageUp` or `Left Arrow` for previous slide
 
-It also captures any custom PPTBridge hotkeys you bind in OBS. Captured keys route to the PPTBridge source in the current OBS Program scene. The keys are suppressed from the focused app, so the presenter can change slides while the operator uses Chrome, OBS, or another tool.
+It also captures supported custom PPTBridge hotkeys you bind in OBS, but plain typing keys such as letters, numbers, `Space`, `Enter`, `Tab`, and `Backspace` are never captured globally. Captured clicker keys route to the PPTBridge source in the current OBS Program scene and are suppressed from the focused app, so the presenter can change slides while the operator uses Chrome, OBS, or another tool.
 
 Useful OSC paths:
 
@@ -177,10 +178,10 @@ This is designed for real stage confidence monitors where the presenter may need
 | OS | macOS 12 Monterey or newer | macOS 12 Monterey or newer | Windows 10/11 64-bit |
 | OBS | OBS Studio 30 or newer | OBS Studio 30 or newer | OBS Studio 30 or newer |
 | CPU | M1, M2, M3, or M4 | Intel Mac | x64 |
-| PowerPoint | Required for `.pptx` live mode | Required for `.pptx` live mode | Required for Windows beta testing |
+| PowerPoint | Required for `.pptx` live mode | Required for `.pptx` live mode | Required for Windows PowerPoint live mode |
 | PDF decks | Supported without PowerPoint | Supported without PowerPoint | Not enabled in Windows beta yet |
 
-Apple Silicon has been runtime-tested locally on OBS 32.x. Intel remains a beta package from the previous macOS release while real Intel Mac feedback is collected. Windows is currently a beta source validation track, not a finished one-click installer.
+Apple Silicon has been runtime-tested locally on OBS 32.x. Intel is cross-built with the same feature set and published as a beta download for real Intel Mac feedback. Windows is published as a beta installer ZIP for PowerPoint live-mode testing on OBS 30+.
 
 ## Screenshots
 
@@ -196,7 +197,7 @@ Apple Silicon has been runtime-tested locally on OBS 32.x. Intel remains a beta 
 | [`v0.4.6`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.6) | Previous stable | Live PowerPoint control stability, safer process handling, and cleaner release packaging |
 | [`v0.4.5`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.5) | Previous stable | Conservative presenter stability, clearer live controls, and updated docs |
 | [`v0.4.4`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.4) | Apple Silicon stable, Intel beta | Previous macOS release and current Intel beta |
-| [`v0.5.0-beta.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1) | Windows beta source | Windows build/runtime validation |
+| [`v0.5.0-beta.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1) | Windows beta installer | Windows PowerPoint live-mode testing |
 | [`v0.4.3`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.3) | Previous stable | Default presenter clicker capture |
 | [`v0.4.2`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.2) | Previous stable | Spotlight/Clicker Capture and manual PowerPoint lifecycle controls |
 | [`v0.4.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.1) | Previous stable | Manual PowerPoint lifecycle controls |
@@ -213,6 +214,7 @@ Apple Silicon has been runtime-tested locally on OBS 32.x. Intel remains a beta 
 - [CONTRIBUTING.md](CONTRIBUTING.md) - contribution and beta testing expectations
 - [BUILDING.md](BUILDING.md) - developer build commands
 - [native-plugin/INSTALL-macOS.md](native-plugin/INSTALL-macOS.md) - macOS installation details
+- [native-plugin/INSTALL-Windows.md](native-plugin/INSTALL-Windows.md) - Windows installation details
 - [native-plugin/COMPANION-CONTROL.md](native-plugin/COMPANION-CONTROL.md) - Companion, OBS WebSocket, and local OSC
 - [native-plugin/WINDOWS-BETA-RELEASE.md](native-plugin/WINDOWS-BETA-RELEASE.md) - Windows beta scope and limits
 - [native-plugin/WINDOWS-ALPHA-TESTING.md](native-plugin/WINDOWS-ALPHA-TESTING.md) - Windows runtime validation checklist
@@ -237,7 +239,7 @@ Use [SUPPORT.md](SUPPORT.md) before opening an issue. The most useful bug report
 - OBS version
 - PPTBridge release
 - PowerPoint version
-- deck type, `.pptx` or `.pdf`
+- deck type, such as `.pptx`, `.ppt`, or `.pdf`
 - OBS log from `Help > Log Files > View Current Log`
 
 ## Buy Me a Coffee
@@ -259,8 +261,8 @@ Thanks for using it. It genuinely means a lot.
 - Signed and notarized macOS installer before the next broad public push
 - OBS Forums / obsproject.com resource listing with screenshots and a short demo
 - More real Intel Mac validation
-- Windows beta build/runtime validation
-- Optional Windows installer after beta validation
+- More Windows live-production validation
+- Signed Windows installer after beta validation
 - Companion/OSC status feedback
 - Video remaining-time support where PowerPoint/media state can be read reliably
 

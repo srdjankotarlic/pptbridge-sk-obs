@@ -2,8 +2,12 @@
 
 #ifdef _WIN32
 
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <windows.h>
 
 #include <algorithm>
@@ -11,7 +15,9 @@
 #include <callback/proc.h>
 #include <cctype>
 #include <chrono>
+#include <cstring>
 #include <cmath>
+#include <fstream>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -19,6 +25,7 @@
 #include <sstream>
 #include <string>
 #include <utility>
+#include <util/platform.h>
 #include <vector>
 
 #include "pptbridge_registry.hpp"
@@ -33,7 +40,7 @@ constexpr const char *kHotkeyHelp =
   "2. Open Settings > Hotkeys\n"
   "3. Bind or change PPTBridge SK: Next Slide / Previous Slide\n"
   "4. PPTBridge only acts on hotkeys while OBS is the active app, so typing in another window will not move slides\n"
-  "5. For a stage clicker while you use Chrome, OBS, or another app, enable Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture\n"
+  "5. For a stage clicker while you use Chrome, OBS, or another app, enable Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture; it uses PageDown/Right and PageUp/Left, not Space\n"
   "6. Use one scene per deck for multi-deck shows; hotkeys, clicker capture, and OSC follow the current OBS Program scene\n"
   "7. Use the buttons below for quick testing inside OBS";
 
@@ -51,6 +58,11 @@ constexpr const char *kLiveControlHelp =
   "Main PowerPoint live controls:\n"
   "START opens PowerPoint if needed and begins the live slideshow.\n"
   "STOP ends the PowerPoint live slideshow without quitting OBS.";
+
+constexpr const char *kPresenterLiveControlHelp =
+  "Presenter live controls:\n"
+  "START opens the same PowerPoint live slideshow used by PPTBridge SK Slide.\n"
+  "For the audience/program feed, add PPTBridge SK Slide to the OBS Program scene.";
 
 constexpr const char *kLiveResizeHelp =
   "PowerPoint window resize:\n"
@@ -469,6 +481,151 @@ void start_media_playback(obs_source_t *source)
   obs_source_media_restart(source);
 }
 
+bool has_case_insensitive_extension(const std::string &path, const char *extension)
+{
+  if (!extension) {
+    return false;
+  }
+  const size_t extension_len = std::strlen(extension);
+  if (path.size() < extension_len) {
+    return false;
+  }
+  const std::string actual = path.substr(path.size() - extension_len);
+  for (size_t i = 0; i < extension_len; ++i) {
+    if (std::tolower(static_cast<unsigned char>(actual[i])) !=
+        std::tolower(static_cast<unsigned char>(extension[i]))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+uint16_t read_le16(const uint8_t *data)
+{
+  return static_cast<uint16_t>(data[0]) |
+         static_cast<uint16_t>(data[1] << 8);
+}
+
+uint32_t read_le32(const uint8_t *data)
+{
+  return static_cast<uint32_t>(data[0]) |
+         (static_cast<uint32_t>(data[1]) << 8) |
+         (static_cast<uint32_t>(data[2]) << 16) |
+         (static_cast<uint32_t>(data[3]) << 24);
+}
+
+bool load_wav_file(const std::string &path, std::vector<float> &samples, uint32_t &channels, uint32_t &sample_rate)
+{
+  samples.clear();
+  channels = 0;
+  sample_rate = 0;
+
+  std::ifstream file(path, std::ios::binary);
+  if (!file) {
+    return false;
+  }
+
+  uint8_t riff[12] = {};
+  file.read(reinterpret_cast<char *>(riff), sizeof(riff));
+  if (file.gcount() != sizeof(riff) ||
+      std::memcmp(riff, "RIFF", 4) != 0 ||
+      std::memcmp(riff + 8, "WAVE", 4) != 0) {
+    return false;
+  }
+
+  uint16_t audio_format = 0;
+  uint16_t bits_per_sample = 0;
+  uint16_t block_align = 0;
+  std::vector<uint8_t> data_chunk;
+
+  while (file) {
+    uint8_t chunk_header[8] = {};
+    file.read(reinterpret_cast<char *>(chunk_header), sizeof(chunk_header));
+    if (file.gcount() != sizeof(chunk_header)) {
+      break;
+    }
+
+    const uint32_t chunk_size = read_le32(chunk_header + 4);
+    const std::streamoff next_chunk =
+      static_cast<std::streamoff>(file.tellg()) + static_cast<std::streamoff>(chunk_size) +
+      static_cast<std::streamoff>(chunk_size & 1u);
+
+    if (std::memcmp(chunk_header, "fmt ", 4) == 0 && chunk_size >= 16) {
+      std::vector<uint8_t> fmt(chunk_size);
+      file.read(reinterpret_cast<char *>(fmt.data()), static_cast<std::streamsize>(fmt.size()));
+      if (static_cast<uint32_t>(file.gcount()) < chunk_size) {
+        return false;
+      }
+      audio_format = read_le16(fmt.data());
+      channels = read_le16(fmt.data() + 2);
+      sample_rate = read_le32(fmt.data() + 4);
+      block_align = read_le16(fmt.data() + 12);
+      bits_per_sample = read_le16(fmt.data() + 14);
+    } else if (std::memcmp(chunk_header, "data", 4) == 0) {
+      data_chunk.resize(chunk_size);
+      if (chunk_size > 0) {
+        file.read(reinterpret_cast<char *>(data_chunk.data()), static_cast<std::streamsize>(data_chunk.size()));
+        if (static_cast<uint32_t>(file.gcount()) < chunk_size) {
+          return false;
+        }
+      }
+    }
+
+    file.seekg(next_chunk, std::ios::beg);
+  }
+
+  if (channels == 0 || sample_rate == 0 || block_align == 0 || data_chunk.empty()) {
+    return false;
+  }
+  if (audio_format != 1 && audio_format != 3) {
+    return false;
+  }
+
+  const size_t frame_count = data_chunk.size() / block_align;
+  if (frame_count == 0) {
+    return false;
+  }
+
+  samples.resize(frame_count * channels);
+  for (size_t frame = 0; frame < frame_count; ++frame) {
+    const uint8_t *frame_data = data_chunk.data() + frame * block_align;
+    for (uint32_t channel = 0; channel < channels; ++channel) {
+      const uint8_t *sample_data = frame_data + channel * (bits_per_sample / 8);
+      float value = 0.0f;
+      if (audio_format == 1 && bits_per_sample == 8) {
+        value = (static_cast<int>(sample_data[0]) - 128) / 128.0f;
+      } else if (audio_format == 1 && bits_per_sample == 16) {
+        const int16_t pcm = static_cast<int16_t>(read_le16(sample_data));
+        value = static_cast<float>(pcm) / 32768.0f;
+      } else if (audio_format == 1 && bits_per_sample == 24) {
+        int32_t pcm = static_cast<int32_t>(sample_data[0]) |
+                      (static_cast<int32_t>(sample_data[1]) << 8) |
+                      (static_cast<int32_t>(sample_data[2]) << 16);
+        if (pcm & 0x00800000) {
+          pcm |= static_cast<int32_t>(0xFF000000);
+        }
+        value = static_cast<float>(pcm) / 8388608.0f;
+      } else if (audio_format == 1 && bits_per_sample == 32) {
+        const int32_t pcm = static_cast<int32_t>(read_le32(sample_data));
+        value = static_cast<float>(pcm) / 2147483648.0f;
+      } else if (audio_format == 3 && bits_per_sample == 32) {
+        static_assert(sizeof(float) == sizeof(uint32_t), "float32 WAV support expects 32-bit float");
+        uint32_t raw = read_le32(sample_data);
+        std::memcpy(&value, &raw, sizeof(value));
+        value = std::max(-1.0f, std::min(1.0f, value));
+      } else {
+        samples.clear();
+        channels = 0;
+        sample_rate = 0;
+        return false;
+      }
+      samples[frame * channels + channel] = value;
+    }
+  }
+
+  return true;
+}
+
 void set_media_playback_active(
   SourceContext *context,
   SourceContext::MediaPlayback &media,
@@ -496,6 +653,11 @@ void set_media_playback_active(
 
   if (started) {
     start_media_playback(media.source);
+    if (!media.wav_samples.empty()) {
+      media.wav_cursor = 0.0;
+      media.wav_finished = false;
+      media.wav_started = true;
+    }
   }
 
   if (!should_be_active && media.active_child) {
@@ -507,6 +669,8 @@ void set_media_playback_active(
     obs_source_media_stop(media.source);
     obs_source_dec_showing(media.source);
     media.showing_child = false;
+    media.wav_started = false;
+    media.wav_finished = true;
   }
 }
 
@@ -983,6 +1147,23 @@ SourceContext::MediaPlayback create_media_playback(SourceContext *context, const
   playback.width = static_cast<float>(media.width);
   playback.height = static_cast<float>(media.height);
 
+  if (playback.is_audio && has_case_insensitive_extension(media.file_path, ".wav")) {
+    if (!load_wav_file(media.file_path, playback.wav_samples, playback.wav_channels, playback.wav_sample_rate)) {
+      blog(LOG_WARNING, "[PPTBridge SK] Could not decode embedded WAV media '%s'", media.file_path.c_str());
+    } else {
+      playback.wav_started = true;
+      playback.wav_finished = false;
+      playback.wav_cursor = 0.0;
+      blog(
+        LOG_INFO,
+        "[PPTBridge SK] Loaded embedded WAV fallback '%s' (%u Hz, %u channel(s), %zu frame(s))",
+        media.file_path.c_str(),
+        playback.wav_sample_rate,
+        playback.wav_channels,
+        playback.wav_channels ? playback.wav_samples.size() / playback.wav_channels : 0);
+    }
+  }
+
   if (!context || !context->source || media.file_path.empty()) {
     return playback;
   }
@@ -1126,6 +1307,100 @@ float audio_gain_multiplier_db(double gain_db)
   return static_cast<float>(std::pow(10.0, gain_db / 20.0));
 }
 
+bool mix_direct_wav_audio(
+  SourceContext *context,
+  struct obs_source_audio_mix *audio_output,
+  uint32_t mixers,
+  size_t channels,
+  size_t sample_rate,
+  float gain,
+  uint64_t &timestamp_out)
+{
+  if (!context || !audio_output || channels == 0 || sample_rate == 0) {
+    return false;
+  }
+
+  bool mixed_any = false;
+  const uint32_t effective_mixers = mixers != 0 ? mixers : 0x1u;
+  float push_left[AUDIO_OUTPUT_FRAMES] = {};
+  float push_right[AUDIO_OUTPUT_FRAMES] = {};
+  std::lock_guard<std::mutex> lock(context->media_mutex);
+  for (auto &media : context->media_playback) {
+    if (media.wav_samples.empty() || media.wav_channels == 0 || media.wav_sample_rate == 0 ||
+        !media.wav_started || media.wav_finished) {
+      continue;
+    }
+
+    const size_t total_frames = media.wav_samples.size() / media.wav_channels;
+    if (total_frames == 0 || media.wav_cursor >= static_cast<double>(total_frames)) {
+      media.wav_finished = true;
+      continue;
+    }
+
+    const double step = static_cast<double>(media.wav_sample_rate) / static_cast<double>(sample_rate);
+    bool mixed_media = false;
+
+    for (size_t frame = 0; frame < AUDIO_OUTPUT_FRAMES; ++frame) {
+      const size_t source_frame = static_cast<size_t>(media.wav_cursor);
+      if (source_frame >= total_frames) {
+        media.wav_finished = true;
+        break;
+      }
+
+      for (size_t mix = 0; mix < MAX_AUDIO_MIXES; ++mix) {
+        if ((effective_mixers & (1u << mix)) == 0) {
+          continue;
+        }
+
+        for (size_t channel = 0; channel < channels; ++channel) {
+          float *out = audio_output->output[mix].data[channel];
+          if (!out) {
+            continue;
+          }
+          const uint32_t source_channel = media.wav_channels == 1
+            ? 0
+            : static_cast<uint32_t>(std::min<size_t>(channel, media.wav_channels - 1));
+          const float sample = media.wav_samples[source_frame * media.wav_channels + source_channel] * gain;
+          out[frame] += sample;
+          if (channel == 0) {
+            push_left[frame] += sample;
+          } else if (channel == 1) {
+            push_right[frame] += sample;
+          }
+          mixed_media = true;
+        }
+      }
+
+      media.wav_cursor += step;
+    }
+
+    mixed_any = mixed_any || mixed_media;
+    if (mixed_media && !media.wav_mix_logged) {
+      media.wav_mix_logged = true;
+      blog(
+        LOG_INFO,
+        "[PPTBridge SK] Mixing embedded WAV fallback '%s' through OBS source audio",
+        media.file_path.c_str());
+    }
+  }
+
+  if (mixed_any) {
+    timestamp_out = os_gettime_ns();
+    if (context->source) {
+      obs_source_audio audio = {};
+      audio.data[0] = reinterpret_cast<const uint8_t *>(push_left);
+      audio.data[1] = reinterpret_cast<const uint8_t *>(push_right);
+      audio.frames = static_cast<uint32_t>(AUDIO_OUTPUT_FRAMES);
+      audio.speakers = SPEAKERS_STEREO;
+      audio.format = AUDIO_FORMAT_FLOAT_PLANAR;
+      audio.samples_per_sec = static_cast<uint32_t>(sample_rate);
+      audio.timestamp = timestamp_out;
+      obs_source_output_audio(context->source, &audio);
+    }
+  }
+  return mixed_any;
+}
+
 std::string build_status_text(SourceContext *context)
 {
   std::ostringstream status;
@@ -1168,46 +1443,60 @@ std::string build_status_text(SourceContext *context)
     }
     status << "\n";
 
-    status << "Live capture: ";
-    if (context->live_capture_source && context->live_capture_hooked) {
-      status << "attached";
-    } else if (context->live_capture_source) {
-      status << "created, waiting for hook";
-    } else if (live_ready) {
-      status << "searching for slideshow window";
+    if (context->mode == ViewMode::Slide) {
+      status << "Live capture: ";
+      if (context->live_capture_source && context->live_capture_hooked) {
+        status << "attached";
+      } else if (context->live_capture_source) {
+        status << "created, waiting for hook";
+      } else if (live_ready) {
+        status << "searching for slideshow window";
+      } else {
+        status << "not ready";
+      }
+      status << "\n";
     } else {
-      status << "not ready";
+      status << "Presenter live sync: " << (live_ready ? "following PowerPoint slideshow" : "waiting for live slideshow") << "\n";
     }
-    status << "\n";
 
-    status << "PowerPoint app audio: ";
-    if (!context->use_live_app_audio) {
-      status << "disabled";
-    } else if (context->live_capture_source && context->live_capture_hooked) {
-      status << "attached through live window capture";
-    } else if (context->live_audio_source && context->live_audio_hooked) {
-      status << "attached through process audio fallback";
-    } else if (context->live_audio_source) {
-      status << "created, waiting for process hook";
-    } else if (live_ready) {
-      status << "searching for process audio";
-    } else {
-      status << "not ready";
+    if (context->mode == ViewMode::Slide) {
+      status << "PowerPoint app audio: ";
+      if (!context->use_live_app_audio) {
+        status << "disabled";
+      } else if (context->live_capture_source && context->live_capture_hooked) {
+        status << "attached through live window capture";
+      } else if (context->live_audio_source && context->live_audio_hooked) {
+        status << "attached through process audio fallback";
+      } else if (context->live_audio_source) {
+        status << "created, waiting for process hook";
+      } else if (live_ready) {
+        status << "searching for process audio";
+      } else {
+        status << "not ready";
+      }
+      status << "\n";
     }
-    status << "\n";
-    status << "Auto recover: " << (context->auto_recover_live ? "enabled" : "manual only") << "\n";
-    status << "PowerPoint resize: "
-           << (context->live_capture_resize_mode == LiveCaptureResizeMode::FitWindow
-                 ? "following PowerPoint window"
-                 : "locked to OBS canvas")
-           << "\n";
+    if (context->mode == ViewMode::Slide) {
+      status << "Auto recover: " << (context->auto_recover_live ? "enabled" : "manual only") << "\n";
+      status << "PowerPoint resize: "
+             << (context->live_capture_resize_mode == LiveCaptureResizeMode::FitWindow
+                   ? "following PowerPoint window"
+                   : "locked to OBS canvas")
+             << "\n";
+    }
   }
 
-  status << "Audio: " << (context->audio_enabled ? "enabled" : "muted")
-         << ", gain " << context->audio_gain_db << " dB";
+  if (context->mode == ViewMode::Slide) {
+    status << "Audio: " << (context->audio_enabled ? "enabled" : "muted")
+           << ", gain " << context->audio_gain_db << " dB";
+  } else {
+    status << "Presenter output: current slide, next slide, notes, and timer";
+  }
 
   if (matching_sources > 1) {
-    status << "\nWarning: multiple PPTBridge sources point to this same deck. Use Add Existing for live shows so one shared source owns audio and state.";
+    status << "\nWarning: multiple "
+           << (context->mode == ViewMode::Slide ? "slide" : "presenter")
+           << " sources point to this same deck. Use Add Existing when you want one shared source instance.";
   }
 
   if (!last_error.empty()) {
@@ -1447,12 +1736,34 @@ obs_properties_t *source_properties(SourceContext *context)
     "pptx_path",
     "Presentation File",
     OBS_PATH_FILE,
-    "PowerPoint (*.pptx *.pptm *.ppsx *.potx *.potm)",
+    "PowerPoint (*.ppt *.pptx *.pptm *.ppsx *.potx *.potm)",
     nullptr);
   if (context && context->mode == ViewMode::Presenter) {
     obs_properties_add_int(props, "canvas_width", "Canvas Width", 320, 7680, 1);
     obs_properties_add_int(props, "canvas_height", "Canvas Height", 240, 4320, 1);
     add_presenter_customization_properties(props);
+
+    obs_properties_t *presenter_live_controls = obs_properties_create();
+    obs_property_t *presenter_live_help =
+      obs_properties_add_text(presenter_live_controls, "pptbridge_presenter_live_control_help", kPresenterLiveControlHelp, OBS_TEXT_INFO);
+    obs_property_text_set_info_type(presenter_live_help, OBS_TEXT_INFO_WARNING);
+    obs_property_text_set_info_word_wrap(presenter_live_help, true);
+    obs_properties_add_button(
+      presenter_live_controls,
+      "pptbridge_start_live_btn",
+      "START - Open PowerPoint / Start Live Mode",
+      control_start_live);
+    obs_properties_add_button(
+      presenter_live_controls,
+      "pptbridge_stop_live_btn",
+      "STOP - Stop PowerPoint Live Mode",
+      control_stop_live);
+    obs_properties_add_group(
+      props,
+      "pptbridge_presenter_live_controls_group",
+      "PowerPoint Live Start / Stop",
+      OBS_GROUP_NORMAL,
+      presenter_live_controls);
   }
   if (context && context->mode == ViewMode::Slide) {
     obs_properties_add_bool(props, "use_live_powerpoint", "Use True Live PowerPoint Mode");
@@ -1546,21 +1857,28 @@ void source_update(SourceContext *context, obs_data_t *settings)
   }
 
   const char *path = obs_data_get_string(settings, "pptx_path");
+  const auto presenter_width_setting = static_cast<uint32_t>(std::max<int64_t>(0, obs_data_get_int(settings, "canvas_width")));
+  const auto presenter_height_setting = static_cast<uint32_t>(std::max<int64_t>(0, obs_data_get_int(settings, "canvas_height")));
   const uint32_t width = (context->mode == ViewMode::Slide)
     ? 1920u
-    : static_cast<uint32_t>(obs_data_get_int(settings, "canvas_width"));
+    : (presenter_width_setting >= 320u ? presenter_width_setting : 1920u);
   const uint32_t height = (context->mode == ViewMode::Slide)
     ? 1080u
-    : static_cast<uint32_t>(obs_data_get_int(settings, "canvas_height"));
-  const bool use_live_powerpoint = obs_data_get_bool(settings, "use_live_powerpoint");
-  const bool auto_start_live_powerpoint = obs_data_get_bool(settings, "auto_start_live_powerpoint");
-  const bool close_live_powerpoint_on_shutdown = obs_data_get_bool(settings, "close_live_powerpoint_on_shutdown");
+    : (presenter_height_setting >= 240u ? presenter_height_setting : 1080u);
+  const bool use_live_powerpoint =
+    context->mode == ViewMode::Slide ? obs_data_get_bool(settings, "use_live_powerpoint") : true;
+  const bool auto_start_live_powerpoint =
+    context->mode == ViewMode::Slide ? obs_data_get_bool(settings, "auto_start_live_powerpoint") : false;
+  const bool close_live_powerpoint_on_shutdown =
+    context->mode == ViewMode::Slide ? obs_data_get_bool(settings, "close_live_powerpoint_on_shutdown") : false;
   const LiveCaptureResizeMode live_capture_resize_mode =
     live_capture_resize_mode_from_setting(obs_data_get_string(settings, "live_capture_resize_mode"));
-  const bool audio_enabled = obs_data_get_bool(settings, "audio_enabled");
-  const bool use_live_app_audio = obs_data_get_bool(settings, "use_live_app_audio");
-  const bool auto_recover_live = obs_data_get_bool(settings, "auto_recover_live");
-  const double audio_gain_db = obs_data_get_double(settings, "audio_gain_db");
+  const bool audio_enabled = context->mode == ViewMode::Slide ? obs_data_get_bool(settings, "audio_enabled") : false;
+  const bool use_live_app_audio =
+    context->mode == ViewMode::Slide ? obs_data_get_bool(settings, "use_live_app_audio") : false;
+  const bool auto_recover_live =
+    context->mode == ViewMode::Slide ? obs_data_get_bool(settings, "auto_recover_live") : false;
+  const double audio_gain_db = context->mode == ViewMode::Slide ? obs_data_get_double(settings, "audio_gain_db") : 0.0;
   const PresenterRenderOptions presenter_options = presenter_options_from_settings(settings);
 
   const std::shared_ptr<PresentationDocument> old_document = context->document;
@@ -1665,7 +1983,11 @@ void source_tick(SourceContext *context)
       Registry::Instance().SetActive(context->document);
     }
 
-    if (context->mode == ViewMode::Slide && context->use_live_powerpoint) {
+    const bool should_sync_live =
+      context->document->IsLivePowerPointEnabled() &&
+      ((context->mode == ViewMode::Slide && context->use_live_powerpoint) ||
+       (context->mode == ViewMode::Presenter && source_visible));
+    if (should_sync_live) {
       const auto now = std::chrono::steady_clock::now();
       const auto interval = source_visible ? kLiveSyncIntervalActive : kLiveSyncIntervalIdle;
       if (context->last_live_sync_request == std::chrono::steady_clock::time_point::min() ||
@@ -1673,8 +1995,6 @@ void source_tick(SourceContext *context)
         context->last_live_sync_request = now;
         context->document->SyncLiveStateAsync();
       }
-    } else if (source_visible) {
-      context->document->SyncLiveStateAsync();
     }
   }
 
@@ -1897,8 +2217,14 @@ static bool slide_source_audio_render(
   }
 
   const float gain = audio_gain_multiplier_db(context->audio_gain_db);
+  uint64_t direct_wav_timestamp = 0;
+  const bool mixed_direct_wav =
+    mix_direct_wav_audio(context, audio_output, mixers, channels, sample_rate, gain, direct_wav_timestamp);
   auto playback = snapshot_audio_children(context);
   uint64_t timestamp = 0;
+  if (mixed_direct_wav) {
+    timestamp = direct_wav_timestamp;
+  }
   for (const auto &media : playback) {
     if (!media.source || !media.is_audio || obs_source_audio_pending(media.source)) {
       continue;
@@ -1912,7 +2238,8 @@ static bool slide_source_audio_render(
 
   if (!timestamp) {
     release_audio_children_snapshot(playback);
-    return false;
+    *ts_out = os_gettime_ns();
+    return true;
   }
 
   for (const auto &media : playback) {

@@ -4,8 +4,12 @@
 
 #include <obs-module.h>
 
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <windows.h>
 #include <shlobj.h>
 #include <gdiplus.h>
@@ -116,7 +120,8 @@ std::string LowerExtensionForPath(const std::string &path)
 bool IsSupportedPowerPointExtension(const std::string &path)
 {
   const auto extension = LowerExtensionForPath(path);
-  return extension == ".pptx" ||
+  return extension == ".ppt" ||
+         extension == ".pptx" ||
          extension == ".pptm" ||
          extension == ".ppsx" ||
          extension == ".potx" ||
@@ -948,11 +953,11 @@ function Get-PPTBridgeMediaForSlide($Archive, [string]$SlideEntry, [string]$Cach
   $results = New-Object System.Collections.Generic.List[object]
   $signatures = New-Object 'System.Collections.Generic.HashSet[string]'
   $slideXml = Get-PPTBridgeZipEntryText $Archive $SlideEntry
-  if ([string]::IsNullOrWhiteSpace($slideXml)) { return @($results) }
+  if ([string]::IsNullOrWhiteSpace($slideXml)) { return $results.ToArray() }
 
   $relsEntry = ([System.IO.Path]::GetDirectoryName($SlideEntry).Replace('\', '/')) + "/_rels/" + [System.IO.Path]::GetFileName($SlideEntry) + ".rels"
   $relationships = Get-PPTBridgeZipRelationships $Archive $relsEntry
-  if ($relationships.Count -eq 0) { return @($results) }
+  if ($relationships.Count -eq 0) { return $results.ToArray() }
 
   [xml]$slideDocument = $slideXml
   $shapeNodes = @($slideDocument.SelectNodes("//*[local-name()='spTree']/*"))
@@ -1014,7 +1019,7 @@ function Get-PPTBridgeMediaForSlide($Archive, [string]$SlideEntry, [string]$Cach
     })
   }
 
-  return @($results)
+  return $results.ToArray()
 }
 
 function Get-PPTBridgeApp([bool]$CreateIfMissing) {
@@ -1025,6 +1030,15 @@ function Get-PPTBridgeApp([bool]$CreateIfMissing) {
       return New-Object -ComObject PowerPoint.Application
     }
     return $null
+  }
+}
+
+function Set-PPTBridgePowerPointVisible($App) {
+  if ($null -eq $App) { return }
+  try {
+    $App.Visible = -1
+  } catch {
+    try { $App.Visible = [int]-1 } catch {}
   }
 }
 
@@ -1133,7 +1147,7 @@ switch ($Mode) {
       $extractedMediaCache = @{}
 
       $app = New-Object -ComObject PowerPoint.Application
-      $app.Visible = $true
+      Set-PPTBridgePowerPointVisible $app
       $presentation = Open-PPTBridgePresentation $app $PptxPath $false
       $presentation.Export($slidesDir, "PNG", $Width, $Height)
       $slideCount = [int]$presentation.Slides.Count
@@ -1192,7 +1206,7 @@ switch ($Mode) {
     }
 
     $app = Get-PPTBridgeApp $true
-    $app.Visible = $true
+    Set-PPTBridgePowerPointVisible $app
     $presentation = Open-PPTBridgePresentation $app $PptxPath $true
     $window = Get-PPTBridgeWindow $app $presentation
     if ($null -eq $window) {
@@ -1238,7 +1252,15 @@ switch ($Mode) {
     $app = Get-PPTBridgeApp $false
     $presentation = Find-PPTBridgePresentation $app $PptxPath
     $window = Get-PPTBridgeWindow $app $presentation
-    if ($window) { $window.View.Next() }
+    if ($window -and $presentation) {
+      $current = 0
+      $count = 0
+      try { $current = [int]$window.View.CurrentShowPosition } catch {}
+      try { $count = [int]$presentation.Slides.Count } catch {}
+      if ($count -le 0 -or $current -lt $count) {
+        $window.View.Next()
+      }
+    }
     Emit-PPTBridgeSnapshot $window $presentation
   }
 
@@ -1246,7 +1268,13 @@ switch ($Mode) {
     $app = Get-PPTBridgeApp $false
     $presentation = Find-PPTBridgePresentation $app $PptxPath
     $window = Get-PPTBridgeWindow $app $presentation
-    if ($window) { $window.View.Previous() }
+    if ($window) {
+      $current = 0
+      try { $current = [int]$window.View.CurrentShowPosition } catch {}
+      if ($current -gt 1) {
+        $window.View.Previous()
+      }
+    }
     Emit-PPTBridgeSnapshot $window $presentation
   }
 
@@ -1813,7 +1841,7 @@ void PresentationDocument::StartLivePowerPointAsync()
     if (!IsSupportedPowerPointExtension(impl_->path)) {
       impl_->live_enabled = false;
       impl_->live_start_requested = false;
-      impl_->last_error = "Windows live mode expects a PowerPoint file such as .pptx, .pptm, .ppsx, .potx, or .potm.";
+      impl_->last_error = "Windows live mode expects a PowerPoint file such as .ppt, .pptx, .pptm, .ppsx, .potx, or .potm.";
       impl_->state_version += 1;
       return;
     }
@@ -1909,26 +1937,48 @@ void PresentationDocument::SyncLiveStateAsync()
 
     if (exit_code == 0 && ParseLiveSnapshot(output, snapshot, error)) {
       std::lock_guard<std::mutex> lock(self->impl_->mutex);
-      self->impl_->live_ready = snapshot.running;
+      bool changed = false;
+      if (self->impl_->live_ready != snapshot.running) {
+        self->impl_->live_ready = snapshot.running;
+        changed = true;
+      }
       if (snapshot.slide_count > 0) {
-        self->impl_->current_index = std::min(
+        const auto next_index = std::min(
           snapshot.current_slide > 0 ? snapshot.current_slide - 1 : size_t{0},
           snapshot.slide_count - 1);
+        if (self->impl_->current_index != next_index) {
+          self->impl_->current_index = next_index;
+          changed = true;
+        }
       }
-      if (!snapshot.window_title.empty()) {
+      if (!snapshot.window_title.empty() && self->impl_->live_window_title != snapshot.window_title) {
         self->impl_->live_window_title = snapshot.window_title;
+        changed = true;
+      } else if (!snapshot.running && !self->impl_->live_window_title.empty()) {
+        self->impl_->live_window_title.clear();
+        changed = true;
       }
       if (snapshot.running && self->impl_->timer_started_at == std::chrono::steady_clock::time_point::min()) {
         self->impl_->timer_started_at = std::chrono::steady_clock::now();
+        changed = true;
       }
-      if (snapshot.running) {
+      if (snapshot.running && self->impl_->current_media_triggered) {
         self->impl_->current_media_triggered = false;
+        changed = true;
       }
-      self->impl_->state_version += 1;
-      self->impl_->last_error.clear();
+      if (!self->impl_->last_error.empty()) {
+        self->impl_->last_error.clear();
+        changed = true;
+      }
+      if (changed) {
+        self->impl_->state_version += 1;
+      }
     } else if (!error.empty()) {
       std::lock_guard<std::mutex> lock(self->impl_->mutex);
-      self->impl_->last_error = error;
+      if (self->impl_->last_error != error) {
+        self->impl_->last_error = error;
+        self->impl_->state_version += 1;
+      }
     }
 
     self->impl_->live_sync_inflight.store(false);
@@ -2636,7 +2686,7 @@ void PresentationDocument::LoadOnWorker()
     impl_->current_index = 0;
     impl_->current_media_triggered = false;
     impl_->last_error =
-      "This Windows build currently expects a PowerPoint file such as .pptx, .pptm, .ppsx, .potx, or .potm.";
+      "This Windows build currently expects a PowerPoint file such as .ppt, .pptx, .pptm, .ppsx, .potx, or .potm.";
     impl_->state_version += 1;
     return;
   }

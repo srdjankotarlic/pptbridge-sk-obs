@@ -4,11 +4,13 @@
 
 #include <windows.h>
 
+#include <array>
 #include <cctype>
 #include <cstdint>
 #include <cstring>
 #include <memory>
 #include <mutex>
+#include <new>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -40,7 +42,7 @@ static uint16_t g_osc_port = kDefaultOscPort;
 static bool g_clicker_capture_enabled = false;
 static HHOOK g_clicker_keyboard_hook = nullptr;
 static std::mutex g_clicker_bindings_mutex;
-static std::unordered_set<DWORD> g_clicker_swallowed_keys;
+static std::array<bool, 256> g_clicker_swallowed_keys = {};
 
 }  // namespace
 
@@ -387,41 +389,97 @@ void append_clicker_bindings_from_hotkey(
   obs_data_array_release(saved);
 }
 
-void append_clicker_binding_if_missing(
-  std::vector<ClickerBinding> &bindings,
+bool has_clicker_binding(
+  const std::vector<ClickerBinding> &bindings,
   DWORD virtual_key,
   uint32_t modifiers,
   HotkeyAction action)
 {
   for (const auto &binding : bindings) {
-    if (binding.virtual_key == virtual_key && binding.modifiers == modifiers && binding.action == action) {
-      return;
+    if (binding.virtual_key == virtual_key &&
+        binding.modifiers == modifiers &&
+        binding.action == action) {
+      return true;
     }
   }
-
-  bindings.push_back(ClickerBinding{ virtual_key, modifiers, action });
+  return false;
 }
 
-void append_default_clicker_bindings(std::vector<ClickerBinding> &bindings)
+void append_clicker_binding_once(
+  std::vector<ClickerBinding> &bindings,
+  DWORD virtual_key,
+  uint32_t modifiers,
+  HotkeyAction action)
 {
-  // Presenter remotes such as Logitech Spotlight usually send these keys.
-  // Normal OBS hotkeys stay intentionally narrow (2/1), but Stage Clicker
-  // Capture should work out-of-the-box while another app has focus.
-  append_clicker_binding_if_missing(bindings, VK_NEXT, 0, HotkeyAction::Next);
-  append_clicker_binding_if_missing(bindings, VK_RIGHT, 0, HotkeyAction::Next);
-  append_clicker_binding_if_missing(bindings, VK_PRIOR, 0, HotkeyAction::Previous);
-  append_clicker_binding_if_missing(bindings, VK_LEFT, 0, HotkeyAction::Previous);
+  if (!has_clicker_binding(bindings, virtual_key, modifiers, action)) {
+    bindings.push_back(ClickerBinding{ virtual_key, modifiers, action });
+  }
+}
+
+bool is_default_operator_hotkey_for_clicker(DWORD virtual_key, uint32_t modifiers, HotkeyAction)
+{
+  if (modifiers != 0) {
+    return false;
+  }
+
+  // Global clicker capture must not eat normal typing keys while the operator
+  // uses Chrome, OBS, chat, or another app during a live show.
+  if ((virtual_key >= '0' && virtual_key <= '9') ||
+      (virtual_key >= 'A' && virtual_key <= 'Z')) {
+    return true;
+  }
+
+  switch (virtual_key) {
+  case VK_SPACE:
+  case VK_RETURN:
+  case VK_TAB:
+  case VK_BACK:
+    return true;
+  default:
+    return false;
+  }
+}
+
+void append_clicker_bindings_from_hotkey_without_operator_defaults(
+  obs_hotkey_id id,
+  HotkeyAction action,
+  std::vector<ClickerBinding> &bindings)
+{
+  const size_t before = bindings.size();
+  append_clicker_bindings_from_hotkey(id, action, bindings);
+  size_t write_index = before;
+  for (size_t read_index = before; read_index < bindings.size(); ++read_index) {
+    const auto &binding = bindings[read_index];
+    if (is_default_operator_hotkey_for_clicker(binding.virtual_key, binding.modifiers, binding.action)) {
+      continue;
+    }
+    if (write_index != read_index) {
+      bindings[write_index] = binding;
+    }
+    ++write_index;
+  }
+  bindings.resize(write_index);
+}
+
+void append_default_presenter_remote_bindings(std::vector<ClickerBinding> &bindings)
+{
+  for (const auto key : { VK_NEXT, VK_RIGHT }) {
+    append_clicker_binding_once(bindings, key, 0, HotkeyAction::Next);
+  }
+  for (const auto key : { VK_PRIOR, VK_LEFT }) {
+    append_clicker_binding_once(bindings, key, 0, HotkeyAction::Previous);
+  }
 }
 
 std::vector<ClickerBinding> collect_clicker_bindings_from_obs_hotkeys()
 {
   std::vector<ClickerBinding> bindings;
-  append_default_clicker_bindings(bindings);
-  append_clicker_bindings_from_hotkey(g_next_hotkey, HotkeyAction::Next, bindings);
-  append_clicker_bindings_from_hotkey(g_previous_hotkey, HotkeyAction::Previous, bindings);
-  append_clicker_bindings_from_hotkey(g_black_hotkey, HotkeyAction::Black, bindings);
-  append_clicker_bindings_from_hotkey(g_first_hotkey, HotkeyAction::First, bindings);
-  append_clicker_bindings_from_hotkey(g_last_hotkey, HotkeyAction::Last, bindings);
+  append_default_presenter_remote_bindings(bindings);
+  append_clicker_bindings_from_hotkey_without_operator_defaults(g_next_hotkey, HotkeyAction::Next, bindings);
+  append_clicker_bindings_from_hotkey_without_operator_defaults(g_previous_hotkey, HotkeyAction::Previous, bindings);
+  append_clicker_bindings_from_hotkey_without_operator_defaults(g_black_hotkey, HotkeyAction::Black, bindings);
+  append_clicker_bindings_from_hotkey_without_operator_defaults(g_first_hotkey, HotkeyAction::First, bindings);
+  append_clicker_bindings_from_hotkey_without_operator_defaults(g_last_hotkey, HotkeyAction::Last, bindings);
   return bindings;
 }
 
@@ -431,14 +489,14 @@ void refresh_clicker_bindings()
   {
     std::lock_guard<std::mutex> lock(g_clicker_bindings_mutex);
     g_clicker_bindings = std::move(bindings);
-    g_clicker_swallowed_keys.clear();
+    g_clicker_swallowed_keys.fill(false);
   }
   blog(LOG_INFO,
     "[PPTBridge SK] Spotlight/Clicker Capture loaded %zu OBS hotkey binding(s)",
     g_clicker_bindings.size());
 }
 
-LRESULT CALLBACK clicker_keyboard_proc(int code, WPARAM wparam, LPARAM lparam)
+LRESULT clicker_keyboard_proc_impl(int code, WPARAM wparam, LPARAM lparam)
 {
   if (code < 0 || !g_clicker_capture_enabled) {
     return CallNextHookEx(g_clicker_keyboard_hook, code, wparam, lparam);
@@ -458,7 +516,12 @@ LRESULT CALLBACK clicker_keyboard_proc(int code, WPARAM wparam, LPARAM lparam)
   const DWORD virtual_key = event->vkCode;
   if (is_key_up) {
     std::lock_guard<std::mutex> lock(g_clicker_bindings_mutex);
-    const bool swallowed = g_clicker_swallowed_keys.erase(virtual_key) > 0;
+    const size_t key_index = static_cast<size_t>(virtual_key);
+    const bool swallowed =
+      key_index < g_clicker_swallowed_keys.size() && g_clicker_swallowed_keys[key_index];
+    if (key_index < g_clicker_swallowed_keys.size()) {
+      g_clicker_swallowed_keys[key_index] = false;
+    }
     return swallowed ? 1 : CallNextHookEx(g_clicker_keyboard_hook, code, wparam, lparam);
   }
 
@@ -470,8 +533,11 @@ LRESULT CALLBACK clicker_keyboard_proc(int code, WPARAM wparam, LPARAM lparam)
     for (const auto &binding : g_clicker_bindings) {
       if (binding.virtual_key == virtual_key && binding.modifiers == current_modifier_mask()) {
         matched_action = binding.action;
-        repeat = g_clicker_swallowed_keys.find(virtual_key) != g_clicker_swallowed_keys.end();
-        g_clicker_swallowed_keys.insert(virtual_key);
+        const size_t key_index = static_cast<size_t>(virtual_key);
+        repeat = key_index < g_clicker_swallowed_keys.size() && g_clicker_swallowed_keys[key_index];
+        if (key_index < g_clicker_swallowed_keys.size()) {
+          g_clicker_swallowed_keys[key_index] = true;
+        }
         matched = true;
         break;
       }
@@ -483,10 +549,21 @@ LRESULT CALLBACK clicker_keyboard_proc(int code, WPARAM wparam, LPARAM lparam)
   }
 
   if (!repeat) {
-    auto *queued = new HotkeyAction(matched_action);
-    obs_queue_task(OBS_TASK_UI, queued_clicker_action_task, queued, false);
+    auto *queued = new (std::nothrow) HotkeyAction(matched_action);
+    if (queued) {
+      obs_queue_task(OBS_TASK_UI, queued_clicker_action_task, queued, false);
+    }
   }
   return 1;
+}
+
+LRESULT CALLBACK clicker_keyboard_proc(int code, WPARAM wparam, LPARAM lparam)
+{
+  try {
+    return clicker_keyboard_proc_impl(code, wparam, lparam);
+  } catch (...) {
+    return CallNextHookEx(g_clicker_keyboard_hook, code, wparam, lparam);
+  }
 }
 
 void stop_clicker_capture()
@@ -497,7 +574,7 @@ void stop_clicker_capture()
   }
   {
     std::lock_guard<std::mutex> lock(g_clicker_bindings_mutex);
-    g_clicker_swallowed_keys.clear();
+    g_clicker_swallowed_keys.fill(false);
   }
 }
 

@@ -1,27 +1,30 @@
 # PPTBridge SK for OBS v0.5.0-beta.1
 
-**Windows Beta Source Validation Pack**
+**Windows Beta Plugin ZIP**
 
 Created by **Srdjan Kotarlic**
 
-This prerelease is for Windows build and runtime validation. The stable public user release is the macOS Apple Silicon `v0.4.7` release.
+This prerelease is for Windows OBS users who want to test PowerPoint live mode with a packaged 64-bit plugin and a simple installer. The stable public macOS release is the Apple Silicon `v0.4.7` release.
 
 ## Start Here
 
 - Windows beta scope: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/native-plugin/WINDOWS-BETA-RELEASE.md
+- Windows install guide: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/native-plugin/INSTALL-Windows.md
 - Windows test checklist: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/native-plugin/WINDOWS-ALPHA-TESTING.md
-- Windows developer handoff: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/native-plugin/WINDOWS-DEVELOPER-HANDOFF.md
 - General FAQ: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/FAQ.md
 
 ## Included Asset
 
-- `PPTBridge-SK-Windows-Beta-v0.5.0-beta.1-source.zip`
+- `pptbridge-obs-windows-x64-v0.5.0-beta.1.zip`
+- `pptbridge-obs-windows-x64-v0.5.0-beta.1.zip.sha256`
 
-This is a source package, not a final Windows installer. Build it on a Windows OBS machine, test it, and only publish a Windows binary after the checklist passes.
+Download the Windows ZIP above, extract it, then double-click `INSTALL.cmd`.
 
 ## What Is New For Windows
 
-- Native Windows `PPTBridge SK Slide` and `PPTBridge SK Presenter` source paths are now aligned with the macOS feature model.
+- Native Windows `PPTBridge SK Slide` and `PPTBridge SK Presenter` source paths are aligned with the macOS feature model.
+- The Windows download is now a small binary plugin ZIP with a double-click installer.
+- Legacy `.ppt` decks can be selected and opened through the Windows PowerPoint path.
 - PowerPoint live mode can be manual by default: OBS can open without immediately starting the slideshow.
 - `START - Open PowerPoint / Start Live Mode` and `STOP - Stop PowerPoint Live Mode` are highlighted in source properties.
 - `Auto Start PowerPoint When OBS Opens` restores automatic startup when wanted.
@@ -35,15 +38,14 @@ This is a source package, not a final Windows installer. Build it on a Windows O
 
 ## Known Beta Limits
 
-- Windows runtime is not yet confirmed by the Mac development machine.
+- This is still beta software; test it on the target OBS/PowerPoint computer before a paid or live show.
 - PDF input is not enabled on Windows yet.
 - Audio capture may vary depending on OBS version and Windows capture support.
-- There is no one-click Windows installer yet.
 
 ## Windows Validation Checklist
 
-1. Build the plugin on Windows.
-2. Install `pptbridge-obs.dll` into OBS.
+1. Extract `pptbridge-obs-windows-x64-v0.5.0-beta.1.zip`.
+2. Double-click `INSTALL.cmd`.
 3. Confirm both source types appear in OBS.
 4. Add a PowerPoint deck to `PPTBridge SK Slide`.
 5. Verify OBS does not auto-start PowerPoint unless `Auto Start PowerPoint When OBS Opens` is enabled.
