@@ -33,7 +33,8 @@ Download the Windows ZIP above, extract it, then double-click `INSTALL.cmd`.
 - Multi-deck scene routing targets the PPTBridge source in the current OBS Program scene.
 - Local OSC/Companion control targets the current Program scene.
 - OBS hotkeys only fire while OBS is focused.
-- Optional `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture` can capture common presenter keys globally, route a stage clicker to PPTBridge, and suppress those keys from the focused app.
+- Optional `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture` captures presenter remote keys such as `PageDown`/`Right` and `PageUp`/`Left`, routes the stage clicker to PPTBridge, and suppresses only those captured clicker keys from the focused app.
+- Plain typing keys such as letters, numbers, `Space`, `Enter`, `Tab`, and `Backspace` are never captured globally, so the operator can still use the computer during the show.
 - Presenter customization is included in the Windows renderer path.
 
 ## Known Beta Limits
