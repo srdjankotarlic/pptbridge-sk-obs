@@ -1,4 +1,4 @@
-## PPTBridge SK for OBS v0.4.7
+## PPTBridge SK for OBS v0.5.0
 
 Created by **Srdjan Kotarlic**
 
@@ -29,16 +29,21 @@ https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptb
 
 Apple Silicon is the main stable build. Intel Mac and Windows remain separate beta paths while real-hardware feedback is collected.
 
-### What Is New In v0.4.7
+### What Is New In v0.5.0
 
-- speeds up the practical live-show path by starting the PowerPoint slideshow first, then preparing presenter notes/thumbnails in the background
-- adds a clearer OBS source status while the slide output is already live but presenter assets are still preparing: `live ready, preparing presenter`
-- adds timing logs for live PowerPoint startup, PDF/cache preparation, PDF open time, and notes/media metadata loading, which makes slow decks much easier to diagnose
-- prevents PowerPoint live mode from dropping out of OBS when an extra next command is sent on the final slide
-- adds audit guardrails for presenter preload behavior and final-slide live-mode protection
+- the PPTX-to-PDF cache is validated against the deck file's modification time: unchanged decks reload instantly from cache, edited decks reconvert automatically
+- every external PowerPoint/LibreOffice helper call is now bounded by a timeout, including the PowerPoint `Save As PDF` export fallback that could previously hold the deck loader for up to five minutes if PowerPoint hung on a dialog
+- live PowerPoint command safety hardening on the serialized FIFO command path
+- expanded audit guardrails so the export timeout and live-command safety rules are checked automatically and regressions fail fast
+- refreshed project landing page and a new project case study (`CASESTUDY.md`)
+- hardened Windows beta installer and runtime for the separate Windows beta path
 
 ### Also Included From Recent Releases
 
+- the live-show path starts the PowerPoint slideshow first, then prepares presenter notes/thumbnails in the background
+- clearer OBS source status while presenter assets are still preparing: `live ready, preparing presenter`
+- timing logs for live PowerPoint startup, PDF/cache preparation, PDF open time, and notes/media metadata loading
+- PowerPoint live mode does not drop out of OBS when an extra next command is sent on the final slide
 - live PowerPoint navigation runs on a serialized worker path so rapid commands stay ordered without freezing the OBS interface
 - timeout-safe macOS process handling for PowerPoint/LibreOffice helper calls
 - `STOP - Stop PowerPoint Live Mode` is asynchronous from source properties
@@ -102,7 +107,8 @@ Default resize behavior is `Lock OBS Output Size`, so shrinking the PowerPoint w
 
 - `pptbridge-obs-macos-apple-silicon.zip`
 - `pptbridge-obs-macos-apple-silicon.zip.sha256`
-- `pptbridge-sk-demo.mov`
+
+The demo video stays hosted on the v0.4.7 release and shows the same workflow.
 
 The ZIP includes only the user-facing files needed to install and use the plugin:
 
@@ -113,15 +119,9 @@ The ZIP includes only the user-facing files needed to install and use the plugin
 
 ### Testing Notes
 
-- Apple Silicon was build-tested locally.
-- Runtime testing covered PowerPoint live startup, presenter preload, local OSC next/previous, extra next commands on the final live slide, and source cleanup after OBS quit.
-- A 13-slide PowerPoint deck stayed on slide 13 after repeated extra next commands, then moved back correctly with previous.
+- Apple Silicon was built and runtime-tested locally on OBS Studio 32.1.1 (M1 Pro).
+- Runtime testing covered plugin load with zero errors, multi-deck PPTX and PDF loading across scenes, instant cache reloads for unchanged decks, and live OSC verification of every documented path including reload-from-cache.
+- The export timeout fix and live-command safety rules are locked in by `tests/audit_guardrails.py`.
+- PowerPoint live-mode behavior (final-slide protection, presenter preload) carries over from the v0.4.7 validation.
 - Intel stays on the previous beta package until these Apple Silicon changes are separately validated there.
-- Windows is not part of this main macOS ZIP release; it remains a separate beta source validation release.
-- The package is currently unsigned and not notarized.
-- Presenter notes appear only when the `.pptx` actually contains notes pages.
-- `PPTBridge SK Presenter` is PPTBridge's own OBS presenter layout, not a direct capture of PowerPoint's native Presenter View.
-
-### Author
-
-Built and published by **Srdjan Kotarlic**
+- Windows is not part of this main macOS ZIP release; it remains a separate beta validation path.
