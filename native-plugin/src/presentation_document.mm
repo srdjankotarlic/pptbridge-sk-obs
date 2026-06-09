@@ -1263,7 +1263,8 @@ bool ConvertPptxToPdfWithPowerPoint(
     { copied_input.string(), output_pdf.string() },
     std_out,
     std_err,
-    exit_code);
+    exit_code,
+    kPowerPointExportTimeoutSeconds);
 
   if (launched && exit_code == 0 && fs::exists(output_pdf)) {
     out_pdf_path = output_pdf.string();

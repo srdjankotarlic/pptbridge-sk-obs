@@ -55,6 +55,9 @@ def main() -> int:
     live_runner = extract_function(source, "bool RunPowerPointLiveCommand(")
     if "kLiveTaskTimeoutSeconds" not in live_runner:
         raise AssertionError("PowerPoint live commands must use a short live-task timeout")
+    pdf_export = extract_function(source, "bool ConvertPptxToPdfWithPowerPoint(")
+    if "kPowerPointExportTimeoutSeconds" not in pdf_export:
+        raise AssertionError("PowerPoint Save As PDF export must use the export timeout, not the default task timeout")
     if "dispatch_queue_create(\"com.srdjankotarlic.pptbridge.live\", DISPATCH_QUEUE_SERIAL)" not in source:
         raise AssertionError("Live PowerPoint AppleScript operations need one FIFO serial queue")
 
