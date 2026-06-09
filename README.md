@@ -1,36 +1,23 @@
 # PPTBridge SK for OBS
 
-**Native OBS sources for PowerPoint and PDF presentations in live productions.**
+PPTBridge separates a clean slide output from a presenter/confidence view inside OBS for PowerPoint and PDF decks.
 
-PPTBridge SK gives OBS two dedicated presentation sources:
+Used in a live production workflow for slides, presenter notes, next-slide preview, and OBS/Companion control.
 
-- `PPTBridge SK Slide` for the clean audience/program feed
-- `PPTBridge SK Presenter` for the speaker view with notes, next slide, and timer
+**Download stable macOS Apple Silicon v0.4.7:** [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-obs-macos-apple-silicon.zip)
 
-[![Apple Silicon stable](https://img.shields.io/badge/Apple_Silicon-v0.4.7_stable-1f6feb?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
-[![Intel Mac beta](https://img.shields.io/badge/Intel_Mac-v0.4.4_beta-f59e0b?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip)
-[![Windows beta](https://img.shields.io/badge/Windows-v0.5.0--beta.1_installer-orange?style=flat-square)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1)
-[![License](https://img.shields.io/badge/License-see_LICENSE-lightgrey?style=flat-square)](#license)
-[![Buy me a coffee](https://img.shields.io/badge/Buy_me_a_coffee-Patreon-f96854?style=flat-square&logo=patreon&logoColor=white)](https://www.patreon.com/posts/coffee-158046733)
+![PPTBridge SK Slide and Presenter sources running inside OBS](native-plugin/media/github/pptbridge-sk-social-preview.png)
 
-![PPTBridge SK overview](native-plugin/media/github/pptbridge-sk-social-preview.png)
+## Download / Install
 
-## Windows Users: Download This
+**Primary stable build:** [macOS Apple Silicon v0.4.7 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-obs-macos-apple-silicon.zip) ([release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.7)).
 
-For Windows OBS, download only:
+Windows is beta; macOS Apple Silicon is the primary stable build.
 
-[`pptbridge-obs-windows-x64-v0.5.0-beta.1.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0-beta.1/pptbridge-obs-windows-x64-v0.5.0-beta.1.zip)
-
-Install it like this:
-
-1. Extract the ZIP.
-2. Double-click `INSTALL.cmd`.
-3. Open OBS Studio.
-4. In `Sources`, click `+` and add `PPTBridge SK Slide` or `PPTBridge SK Presenter`.
-
-The Windows ZIP is intentionally small. It contains only `INSTALL.cmd`, `README.txt`, the OBS plugin DLL, and two tiny language files. It does not include project folders or developer-only files.
-
-For stage clickers such as Logitech Spotlight, enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture` in OBS. The clicker controls only visible PPTBridge sources in the current OBS Program scene, while normal typing keys such as letters, numbers, `Space`, `Enter`, `Tab`, and `Backspace` stay available for the operator.
+1. Download and unzip the ZIP.
+2. Open `START-HERE-macOS.txt`.
+3. Double-click `1-Install-PPTBridge-SK.command`.
+4. Add `PPTBridge SK Slide` or `PPTBridge SK Presenter` in OBS.
 
 ## Demo Video
 
@@ -57,7 +44,7 @@ Watch a short silent demo of PPTBridge SK running inside OBS:
 
 | Platform | Download | Status | Use this when |
 | --- | --- | --- | --- |
-| Apple Silicon Mac | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip) | Stable | Your Mac has an M1, M2, M3, or M4 chip |
+| Apple Silicon Mac | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-obs-macos-apple-silicon.zip) | Stable v0.4.7 | Your Mac has an M1, M2, M3, or M4 chip |
 | Intel Mac | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip) | Beta v0.4.4 | Your Mac says `Processor: Intel` in About This Mac |
 | Windows 64-bit | [`pptbridge-obs-windows-x64-v0.5.0-beta.1.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0-beta.1/pptbridge-obs-windows-x64-v0.5.0-beta.1.zip) | Beta installer | You want to test PowerPoint live mode on Windows OBS |
 
