@@ -76,6 +76,7 @@ struct SourceContext {
   obs_source_t *live_audio_source = nullptr;
   int live_audio_owner_pid = 0;
   std::string live_audio_application;
+  std::string cue_export_status;
   bool live_audio_hooked = false;
   bool live_audio_showing = false;
   bool live_audio_active = false;

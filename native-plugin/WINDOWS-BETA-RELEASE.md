@@ -11,7 +11,7 @@ This is a Windows beta preview of `PPTBridge SK`. It includes a compiled 64-bit 
 - prefer true live PowerPoint slideshow behavior for animations, click-builds, and embedded media
 - keep OBS output locked to the OBS canvas when the PowerPoint slideshow window is resized
 - optionally follow the current PowerPoint window size when that is intentional
-- provide clear `START - Open PowerPoint / Start Live Mode` and `STOP - Stop PowerPoint Live Mode` buttons
+- provide clear `START / RESTART - Open PowerPoint Live Mode` and `STOP - Stop PowerPoint Live Mode` buttons
 - let the user choose manual startup or `Auto Start PowerPoint When OBS Opens`
 - optionally stop the slideshow when OBS closes
 - route hotkeys, local OSC, and clicker capture to the PPTBridge source in the current OBS Program scene

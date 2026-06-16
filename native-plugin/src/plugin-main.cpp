@@ -812,13 +812,23 @@ void apply_default_hotkeys_if_needed()
   migrate_legacy_default_bindings(
     g_next_hotkey,
     { OBS_KEY_2, OBS_KEY_PAGEDOWN, OBS_KEY_RIGHT, OBS_KEY_SPACE },
-    { OBS_KEY_2 },
-    "Next Slide -> 2");
+    { OBS_KEY_2, OBS_KEY_RIGHT },
+    "Next Slide -> 2 + Right Arrow");
   migrate_legacy_default_bindings(
     g_previous_hotkey,
     { OBS_KEY_1, OBS_KEY_PAGEUP, OBS_KEY_LEFT },
+    { OBS_KEY_1, OBS_KEY_LEFT },
+    "Previous Slide -> 1 + Left Arrow");
+  migrate_legacy_default_bindings(
+    g_next_hotkey,
+    { OBS_KEY_2 },
+    { OBS_KEY_2, OBS_KEY_RIGHT },
+    "Next Slide -> 2 + Right Arrow");
+  migrate_legacy_default_bindings(
+    g_previous_hotkey,
     { OBS_KEY_1 },
-    "Previous Slide -> 1");
+    { OBS_KEY_1, OBS_KEY_LEFT },
+    "Previous Slide -> 1 + Left Arrow");
   migrate_legacy_default_bindings(
     g_black_hotkey,
     { OBS_KEY_B },
@@ -837,12 +847,12 @@ void apply_default_hotkeys_if_needed()
 
   apply_default_bindings_if_empty(
     g_next_hotkey,
-    { OBS_KEY_2 },
-    "Next Slide -> 2");
+    { OBS_KEY_2, OBS_KEY_RIGHT },
+    "Next Slide -> 2 + Right Arrow");
   apply_default_bindings_if_empty(
     g_previous_hotkey,
-    { OBS_KEY_1 },
-    "Previous Slide -> 1");
+    { OBS_KEY_1, OBS_KEY_LEFT },
+    "Previous Slide -> 1 + Left Arrow");
 }
 
 void frontend_event_callback(enum obs_frontend_event event, void *)

@@ -46,9 +46,10 @@ For PowerPoint decks:
 
 1. Open `PPTBridge SK Slide` properties.
 2. Find the highlighted `PowerPoint Live Start / Stop` section.
-3. Click `START - Open PowerPoint / Start Live Mode`.
+3. Click `START / RESTART - Open PowerPoint Live Mode`.
 
-By default, OBS opens quietly and does not start PowerPoint until you click `START`.
+By default, OBS opens quietly and does not start PowerPoint until you click `START / RESTART`.
+If you close the slideshow window by accident but leave PowerPoint open, click `START / RESTART - Open PowerPoint Live Mode` again to recover the live session.
 
 Live builds, animations, and embedded video are handled by `PPTBridge SK Slide`. `PPTBridge SK Presenter` stays lightweight and static for notes, next slide, timer, and confidence-monitor layouts.
 
@@ -56,8 +57,8 @@ Live builds, animations, and embedded video are handled by `PPTBridge SK Slide`.
 
 Default OBS hotkeys:
 
-- `2` = next slide
-- `1` = previous slide
+- `2` or `Right Arrow` = next slide
+- `1` or `Left Arrow` = previous slide
 
 To change them:
 
@@ -67,6 +68,7 @@ To change them:
 4. Click `Apply`.
 
 PPTBridge only accepts normal OBS hotkeys while OBS is the active app, so typing in another app will not move slides.
+The OBS entries are `PPTBridge SK: Next Slide` and `PPTBridge SK: Previous Slide`; add `PageDown`/`PageUp` there if those keys only need to work while OBS is focused.
 
 ## 7. Use A Stage Clicker While Another App Is Focused
 

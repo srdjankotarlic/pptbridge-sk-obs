@@ -26,7 +26,7 @@ Download the Windows ZIP above, extract it, then double-click `INSTALL.cmd`.
 - The Windows download is now a small binary plugin ZIP with a double-click installer.
 - Legacy `.ppt` decks can be selected and opened through the Windows PowerPoint path.
 - PowerPoint live mode can be manual by default: OBS can open without immediately starting the slideshow.
-- `START - Open PowerPoint / Start Live Mode` and `STOP - Stop PowerPoint Live Mode` are highlighted in source properties.
+- `START / RESTART - Open PowerPoint Live Mode` and `STOP - Stop PowerPoint Live Mode` are highlighted in source properties.
 - `Auto Start PowerPoint When OBS Opens` restores automatic startup when wanted.
 - `Close PowerPoint Slideshow When OBS Closes` can clean up the running slideshow.
 - `PowerPoint Resize Behavior` defaults to `Lock OBS Output Size`, so shrinking the PowerPoint window should not shrink the OBS scene source.
@@ -50,7 +50,7 @@ Download the Windows ZIP above, extract it, then double-click `INSTALL.cmd`.
 3. Confirm both source types appear in OBS.
 4. Add a PowerPoint deck to `PPTBridge SK Slide`.
 5. Verify OBS does not auto-start PowerPoint unless `Auto Start PowerPoint When OBS Opens` is enabled.
-6. Click `START - Open PowerPoint / Start Live Mode`.
+6. Click `START / RESTART - Open PowerPoint Live Mode`.
 7. Confirm the PowerPoint slideshow opens and OBS attaches the live show.
 8. Resize the PowerPoint slideshow window and confirm OBS output stays filled with `Lock OBS Output Size`.
 9. Click `STOP - Stop PowerPoint Live Mode`.

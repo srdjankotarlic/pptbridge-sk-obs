@@ -23,7 +23,7 @@ What is already in the Windows code now:
 - live PowerPoint process-audio attachment attempt through OBS process audio capture
 - fallback to exported slide rendering plus extracted embedded media when the live capture path is not ready
 - legacy click-to-play media behavior so a media-heavy slide can stay on screen and start playback before advancing
-- manual PowerPoint startup with highlighted `START - Open PowerPoint / Start Live Mode`
+- manual PowerPoint startup with highlighted `START / RESTART - Open PowerPoint Live Mode`
 - highlighted `STOP - Stop PowerPoint Live Mode`
 - optional `Auto Start PowerPoint When OBS Opens`
 - optional slideshow cleanup when OBS closes

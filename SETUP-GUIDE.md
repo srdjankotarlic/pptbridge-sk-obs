@@ -87,12 +87,15 @@ Recommended setup:
 
 Safe default mapping:
 
-- next = `2`
-- previous = `1`
+- next = `2` or `Right Arrow`
+- previous = `1` or `Left Arrow`
 
 PPTBridge only acts on those hotkeys while OBS is the active app. You can bind
 different keys or a clicker in OBS, but typing in another app will not move the
 presentation.
+If you want `PageDown`/`PageUp` only while OBS is focused, add them to
+`PPTBridge SK: Next Slide` and `PPTBridge SK: Previous Slide` in
+`Settings > Hotkeys`.
 
 For a Logitech Spotlight or another stage clicker that must work while the
 operator uses Chrome, OBS, or another app, enable:
@@ -117,7 +120,7 @@ Capture is enabled.
 
 | Control | What it does |
 |---|---|
-| `START - Open PowerPoint / Start Live Mode` | Opens PowerPoint if needed and starts the slideshow only when you click it from the highlighted `PowerPoint Live Start / Stop` group |
+| `START / RESTART - Open PowerPoint Live Mode` | Opens PowerPoint if needed, starts the slideshow only when you click it, and recovers if the slideshow window was closed |
 | `Auto Start PowerPoint When OBS Opens` | Starts the slideshow automatically when OBS loads the source |
 | `Close PowerPoint Slideshow When OBS Closes` | Closes the live slideshow when OBS quits |
 | `STOP - Stop PowerPoint Live Mode` | Stops the live slideshow without quitting OBS from the highlighted `PowerPoint Live Start / Stop` group |
@@ -126,8 +129,11 @@ Capture is enabled.
 | `Follow Current PPT Window Size` | Makes the OBS output intentionally follow the current PowerPoint window shape |
 
 Default behavior is manual. Leave `Auto Start PowerPoint When OBS Opens` off if
-you want OBS to open quietly, then click `START - Open PowerPoint / Start Live Mode`
+you want OBS to open quietly, then click `START / RESTART - Open PowerPoint Live Mode`
 only when you are ready.
+If the PowerPoint slideshow window was closed but PowerPoint itself is still
+open, click the same `START / RESTART - Open PowerPoint Live Mode` button to
+reattach/restart the live session.
 
 Default resize behavior is locked. Use `Lock OBS Output Size` for live shows so
 the PowerPoint window can be made smaller on the desktop without changing the
@@ -141,7 +147,7 @@ Use this setup when one show has several different presentations:
 2. In each scene, add `PPTBridge SK Slide` for the audience/program output.
 3. Add `PPTBridge SK Presenter` for the presenter/confidence view if needed.
 4. Select the same `.pptx` in that scene's slide and presenter sources.
-5. Click `START - Open PowerPoint / Start Live Mode` for each deck you want ready.
+5. Click `START / RESTART - Open PowerPoint Live Mode` for each deck you want ready.
 6. Change OBS scenes during the show.
 
 PPTBridge identifies each live PowerPoint session by the exact staged deck file,
@@ -177,7 +183,9 @@ large-preview, large-notes, compact, and confidence-monitor views. You can also
 adjust the split between the main slide and the right presenter panel, slide
 preview fit/fill/crop behavior, preview scale and position, notes font size,
 notes zoom, notes text position, and the split between next-slide preview and
-notes.
+notes. The presenter source also lets you choose a background color, add a
+background image or logo, show a compact cue list, and export that cue list as
+a `.txt` file from source properties.
 
 PowerPoint builds, animations, and embedded video are shown through
 `PPTBridge SK Slide`. `PPTBridge SK Presenter` stays lightweight and static for

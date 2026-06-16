@@ -36,9 +36,9 @@ namespace {
 
 constexpr const char *kHotkeyHelp =
   "Slide control:\n"
-  "1. First launch default: key 2 = next slide, key 1 = previous slide\n"
+  "1. First launch default while OBS is focused: key 2 or Right Arrow = next slide, key 1 or Left Arrow = previous slide\n"
   "2. Open Settings > Hotkeys\n"
-  "3. Bind or change PPTBridge SK: Next Slide / Previous Slide\n"
+  "3. Bind or change PPTBridge SK: Next Slide / Previous Slide; add PageDown/PageUp there if those keys only need to work while OBS is focused\n"
   "4. PPTBridge only acts on hotkeys while OBS is the active app, so typing in another window will not move slides\n"
   "5. For a stage clicker while you use Chrome, OBS, or another app, enable Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture; it uses PageDown/Right and PageUp/Left, not Space\n"
   "6. Use one scene per deck for multi-deck shows; hotkeys, clicker capture, and OSC follow the current OBS Program scene\n"
@@ -56,12 +56,12 @@ constexpr const char *kLiveHelp =
 
 constexpr const char *kLiveControlHelp =
   "Main PowerPoint live controls:\n"
-  "START opens PowerPoint if needed and begins the live slideshow.\n"
+  "START / RESTART opens PowerPoint if needed, begins the live slideshow, and recovers the deck if the slideshow window was closed.\n"
   "STOP ends the PowerPoint live slideshow without quitting OBS.";
 
 constexpr const char *kPresenterLiveControlHelp =
   "Presenter live controls:\n"
-  "START opens the same PowerPoint live slideshow used by PPTBridge SK Slide.\n"
+  "START / RESTART opens the same PowerPoint live slideshow used by PPTBridge SK Slide and recovers it if the slideshow window was closed.\n"
   "For the audience/program feed, add PPTBridge SK Slide to the OBS Program scene.";
 
 constexpr const char *kLiveResizeHelp =
@@ -112,6 +112,18 @@ PresenterPreviewScaleMode presenter_preview_scale_from_setting(const char *value
   return PresenterPreviewScaleMode::Fit;
 }
 
+PresenterBackgroundImageMode presenter_background_image_mode_from_setting(const char *value)
+{
+  const std::string setting = value ? value : "";
+  if (setting == "fill") {
+    return PresenterBackgroundImageMode::Fill;
+  }
+  if (setting == "fit") {
+    return PresenterBackgroundImageMode::Fit;
+  }
+  return PresenterBackgroundImageMode::Watermark;
+}
+
 LiveCaptureResizeMode live_capture_resize_mode_from_setting(const char *value)
 {
   const std::string setting = value ? value : "";
@@ -144,6 +156,8 @@ PresenterRenderOptions presenter_options_from_settings(obs_data_t *settings)
   options.layout = presenter_layout_from_setting(obs_data_get_string(settings, "presenter_layout"));
   options.preview_scale_mode =
     presenter_preview_scale_from_setting(obs_data_get_string(settings, "presenter_preview_scale_mode"));
+  options.background_image_mode =
+    presenter_background_image_mode_from_setting(obs_data_get_string(settings, "presenter_background_image_mode"));
   options.preview_scale_percent =
     clamp_setting(obs_data_get_double(settings, "presenter_preview_scale_percent"), 25.0, 300.0, 100.0);
   options.preview_position_x =
@@ -160,6 +174,12 @@ PresenterRenderOptions presenter_options_from_settings(obs_data_t *settings)
     clamp_setting(obs_data_get_double(settings, "presenter_notes_zoom_percent"), 50.0, 200.0, 100.0);
   options.notes_position_y =
     clamp_setting(obs_data_get_double(settings, "presenter_notes_position_y"), -100.0, 100.0, 0.0);
+  options.background_color = static_cast<uint32_t>(obs_data_get_int(settings, "presenter_background_color"));
+  const char *background_image_path = obs_data_get_string(settings, "presenter_background_image_path");
+  options.background_image_path = background_image_path ? background_image_path : "";
+  options.background_image_opacity_percent =
+    clamp_setting(obs_data_get_double(settings, "presenter_background_image_opacity_percent"), 0.0, 100.0, 22.0);
+  options.show_cue_list = obs_data_get_bool(settings, "presenter_show_cue_list");
   return options;
 }
 
@@ -174,7 +194,12 @@ bool presenter_options_equal(const PresenterRenderOptions &left, const Presenter
          left.notes_font_size == right.notes_font_size &&
          left.notes_area_percent == right.notes_area_percent &&
          left.notes_zoom_percent == right.notes_zoom_percent &&
-         left.notes_position_y == right.notes_position_y;
+         left.notes_position_y == right.notes_position_y &&
+         left.background_color == right.background_color &&
+         left.background_image_path == right.background_image_path &&
+         left.background_image_mode == right.background_image_mode &&
+         left.background_image_opacity_percent == right.background_image_opacity_percent &&
+         left.show_cue_list == right.show_cue_list;
 }
 
 void add_presenter_customization_properties(obs_properties_t *props)
@@ -209,6 +234,31 @@ void add_presenter_customization_properties(obs_properties_t *props)
   obs_properties_add_float_slider(props, "presenter_notes_area_percent", "Notes / Next Slide Split (%)", 60.0, 180.0, 1.0);
   obs_properties_add_float_slider(props, "presenter_notes_zoom_percent", "Notes Zoom (%)", 50.0, 200.0, 1.0);
   obs_properties_add_float_slider(props, "presenter_notes_position_y", "Notes Text Position Y", -100.0, 100.0, 1.0);
+  obs_properties_add_color(props, "presenter_background_color", "Presenter Background Color");
+  obs_properties_add_path(
+    props,
+    "presenter_background_image_path",
+    "Presenter Background Image / Logo",
+    OBS_PATH_FILE,
+    "Images (*.png *.jpg *.jpeg *.webp *.tif *.tiff);;All files (*.*)",
+    nullptr);
+  obs_property_t *background_mode = obs_properties_add_list(
+    props,
+    "presenter_background_image_mode",
+    "Background Image Placement",
+    OBS_COMBO_TYPE_LIST,
+    OBS_COMBO_FORMAT_STRING);
+  obs_property_list_add_string(background_mode, "Watermark / Logo", "watermark");
+  obs_property_list_add_string(background_mode, "Fit Center", "fit");
+  obs_property_list_add_string(background_mode, "Fill Background", "fill");
+  obs_properties_add_float_slider(
+    props,
+    "presenter_background_image_opacity_percent",
+    "Background Image Opacity (%)",
+    0.0,
+    100.0,
+    1.0);
+  obs_properties_add_bool(props, "presenter_show_cue_list", "Show Cue List In Presenter View");
 }
 
 struct MediaPlaybackSnapshot {
@@ -1491,6 +1541,9 @@ std::string build_status_text(SourceContext *context)
            << ", gain " << context->audio_gain_db << " dB";
   } else {
     status << "Presenter output: current slide, next slide, notes, and timer";
+    if (!context->cue_export_status.empty()) {
+      status << "\nCue list: " << context->cue_export_status;
+    }
   }
 
   if (matching_sources > 1) {
@@ -1653,6 +1706,25 @@ bool control_stop_live(obs_properties_t *, obs_property_t *, void *data)
   return false;
 }
 
+bool control_export_cue_list(obs_properties_t *, obs_property_t *, void *data)
+{
+  auto *context = static_cast<SourceContext *>(data);
+  if (!context || !context->document) {
+    return false;
+  }
+
+  std::string output_path;
+  std::string error;
+  if (context->document->ExportCueList(output_path, error)) {
+    context->cue_export_status = "exported to " + output_path;
+    blog(LOG_INFO, "[PPTBridge SK] Exported cue list to '%s'", output_path.c_str());
+  } else {
+    context->cue_export_status = error.empty() ? "export failed" : error;
+    blog(LOG_WARNING, "[PPTBridge SK] Could not export cue list: %s", context->cue_export_status.c_str());
+  }
+  return true;
+}
+
 void set_live_capture_resize_mode(SourceContext *context, LiveCaptureResizeMode mode)
 {
   if (!context) {
@@ -1726,6 +1798,11 @@ void source_defaults(obs_data_t *settings)
   obs_data_set_default_double(settings, "presenter_notes_area_percent", 100.0);
   obs_data_set_default_double(settings, "presenter_notes_zoom_percent", 100.0);
   obs_data_set_default_double(settings, "presenter_notes_position_y", 0.0);
+  obs_data_set_default_int(settings, "presenter_background_color", 0x0d121a);
+  obs_data_set_default_string(settings, "presenter_background_image_path", "");
+  obs_data_set_default_string(settings, "presenter_background_image_mode", "watermark");
+  obs_data_set_default_double(settings, "presenter_background_image_opacity_percent", 22.0);
+  obs_data_set_default_bool(settings, "presenter_show_cue_list", false);
 }
 
 obs_properties_t *source_properties(SourceContext *context)
@@ -1742,6 +1819,7 @@ obs_properties_t *source_properties(SourceContext *context)
     obs_properties_add_int(props, "canvas_width", "Canvas Width", 320, 7680, 1);
     obs_properties_add_int(props, "canvas_height", "Canvas Height", 240, 4320, 1);
     add_presenter_customization_properties(props);
+    obs_properties_add_button(props, "pptbridge_export_cue_list_btn", "Export Cue List (.txt)", control_export_cue_list);
 
     obs_properties_t *presenter_live_controls = obs_properties_create();
     obs_property_t *presenter_live_help =
@@ -1751,7 +1829,7 @@ obs_properties_t *source_properties(SourceContext *context)
     obs_properties_add_button(
       presenter_live_controls,
       "pptbridge_start_live_btn",
-      "START - Open PowerPoint / Start Live Mode",
+      "START / RESTART - Open PowerPoint Live Mode",
       control_start_live);
     obs_properties_add_button(
       presenter_live_controls,
@@ -1778,7 +1856,7 @@ obs_properties_t *source_properties(SourceContext *context)
     obs_properties_add_button(
       live_controls,
       "pptbridge_start_live_btn",
-      "START - Open PowerPoint / Start Live Mode",
+      "START / RESTART - Open PowerPoint Live Mode",
       control_start_live);
     obs_properties_add_button(
       live_controls,
@@ -1926,6 +2004,9 @@ void source_update(SourceContext *context, obs_data_t *settings)
   }
 
   if (path_changed || live_mode_changed) {
+    if (path_changed) {
+      context->cue_export_status.clear();
+    }
     {
       std::lock_guard<std::mutex> lock(context->media_mutex);
       context->media_signature.clear();

@@ -1,4 +1,4 @@
-## PPTBridge SK for OBS v0.5.0
+## PPTBridge SK for OBS v0.5.1
 
 Created by **Srdjan Kotarlic**
 
@@ -29,7 +29,15 @@ https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptb
 
 Apple Silicon is the main stable build. Intel Mac and Windows remain separate beta paths while real-hardware feedback is collected.
 
-### What Is New In v0.5.0
+### What Is New In v0.5.1
+
+- `START / RESTART - Open PowerPoint Live Mode` recovers more clearly when the slideshow window was closed while PowerPoint is still open
+- default focused OBS hotkeys now include `Right Arrow` for next and `Left Arrow` for previous, alongside `2` and `1`
+- `PPTBridge SK Presenter` adds presenter background color, optional background image/logo placement, opacity, and fit/fill/watermark modes
+- `PPTBridge SK Presenter` can show a compact cue list and export that cue list as a `.txt` file from source properties
+- install text, packaged README, and setup docs were refreshed so the release ZIP matches the current controls
+
+### Also Included From v0.5.0 And Recent Releases
 
 - the PPTX-to-PDF cache is validated against the deck file's modification time: unchanged decks reload instantly from cache, edited decks reconvert automatically
 - every external PowerPoint/LibreOffice helper call is now bounded by a timeout, including the PowerPoint `Save As PDF` export fallback that could previously hold the deck loader for up to five minutes if PowerPoint hung on a dialog
@@ -72,7 +80,7 @@ Apple Silicon is the main stable build. Intel Mac and Windows remain separate be
 7. Add `PPTBridge SK Slide` to your program/audience scene.
 8. Add `PPTBridge SK Presenter` to your confidence/speaker scene.
 9. Select the same `.pptx` or `.pdf` in both sources.
-10. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `START - Open PowerPoint / Start Live Mode` in the highlighted `PowerPoint Live Start / Stop` group when you are ready.
+10. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `START / RESTART - Open PowerPoint Live Mode` in the highlighted `PowerPoint Live Start / Stop` group when you are ready.
 11. Use `PPTBridge SK Presenter` for notes, next slide, timer, and layout customization. Keep live animations and video in `PPTBridge SK Slide`.
 
 PDF decks do not require PowerPoint. PPTX live mode requires Microsoft PowerPoint for Mac.
@@ -81,7 +89,7 @@ PDF decks do not require PowerPoint. PPTX live mode requires Microsoft PowerPoin
 
 | Control | Meaning |
 | --- | --- |
-| `START - Open PowerPoint / Start Live Mode` | Starts the PowerPoint slideshow only when you click it |
+| `START / RESTART - Open PowerPoint Live Mode` | Opens PowerPoint if needed, starts the slideshow only when you click it, and recovers if the slideshow window was closed |
 | `Auto Start PowerPoint When OBS Opens` | Starts PowerPoint automatically when OBS loads the source |
 | `Close PowerPoint Slideshow When OBS Closes` | Closes the live slideshow when OBS quits |
 | `STOP - Stop PowerPoint Live Mode` | Stops the slideshow without quitting OBS |
@@ -94,7 +102,7 @@ Default resize behavior is `Lock OBS Output Size`, so shrinking the PowerPoint w
 
 ### Slide Control
 
-- OBS hotkeys default to `2` for next slide and `1` for previous slide.
+- OBS hotkeys default to `2` or `Right Arrow` for next slide and `1` or `Left Arrow` for previous slide.
 - PPTBridge ignores OBS hotkeys while another app has keyboard focus, so typing elsewhere will not move slides.
 - In PowerPoint live mode, extra next commands on the final slide are ignored so the slideshow stays open in OBS at the end of the deck.
 - For a Logitech Spotlight or another presenter clicker while the operator uses Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`.
@@ -120,7 +128,7 @@ The ZIP includes only the user-facing files needed to install and use the plugin
 ### Testing Notes
 
 - Apple Silicon was built and runtime-tested locally on OBS Studio 32.1.1 (M1 Pro).
-- Runtime testing covered plugin load with zero errors, multi-deck PPTX and PDF loading across scenes, instant cache reloads for unchanged decks, and live OSC verification of every documented path including reload-from-cache.
+- Runtime testing covered plugin load with zero errors, default hotkey migration to `2`/`Right Arrow` and `1`/`Left Arrow`, multi-deck PPTX and PDF loading across scenes, instant cache reloads for unchanged decks, and live OSC verification of every documented path including reload-from-cache.
 - The export timeout fix and live-command safety rules are locked in by `tests/audit_guardrails.py`.
 - PowerPoint live-mode behavior (final-slide protection, presenter preload) carries over from the v0.4.7 validation.
 - Intel stays on the previous beta package until these Apple Silicon changes are separately validated there.

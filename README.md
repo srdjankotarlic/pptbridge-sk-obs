@@ -4,13 +4,13 @@ PPTBridge separates a clean slide output from a presenter/confidence view inside
 
 Used in a live production workflow for slides, presenter notes, next-slide preview, and OBS/Companion control.
 
-**Download stable macOS Apple Silicon v0.5.0:** [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0/pptbridge-obs-macos-apple-silicon.zip)
+**Download stable macOS Apple Silicon v0.5.1:** [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.1/pptbridge-obs-macos-apple-silicon.zip)
 
 ![PPTBridge SK Slide and Presenter sources running inside OBS](native-plugin/media/github/pptbridge-sk-social-preview.png)
 
 ## Download / Install
 
-**Primary stable build:** [macOS Apple Silicon v0.5.0 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0/pptbridge-obs-macos-apple-silicon.zip) ([release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0)).
+**Primary stable build:** [macOS Apple Silicon v0.5.1 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.1/pptbridge-obs-macos-apple-silicon.zip) ([release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.1)).
 
 Windows is beta; macOS Apple Silicon is the primary stable build.
 
@@ -44,7 +44,7 @@ Watch a short silent demo of PPTBridge SK running inside OBS:
 
 | Platform | Download | Status | Use this when |
 | --- | --- | --- | --- |
-| Apple Silicon Mac | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0/pptbridge-obs-macos-apple-silicon.zip) | Stable v0.5.0 | Your Mac has an M1, M2, M3, or M4 chip |
+| Apple Silicon Mac | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.1/pptbridge-obs-macos-apple-silicon.zip) | Stable v0.5.1 | Your Mac has an M1, M2, M3, or M4 chip |
 | Intel Mac | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip) | Beta v0.4.4 | Your Mac says `Processor: Intel` in About This Mac |
 | Windows 64-bit | [`pptbridge-obs-windows-x64-v0.5.0-beta.1.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0-beta.1/pptbridge-obs-windows-x64-v0.5.0-beta.1.zip) | Beta installer | You want to test PowerPoint live mode on Windows OBS |
 
@@ -71,7 +71,7 @@ PPTBridge SK keeps the audience feed and speaker view separate inside OBS:
 4. Open OBS Studio.
 5. Add `PPTBridge SK Slide` for the clean audience output.
 6. Add `PPTBridge SK Presenter` only when you need speaker notes, next slide, and timer.
-7. Select your PowerPoint file and click `START - Open PowerPoint / Start Live Mode`.
+7. Select your PowerPoint file and click `START / RESTART - Open PowerPoint Live Mode`.
 
 Windows beta supports PowerPoint live-mode testing on OBS 30+ with Microsoft PowerPoint installed. PDF input is not enabled on Windows yet.
 
@@ -95,7 +95,7 @@ After OBS opens, click `+` in `Sources` and add:
 1. Add `PPTBridge SK Slide` to the scene that goes to the audience.
 2. Add `PPTBridge SK Presenter` to the stage monitor or operator preview scene.
 3. Select the same `.pptx` or `.pdf` file in both source properties.
-4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `START - Open PowerPoint / Start Live Mode`.
+4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `START / RESTART - Open PowerPoint Live Mode`.
 5. Control slides from OBS hotkeys, the source property buttons, Companion, local OSC, or Spotlight/Clicker Capture.
 6. Resize and position the OBS sources like normal OBS sources.
 7. Keep live animations and embedded video in `PPTBridge SK Slide`; `PPTBridge SK Presenter` stays a lightweight notes, next-slide, and timer monitor.
@@ -117,7 +117,7 @@ The presenter view is rendered by PPTBridge inside OBS. It is not a screen captu
 
 | Control | What it does |
 | --- | --- |
-| `START - Open PowerPoint / Start Live Mode` | Opens PowerPoint if needed and starts the live slideshow on demand |
+| `START / RESTART - Open PowerPoint Live Mode` | Opens PowerPoint if needed, starts the live slideshow on demand, and recovers if the slideshow window was closed |
 | `STOP - Stop PowerPoint Live Mode` | Stops the live slideshow without quitting OBS |
 | `Auto Start PowerPoint When OBS Opens` | Starts the slideshow automatically when OBS loads the source |
 | `Close PowerPoint Slideshow When OBS Closes` | Cleans up the slideshow when OBS quits |
@@ -125,7 +125,8 @@ The presenter view is rendered by PPTBridge inside OBS. It is not a screen captu
 
 Presenter live-video preview is intentionally postponed for now. It will only return when it can be verified without adding crash risk to OBS.
 
-Default behavior is safe for production: OBS can open quietly, and PowerPoint starts only when you click `START`.
+Default behavior is safe for production: OBS can open quietly, and PowerPoint starts only when you click `START / RESTART`.
+If you close the slideshow window but leave PowerPoint open, click the same `START / RESTART - Open PowerPoint Live Mode` button to recover the live session.
 In PowerPoint live mode, extra next commands on the final slide are ignored so the slideshow stays open in OBS instead of dropping out at the end.
 
 ## Slide Control
@@ -140,10 +141,11 @@ In PowerPoint live mode, extra next commands on the final slide are ignored so t
 
 Default OBS hotkeys are:
 
-- `2` for next slide
-- `1` for previous slide
+- `2` or `Right Arrow` for next slide
+- `1` or `Left Arrow` for previous slide
 
 PPTBridge ignores normal OBS hotkey callbacks while OBS is not the active app, so typing in another window will not move slides. If a physical clicker must work globally, use `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. Toggle it off again when those clicker keys should behave normally.
+The OBS hotkey entries are `PPTBridge SK: Next Slide` and `PPTBridge SK: Previous Slide`; add `PageDown`/`PageUp` there if those keys only need to work while OBS is focused.
 
 When clicker capture is enabled, PPTBridge captures common presenter remote keys by default:
 
@@ -168,7 +170,7 @@ For shows with several PowerPoint decks:
 1. Create one OBS scene per deck.
 2. Add that deck's `PPTBridge SK Slide` source to its scene.
 3. Add a matching `PPTBridge SK Presenter` source if needed.
-4. Click `START - Open PowerPoint / Start Live Mode` for each deck you want ready.
+4. Click `START / RESTART - Open PowerPoint Live Mode` for each deck you want ready.
 5. Switch OBS Program scenes during the show.
 
 Hotkeys, local OSC, and clicker capture follow the PPTBridge source in the current OBS Program scene. That lets Deck 1, Deck 2, and Deck 3 stay open without one scene controlling the wrong presentation, while the operator can still prepare other scenes without the stage clicker moving the wrong deck.
@@ -183,6 +185,9 @@ Hotkeys, local OSC, and clicker capture follow the PPTBridge source in the curre
 - notes zoom
 - notes area size
 - notes vertical position
+- presenter background color
+- optional background image or logo with fit, fill, or watermark placement
+- cue list display and `Export Cue List (.txt)` from source properties
 - lightweight static current-slide preview for stable confidence-monitor use
 
 This is designed for real stage confidence monitors where the presenter may need larger notes or a larger current-slide preview.
@@ -209,7 +214,8 @@ Apple Silicon has been runtime-tested locally on OBS 32.x. Intel is cross-built 
 
 | Release | Status | Use it for |
 | --- | --- | --- |
-| [`v0.5.0`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0) | Apple Silicon stable | Recommended release with modification-time cache validation and bounded timeouts on every PowerPoint helper call |
+| [`v0.5.1`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.1) | Apple Silicon stable | Recommended release with START/RESTART recovery, arrow-key defaults, presenter background customization, and cue-list display/export |
+| [`v0.5.0`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0) | Previous stable | Modification-time cache validation and bounded timeouts on every PowerPoint helper call |
 | [`v0.4.7`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.7) | Previous stable | Faster presenter preparation after live start and final-slide live-mode protection |
 | [`v0.4.6`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.6) | Previous stable | Live PowerPoint control stability, safer process handling, and cleaner release packaging |
 | [`v0.4.5`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.4.5) | Previous stable | Conservative presenter stability, clearer live controls, and updated docs |

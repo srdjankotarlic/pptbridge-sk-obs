@@ -397,6 +397,28 @@ std::vector<std::string> SplitLines(const std::string &text)
   return lines;
 }
 
+std::string TrimWhitespaceCopy(std::string value)
+{
+  value.erase(value.begin(), std::find_if(value.begin(), value.end(), [](unsigned char ch) {
+    return !std::isspace(ch);
+  }));
+  value.erase(std::find_if(value.rbegin(), value.rend(), [](unsigned char ch) {
+    return !std::isspace(ch);
+  }).base(), value.end());
+  return value;
+}
+
+std::string LiveRecoveryErrorMessage(const std::string &detail)
+{
+  std::string message =
+    "PowerPoint slideshow is not available. Click START / RESTART - Open PowerPoint Live Mode in source properties to recover.";
+  const std::string trimmed = TrimWhitespaceCopy(detail);
+  if (!trimmed.empty()) {
+    message += " Last PowerPoint response: " + trimmed;
+  }
+  return message;
+}
+
 std::string UnescapePipeValue(const std::string &value)
 {
   std::string unescaped;
@@ -1662,6 +1684,93 @@ bool DrawImageFile(Graphics &graphics, const std::wstring &path, const RectF &de
   return true;
 }
 
+Color ColorFromRgb(uint32_t color, BYTE alpha = 255)
+{
+  return Color(
+    alpha,
+    static_cast<BYTE>((color >> 16) & 0xff),
+    static_cast<BYTE>((color >> 8) & 0xff),
+    static_cast<BYTE>(color & 0xff));
+}
+
+RectF PresenterBackgroundImageRect(Bitmap &image, const RectF &canvas, const PresenterRenderOptions &options)
+{
+  const float image_width = static_cast<float>(image.GetWidth());
+  const float image_height = static_cast<float>(image.GetHeight());
+  if (image_width <= 0.0f || image_height <= 0.0f) {
+    return RectF();
+  }
+
+  if (options.background_image_mode == PresenterBackgroundImageMode::Fill) {
+    return FillRect(canvas.X, canvas.Y, canvas.Width, canvas.Height, image_width, image_height);
+  }
+  if (options.background_image_mode == PresenterBackgroundImageMode::Fit) {
+    const RectF inset(canvas.X + 32.0f, canvas.Y + 32.0f, std::max(1.0f, canvas.Width - 64.0f), std::max(1.0f, canvas.Height - 64.0f));
+    return FitRect(inset.X, inset.Y, inset.Width, inset.Height, image_width, image_height);
+  }
+
+  const float max_width = std::max(120.0f, canvas.Width * 0.24f);
+  const float max_height = std::max(90.0f, canvas.Height * 0.20f);
+  const RectF watermark(
+    canvas.X + canvas.Width - max_width - 28.0f,
+    canvas.Y + canvas.Height - max_height - 24.0f,
+    max_width,
+    max_height);
+  return FitRect(watermark.X, watermark.Y, watermark.Width, watermark.Height, image_width, image_height);
+}
+
+void DrawPresenterBackgroundImage(Graphics &graphics, const RectF &canvas, const PresenterRenderOptions &options)
+{
+  if (options.background_image_path.empty()) {
+    return;
+  }
+
+  const auto opacity =
+    static_cast<BYTE>(std::round(ClampFloat(static_cast<float>(options.background_image_opacity_percent) / 100.0f, 0.0f, 1.0f) * 255.0f));
+  if (opacity == 0) {
+    return;
+  }
+
+  const std::wstring image_path = Utf8ToWide(options.background_image_path);
+  if (image_path.empty() || !fs::exists(fs::path(image_path))) {
+    return;
+  }
+
+  Bitmap image(image_path.c_str());
+  if (image.GetLastStatus() != Ok || image.GetWidth() == 0 || image.GetHeight() == 0) {
+    return;
+  }
+
+  const RectF destination = PresenterBackgroundImageRect(image, canvas, options);
+  if (destination.Width <= 0.0f || destination.Height <= 0.0f) {
+    return;
+  }
+
+  ImageAttributes attributes;
+  ColorMatrix matrix = {
+    1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, static_cast<REAL>(opacity) / 255.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+  };
+  attributes.SetColorMatrix(&matrix, ColorMatrixFlagsDefault, ColorAdjustTypeBitmap);
+
+  Region previous_clip;
+  graphics.GetClip(&previous_clip);
+  graphics.SetClip(canvas);
+  graphics.DrawImage(
+    &image,
+    destination,
+    0.0f,
+    0.0f,
+    static_cast<REAL>(image.GetWidth()),
+    static_cast<REAL>(image.GetHeight()),
+    UnitPixel,
+    &attributes);
+  graphics.SetClip(&previous_clip, CombineModeReplace);
+}
+
 bool DrawImagePreview(Graphics &graphics, const std::wstring &path, const RectF &destination, const PresenterRenderOptions &options)
 {
   if (path.empty() || !fs::exists(fs::path(path))) {
@@ -1685,6 +1794,63 @@ bool DrawImagePreview(Graphics &graphics, const std::wstring &path, const RectF 
   graphics.DrawImage(&image, draw_rect);
   graphics.SetClip(&previous_clip, CombineModeReplace);
   return true;
+}
+
+std::string CueTitleForSlide(const std::vector<CachedSlide> &slides, std::size_t index)
+{
+  if (index < slides.size()) {
+    const std::string title = TrimWhitespaceCopy(slides[index].meta.title);
+    if (!title.empty()) {
+      return title;
+    }
+  }
+  return "Slide " + std::to_string(index + 1);
+}
+
+void DrawCueList(
+  Graphics &graphics,
+  const std::vector<CachedSlide> &slides,
+  std::size_t current,
+  std::size_t slide_count,
+  const RectF &cue_box)
+{
+  SolidBrush cue_fill(Color(245, 18, 24, 32));
+  SolidBrush title_brush(Color(255, 199, 206, 220));
+  SolidBrush body_brush(Color(255, 210, 216, 228));
+  SolidBrush accent_brush(Color(255, 84, 226, 170));
+  graphics.FillRectangle(&cue_fill, cue_box);
+
+  Font label_font(L"Segoe UI Semibold", 13.0f, FontStyleBold, UnitPixel);
+  Font line_font(L"Consolas", 12.0f, FontStyleRegular, UnitPixel);
+  graphics.DrawString(L"Cue List", -1, &label_font, PointF(cue_box.X + 14.0f, cue_box.Y + 10.0f), &title_brush);
+
+  const std::size_t count = std::max<std::size_t>(slide_count, slides.size());
+  if (count == 0) {
+    graphics.DrawString(L"No cues available yet", -1, &line_font, PointF(cue_box.X + 14.0f, cue_box.Y + 38.0f), &body_brush);
+    return;
+  }
+
+  const std::size_t start = current > 1 ? current - 1 : 0;
+  const std::size_t end = std::min<std::size_t>(count, start + 5);
+  float y = cue_box.Y + 36.0f;
+  for (std::size_t index = start; index < end && y < cue_box.Y + cue_box.Height - 10.0f; ++index) {
+    const bool is_current = index == current;
+    std::ostringstream line;
+    line << (is_current ? "> " : "  ");
+    if (index + 1 < 10) {
+      line << "0";
+    }
+    line << (index + 1) << "  " << CueTitleForSlide(slides, index);
+    const std::wstring wide_line = Utf8ToWide(line.str());
+    graphics.DrawString(
+      wide_line.c_str(),
+      -1,
+      &line_font,
+      RectF(cue_box.X + 14.0f, y, std::max(1.0f, cue_box.Width - 28.0f), 18.0f),
+      nullptr,
+      is_current ? &accent_brush : &body_brush);
+    y += 20.0f;
+  }
 }
 
 std::wstring FormatDuration(uint64_t seconds)
@@ -1848,6 +2014,11 @@ void PresentationDocument::StartLivePowerPointAsync()
 
     impl_->live_enabled = true;
     impl_->live_start_requested = true;
+    impl_->live_ready = false;
+    impl_->live_sync_inflight.store(false);
+    impl_->live_window_title.clear();
+    impl_->black_screen = false;
+    impl_->current_media_triggered = false;
     impl_->force_reload = true;
     impl_->last_error.clear();
     impl_->state_version += 1;
@@ -1973,10 +2144,13 @@ void PresentationDocument::SyncLiveStateAsync()
       if (changed) {
         self->impl_->state_version += 1;
       }
-    } else if (!error.empty()) {
+    } else {
       std::lock_guard<std::mutex> lock(self->impl_->mutex);
-      if (self->impl_->last_error != error) {
-        self->impl_->last_error = error;
+      const std::string message = LiveRecoveryErrorMessage(!error.empty() ? error : output);
+      if (self->impl_->live_ready || !self->impl_->live_window_title.empty() || self->impl_->last_error != message) {
+        self->impl_->live_ready = false;
+        self->impl_->live_window_title.clear();
+        self->impl_->last_error = message;
         self->impl_->state_version += 1;
       }
     }
@@ -2299,6 +2473,46 @@ std::vector<EmbeddedMedia> PresentationDocument::CurrentMedia() const
   return impl_->media_by_slide[impl_->current_index];
 }
 
+bool PresentationDocument::ExportCueList(std::string &out_path, std::string &out_error) const
+{
+  std::vector<CachedSlide> slides;
+  std::string deck_path;
+  std::string deck_name;
+  {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    if (!impl_->loaded || impl_->slides.empty()) {
+      out_error = impl_->loading ? "presentation is still loading" : "no loaded slides to export";
+      return false;
+    }
+    slides = impl_->slides;
+    deck_path = impl_->path;
+    deck_name = impl_->name;
+  }
+
+  fs::path output = fs::path(Utf8ToWide(deck_path));
+  output.replace_extension(L".pptbridge-cues.txt");
+
+  std::ofstream file(output, std::ios::out | std::ios::trunc);
+  if (!file) {
+    out_error = "could not create cue list at " + WideToUtf8(output.wstring());
+    return false;
+  }
+
+  file << "PPTBridge SK Cue List\n";
+  file << "Deck: " << deck_name << "\n\n";
+  for (std::size_t index = 0; index < slides.size(); ++index) {
+    file << (index + 1) << ". " << CueTitleForSlide(slides, index) << "\n";
+    const std::string notes = TrimWhitespaceCopy(slides[index].meta.notes);
+    if (!notes.empty()) {
+      file << "   Notes: " << notes << "\n";
+    }
+  }
+
+  out_path = WideToUtf8(output.wstring());
+  out_error.clear();
+  return true;
+}
+
 bool PresentationDocument::RenderSlideBGRA(
   uint32_t width,
   uint32_t height,
@@ -2387,6 +2601,7 @@ bool PresentationDocument::RenderPresenterBGRA(
   std::wstring footer_hint;
   std::wstring last_issue;
   bool current_has_media = false;
+  std::vector<CachedSlide> slide_snapshot;
 
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
@@ -2407,6 +2622,7 @@ bool PresentationDocument::RenderPresenterBGRA(
 
     current_index = std::min(impl_->current_index, impl_->slides.size() - 1);
     slide_count = impl_->slides.size();
+    slide_snapshot = impl_->slides;
     deck_name = Utf8ToWide(impl_->name);
     current_image = impl_->slides[current_index].image_path;
     notes = Utf8ToWide(impl_->slides[current_index].meta.notes);
@@ -2432,7 +2648,7 @@ bool PresentationDocument::RenderPresenterBGRA(
     }
   }
 
-  SolidBrush background(Color(255, 9, 12, 17));
+  SolidBrush background(ColorFromRgb(options.background_color));
   SolidBrush panel(Color(255, 19, 23, 31));
   SolidBrush accent(Color(255, 84, 226, 170));
   SolidBrush title_brush(Color(255, 245, 247, 250));
@@ -2508,7 +2724,17 @@ bool PresentationDocument::RenderPresenterBGRA(
     notes_rect = RectF(right_rect.X, right_rect.Y + next_height + gap, right_rect.Width, notes_height);
   }
 
+  RectF cue_rect;
+  if (options.show_cue_list && notes_rect.Height >= 150.0f) {
+    const float cue_height = ClampFloat(notes_rect.Height * 0.28f, 92.0f, 172.0f);
+    if (notes_rect.Height - cue_height - gap >= 72.0f) {
+      cue_rect = RectF(notes_rect.X, notes_rect.Y + notes_rect.Height - cue_height, notes_rect.Width, cue_height);
+      notes_rect.Height = std::max(1.0f, notes_rect.Height - cue_height - gap);
+    }
+  }
+
   graphics.FillRectangle(&background, 0, 0, width, height);
+  DrawPresenterBackgroundImage(graphics, RectF(0.0f, 0.0f, static_cast<REAL>(width), static_cast<REAL>(height)), options);
   graphics.FillRectangle(&accent, 0.0f, 0.0f, static_cast<REAL>(width), 6.0f);
   graphics.FillRectangle(&footer_fill, 0.0f, height - 42.0f, static_cast<REAL>(width), 42.0f);
   if (!confidence_layout) {
@@ -2596,6 +2822,10 @@ bool PresentationDocument::RenderPresenterBGRA(
       notes_text_height),
     &notes_format,
     &body_brush);
+
+  if (cue_rect.Width > 0.0f && cue_rect.Height > 0.0f) {
+    DrawCueList(graphics, slide_snapshot, current_index, slide_count, cue_rect);
+  }
 
   if (!last_issue.empty() && !confidence_layout) {
     RectF issue_rect(label_x, height - 108.0f, right_rect.Width, 52.0f);

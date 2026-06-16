@@ -76,6 +76,11 @@ def main() -> int:
 
     if "void PresentationDocument::StopLivePowerPointAsync(" not in source:
         raise AssertionError("UI controls need async PowerPoint live stop support")
+    start_live = extract_function(source, "void PresentationDocument::StartLivePowerPointAsync(")
+    if "impl_->live_ready = false" not in start_live:
+        raise AssertionError("START/RESTART must clear stale live-ready state before relaunching PowerPoint")
+    if "impl_->live_window_title.clear()" not in start_live:
+        raise AssertionError("START/RESTART must clear the stale slideshow window title before relaunching")
     stop_async = extract_function(source, "void PresentationDocument::StopLivePowerPointAsync(")
     if "std::thread" in stop_async or "detach(" in stop_async:
         raise AssertionError("Async live stop should use the FIFO live queue, not one detached thread per stop")
@@ -95,6 +100,12 @@ def main() -> int:
         raise AssertionError("The FIFO live queue should serialize live commands instead of a non-FIFO mutex")
     if "dispatch_async(impl_->live_queue" not in live_command:
         raise AssertionError("Live PowerPoint commands must dispatch through the FIFO live queue")
+    if "self->impl_->live_ready = false" not in live_command:
+        raise AssertionError("Failed live commands must mark the PowerPoint slideshow as not ready")
+
+    sync_live = extract_function(source, "void PresentationDocument::SyncLiveStateAsync(")
+    if "self->impl_->live_ready = false" not in sync_live:
+        raise AssertionError("Failed live state sync must mark the PowerPoint slideshow as not ready")
 
     load_worker = extract_function(source, "void PresentationDocument::LoadOnWorker(")
     if "live_started_now" not in load_worker:
@@ -108,6 +119,36 @@ def main() -> int:
     stop_control = extract_function(source_slide, "bool control_stop_live(")
     if "StopLivePowerPointAsync(" not in stop_control:
         raise AssertionError("The macOS stop button must not block the OBS UI thread")
+    presenter_props = extract_function(source_slide, "void add_presenter_customization_properties(")
+    for key in (
+        "presenter_background_color",
+        "presenter_background_image_path",
+        "presenter_background_image_opacity_percent",
+        "presenter_show_cue_list",
+    ):
+        if key not in presenter_props:
+            raise AssertionError(f"Presenter customization properties must expose {key}")
+    if "control_export_cue_list" not in source_slide:
+        raise AssertionError("Presenter source should expose a cue-list export button")
+
+    header = (ROOT / "src" / "presentation_document.hpp").read_text(encoding="utf-8")
+    for symbol in ("background_color", "background_image_path", "show_cue_list"):
+        if symbol not in header:
+            raise AssertionError(f"PresenterRenderOptions must include {symbol}")
+    if "ExportCueList(" not in header:
+        raise AssertionError("PresentationDocument must expose a cue-list export API")
+
+    presenter_render = extract_function(source, "bool PresentationDocument::RenderPresenterBGRA(")
+    for symbol in ("DrawPresenterBackgroundImage", "DrawCueList", "options.background_color"):
+        if symbol not in presenter_render:
+            raise AssertionError(f"Presenter renderer must use {symbol}")
+
+    plugin_main_mac = (ROOT / "src" / "plugin-main.mm").read_text(encoding="utf-8")
+    mac_defaults = extract_function(plugin_main_mac, "void apply_default_hotkeys_if_needed()")
+    if "{ OBS_KEY_2, OBS_KEY_RIGHT }" not in mac_defaults:
+        raise AssertionError("macOS default Next Slide hotkeys must include Right Arrow while OBS is focused")
+    if "{ OBS_KEY_1, OBS_KEY_LEFT }" not in mac_defaults:
+        raise AssertionError("macOS default Previous Slide hotkeys must include Left Arrow while OBS is focused")
 
     win_source = (ROOT / "src" / "presentation_document_win.cpp").read_text(encoding="utf-8")
     win_runner = extract_function(win_source, "bool RunProcessCapture(")
@@ -115,6 +156,9 @@ def main() -> int:
         raise AssertionError("Windows RunProcessCapture needs timeout-backed waiting")
     if "TerminateProcess(" not in win_runner:
         raise AssertionError("Windows RunProcessCapture should terminate timed-out children")
+    win_start_live = extract_function(win_source, "void PresentationDocument::StartLivePowerPointAsync(")
+    if "impl_->live_ready = false" not in win_start_live:
+        raise AssertionError("Windows START/RESTART must clear stale live-ready state before relaunching PowerPoint")
 
     if "void PresentationDocument::StopLivePowerPointAsync(" not in win_source:
         raise AssertionError("Windows UI controls need async PowerPoint live stop support")
@@ -123,6 +167,34 @@ def main() -> int:
     win_stop_control = extract_function(win_source_slide, "bool control_stop_live(")
     if "StopLivePowerPointAsync(" not in win_stop_control:
         raise AssertionError("The Windows stop button must not block the OBS UI thread")
+    win_presenter_props = extract_function(win_source_slide, "void add_presenter_customization_properties(")
+    for key in (
+        "presenter_background_color",
+        "presenter_background_image_path",
+        "presenter_background_image_opacity_percent",
+        "presenter_show_cue_list",
+    ):
+        if key not in win_presenter_props:
+            raise AssertionError(f"Windows presenter customization properties must expose {key}")
+    if "control_export_cue_list" not in win_source_slide:
+        raise AssertionError("Windows presenter source should expose a cue-list export button")
+
+    win_slide_render = extract_function(win_source, "bool PresentationDocument::RenderSlideBGRA(")
+    if "options.background_color" in win_slide_render:
+        raise AssertionError("Windows slide renderer must not reference presenter-only render options")
+    win_presenter_render = extract_function(win_source, "bool PresentationDocument::RenderPresenterBGRA(")
+    for symbol in ("DrawPresenterBackgroundImage", "DrawCueList", "options.background_color"):
+        if symbol not in win_presenter_render:
+            raise AssertionError(f"Windows presenter renderer must use {symbol}")
+    if "bool PresentationDocument::ExportCueList(" not in win_source:
+        raise AssertionError("Windows PresentationDocument must implement cue-list export")
+
+    plugin_main_win = (ROOT / "src" / "plugin-main.cpp").read_text(encoding="utf-8")
+    win_defaults = extract_function(plugin_main_win, "void apply_default_hotkeys_if_needed()")
+    if "{ OBS_KEY_2, OBS_KEY_RIGHT }" not in win_defaults:
+        raise AssertionError("Windows default Next Slide hotkeys must include Right Arrow while OBS is focused")
+    if "{ OBS_KEY_1, OBS_KEY_LEFT }" not in win_defaults:
+        raise AssertionError("Windows default Previous Slide hotkeys must include Left Arrow while OBS is focused")
 
     return 0
 

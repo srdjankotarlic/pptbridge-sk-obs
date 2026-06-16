@@ -28,7 +28,7 @@ The goal is to support a real event workflow inside OBS:
 
 - load a `.pptx` or `.pdf` directly from source properties
 - support true live PowerPoint playback on macOS when Microsoft PowerPoint is installed
-- let OBS open quietly, then start PowerPoint only when you click `START - Open PowerPoint / Start Live Mode` in the highlighted `PowerPoint Live Start / Stop` group
+- let OBS open quietly, then start PowerPoint only when you click `START / RESTART - Open PowerPoint Live Mode` in the highlighted `PowerPoint Live Start / Stop` group
 - optionally auto-start PowerPoint when OBS opens
 - optionally close the live slideshow when OBS quits
 - create a clean audience slide source
@@ -58,7 +58,7 @@ The goal is to support a real event workflow inside OBS:
 4. Add `PPTBridge SK Slide`
 5. Add `PPTBridge SK Presenter`
 6. Point both sources to the same `.pptx` or `.pdf`
-7. For `.pptx` live mode, click `START - Open PowerPoint / Start Live Mode` in the highlighted `PowerPoint Live Start / Stop` group inside `PPTBridge SK Slide` properties
+7. For `.pptx` live mode, click `START / RESTART - Open PowerPoint Live Mode` in the highlighted `PowerPoint Live Start / Stop` group inside `PPTBridge SK Slide` properties
 8. Bind `PPTBridge SK` hotkeys in `Settings > Hotkeys`, or use Companion/OSC
 
 ## Hotkeys and clickers
@@ -72,8 +72,8 @@ Search for `PPTBridge SK` in OBS hotkeys and bind:
 
 The default safe bindings are:
 
-- `2` for next
-- `1` for previous
+- `2` or `Right Arrow` for next
+- `1` or `Left Arrow` for previous
 
 PPTBridge only acts on hotkeys while OBS is the active app, so typing in another
 app will not accidentally move the presentation. You can still bind different

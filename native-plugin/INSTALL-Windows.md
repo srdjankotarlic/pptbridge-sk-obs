@@ -31,7 +31,7 @@ INSTALL.cmd "D:\Path\To\obs-studio"
 
 ## Live Production Setup
 
-- Use `START - Open PowerPoint / Start Live Mode` when you are ready for the live deck.
+- Use `START / RESTART - Open PowerPoint Live Mode` when you are ready for the live deck.
 - Use `STOP - Stop PowerPoint Live Mode` at the end of the deck.
 - Keep `Lock OBS Output Size` selected unless you intentionally want OBS to follow the PowerPoint window shape.
 - Enable `Tools -> PPTBridge SK: Toggle Spotlight/Clicker Capture` when the presenter clicker must control the Program scene while the operator uses another app.

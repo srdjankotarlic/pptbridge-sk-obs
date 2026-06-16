@@ -46,7 +46,7 @@ BASIC OBS SETUP
 3. Select the same .pptx or .pdf file in both sources.
 4. For .pptx live mode, open PPTBridge SK Slide properties and click:
 
-   START - Open PowerPoint / Start Live Mode
+   START / RESTART - Open PowerPoint Live Mode
 
 5. For PDF decks, PowerPoint is not needed.
 6. PPTBridge SK Presenter stays lightweight and static for notes, next slide,
@@ -59,8 +59,8 @@ Open OBS Settings > Hotkeys and search for PPTBridge SK.
 
 Defaults:
 
-- Next Slide: 2
-- Previous Slide: 1
+- Next Slide: 2 or Right Arrow
+- Previous Slide: 1 or Left Arrow
 
 PPTBridge only moves slides from hotkeys while OBS is the active app.
 You can bind different keys in OBS Settings > Hotkeys if needed.
@@ -90,9 +90,11 @@ POWERPOINT STARTUP
 In the PPTBridge SK Slide source properties:
 
 - Leave Auto Start PowerPoint When OBS Opens off if OBS should open quietly.
-- Click START - Open PowerPoint / Start Live Mode in the highlighted
+- Click START / RESTART - Open PowerPoint Live Mode in the highlighted
   PowerPoint Live Start / Stop group when you are ready to launch the slideshow.
   If PowerPoint is not open yet, PPTBridge opens it for you.
+- If the slideshow window was closed but PowerPoint is still open, click
+  START / RESTART - Open PowerPoint Live Mode again to recover the live session.
 - Turn Auto Start PowerPoint When OBS Opens on if you want the slideshow to launch with OBS.
 - Leave Close PowerPoint Slideshow When OBS Closes on if OBS should clean up the slideshow on quit.
 - Use STOP - Stop PowerPoint Live Mode in the same highlighted group if you want
@@ -107,7 +109,7 @@ MULTIPLE PPTX DECKS
 - Create one OBS scene per deck.
 - Add PPTBridge SK Slide and PPTBridge SK Presenter to each scene.
 - Select that scene's .pptx in both sources.
-- Click START - Open PowerPoint / Start Live Mode once for each deck you want ready.
+- Click START / RESTART - Open PowerPoint Live Mode once for each deck you want ready.
 - PPTBridge locks each PowerPoint live session to its exact staged deck file, so
   several slideshow windows can stay open and scene changes control the right deck.
 

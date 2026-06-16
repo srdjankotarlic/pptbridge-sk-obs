@@ -47,7 +47,7 @@ Typical setup:
 1. Add `PPTBridge SK Slide` to the scene that goes to the projector, stream, or recording.
 2. Add `PPTBridge SK Presenter` to the scene or monitor used by the speaker.
 3. Select the same `.pptx` or `.pdf` file in both sources.
-4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `START - Open PowerPoint / Start Live Mode` in the highlighted `PowerPoint Live Start / Stop` group when you are ready.
+4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `START / RESTART - Open PowerPoint Live Mode` in the highlighted `PowerPoint Live Start / Stop` group when you are ready.
 5. For PDF decks, PowerPoint is not required.
 
 If the presenter/operator monitor should show live builds, animations, or
@@ -78,11 +78,13 @@ Open `Settings > Hotkeys` in OBS and search for `PPTBridge SK`.
 
 Default bindings are:
 
-- Next Slide: `2`
-- Previous Slide: `1`
+- Next Slide: `2` or `Right Arrow`
+- Previous Slide: `1` or `Left Arrow`
 
 PPTBridge only moves slides from hotkeys while OBS is the active app.
 You can bind different keys in OBS Settings > Hotkeys if needed.
+If you want `PageDown`/`PageUp` to work only while OBS is focused, bind them to
+`PPTBridge SK: Next Slide` and `PPTBridge SK: Previous Slide`.
 
 For a Logitech Spotlight or another stage clicker while the operator works in
 Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Toggle
@@ -102,7 +104,8 @@ option is enabled if you bind them as custom clicker keys.
 In `PPTBridge SK Slide` source properties:
 
 - Keep `Auto Start PowerPoint When OBS Opens` off if OBS should open quietly.
-- Click `START - Open PowerPoint / Start Live Mode` in the highlighted `PowerPoint Live Start / Stop` group when you are ready to launch the slideshow. If PowerPoint is not open yet, PPTBridge opens it for you.
+- Click `START / RESTART - Open PowerPoint Live Mode` in the highlighted `PowerPoint Live Start / Stop` group when you are ready to launch the slideshow. If PowerPoint is not open yet, PPTBridge opens it for you.
+- If the slideshow window was closed but PowerPoint is still open, click `START / RESTART - Open PowerPoint Live Mode` again to recover the live session.
 - Turn `Auto Start PowerPoint When OBS Opens` on if you prefer the slideshow to launch as soon as OBS loads the source.
 - Keep `Close PowerPoint Slideshow When OBS Closes` on if the slideshow should close when OBS quits.
 - Use `STOP - Stop PowerPoint Live Mode` in the same highlighted group if you want to end the running slideshow without quitting OBS.
@@ -115,7 +118,7 @@ Default behavior is manual: OBS opens without immediately popping up the PowerPo
 
 For several decks in one show, create one OBS scene per deck. Add `PPTBridge SK Slide` and, if needed, `PPTBridge SK Presenter` to each scene, then select that scene's `.pptx` in both sources.
 
-Click `START - Open PowerPoint / Start Live Mode` on each deck you want ready. PPTBridge locks each live session to its exact staged PowerPoint file, so several slideshow windows can stay open and the current OBS program scene controls the right deck.
+Click `START / RESTART - Open PowerPoint Live Mode` on each deck you want ready. PPTBridge locks each live session to its exact staged PowerPoint file, so several slideshow windows can stay open and the current OBS program scene controls the right deck.
 
 ## Companion / OSC Control
 

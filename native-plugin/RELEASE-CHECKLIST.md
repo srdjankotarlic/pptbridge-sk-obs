@@ -17,7 +17,7 @@
   - `send-osc.sh /pptbridge/next` moves the active program deck
   - Companion Generic OSC can send `/pptbridge/next` to `127.0.0.1:57130`
   - default/manual mode opens OBS without launching PowerPoint
-  - `START - Open PowerPoint / Start Live Mode` opens PowerPoint if needed and starts the slideshow from the highlighted `PowerPoint Live Start / Stop` group
+  - `START / RESTART - Open PowerPoint Live Mode` opens PowerPoint if needed and starts the slideshow from the highlighted `PowerPoint Live Start / Stop` group
   - `Auto Start PowerPoint When OBS Opens` starts PowerPoint automatically
   - `Close PowerPoint Slideshow When OBS Closes` stops the slideshow when OBS quits
   - `PPTBridge SK Presenter` stays static and lightweight; live PowerPoint/video playback remains in `PPTBridge SK Slide`

@@ -85,7 +85,7 @@ Use at least these decks:
 - leave `Use True Live PowerPoint Mode` enabled
 - leave `Auto Start PowerPoint When OBS Opens` disabled
 - restart OBS and verify PowerPoint does not pop up immediately
-- open source properties and click `START - Open PowerPoint / Start Live Mode`
+- open source properties and click `START / RESTART - Open PowerPoint Live Mode`
 - verify the slideshow starts and OBS attaches the live path
 - click `STOP - Stop PowerPoint Live Mode`
 - verify the slideshow stops without quitting OBS

@@ -12,6 +12,7 @@
 #include <cctype>
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <sstream>
 #include <thread>
 #include <unordered_map>
@@ -240,6 +241,17 @@ std::string BuildTaskErrorMessage(const std::string &std_out, const std::string 
     message = "Process failed.";
   }
   return message + " (exit " + std::to_string(exit_code) + ")";
+}
+
+std::string LiveRecoveryErrorMessage(const std::string &detail)
+{
+  std::string message =
+    "PowerPoint slideshow is not available. Click START / RESTART - Open PowerPoint Live Mode in source properties to recover.";
+  const std::string trimmed = TrimWhitespace(detail);
+  if (!trimmed.empty()) {
+    message += " Last PowerPoint response: " + trimmed;
+  }
+  return message;
 }
 
 bool WriteUtf8TextFile(NSString *path, NSString *content, std::string &out_error)
@@ -1875,6 +1887,21 @@ NSRect AspectFitRect(NSSize content_size, NSRect bounds)
     fitted.height);
 }
 
+NSRect AspectFillRect(NSSize content_size, NSRect bounds)
+{
+  if (content_size.width <= 0 || content_size.height <= 0) {
+    return bounds;
+  }
+
+  CGFloat scale = std::max(bounds.size.width / content_size.width, bounds.size.height / content_size.height);
+  NSSize filled = NSMakeSize(content_size.width * scale, content_size.height * scale);
+  return NSMakeRect(
+    bounds.origin.x + (bounds.size.width - filled.width) * 0.5,
+    bounds.origin.y + (bounds.size.height - filled.height) * 0.5,
+    filled.width,
+    filled.height);
+}
+
 CGFloat ClampCGFloat(CGFloat value, CGFloat minimum, CGFloat maximum)
 {
   return std::min(std::max(value, minimum), maximum);
@@ -1940,6 +1967,14 @@ void FillRect(NSRect rect, NSColor *color)
   NSRectFill(rect);
 }
 
+NSColor *ColorFromRgb(uint32_t color)
+{
+  const CGFloat red = static_cast<CGFloat>((color >> 16) & 0xff) / 255.0;
+  const CGFloat green = static_cast<CGFloat>((color >> 8) & 0xff) / 255.0;
+  const CGFloat blue = static_cast<CGFloat>(color & 0xff) / 255.0;
+  return [NSColor colorWithCalibratedRed:red green:green blue:blue alpha:1.0];
+}
+
 void DrawLabel(NSString *text, NSRect rect, NSColor *color, NSFont *font)
 {
   NSDictionary *attrs = @{
@@ -1947,6 +1982,109 @@ void DrawLabel(NSString *text, NSRect rect, NSColor *color, NSFont *font)
     NSFontAttributeName : font,
   };
   [text drawInRect:rect withAttributes:attrs];
+}
+
+NSRect PresenterBackgroundImageRect(NSImage *image, NSRect canvas, const PresenterRenderOptions &options)
+{
+  if (!image || image.size.width <= 0 || image.size.height <= 0) {
+    return NSZeroRect;
+  }
+
+  if (options.background_image_mode == PresenterBackgroundImageMode::Fill) {
+    return AspectFillRect(image.size, canvas);
+  }
+  if (options.background_image_mode == PresenterBackgroundImageMode::Fit) {
+    return AspectFitRect(image.size, NSInsetRect(canvas, 32.0, 32.0));
+  }
+
+  const CGFloat max_width = std::max<CGFloat>(120.0, canvas.size.width * 0.24);
+  const CGFloat max_height = std::max<CGFloat>(90.0, canvas.size.height * 0.20);
+  const NSRect watermark_bounds = NSMakeRect(
+    NSMaxX(canvas) - max_width - 28.0,
+    canvas.origin.y + 24.0,
+    max_width,
+    max_height);
+  return AspectFitRect(image.size, watermark_bounds);
+}
+
+void DrawPresenterBackgroundImage(NSRect canvas, const PresenterRenderOptions &options)
+{
+  if (options.background_image_path.empty()) {
+    return;
+  }
+
+  NSString *path = ToNSString(options.background_image_path);
+  NSImage *image = path ? [[NSImage alloc] initWithContentsOfFile:path] : nil;
+  if (!image) {
+    return;
+  }
+
+  const CGFloat opacity =
+    ClampCGFloat(static_cast<CGFloat>(options.background_image_opacity_percent) / 100.0, 0.0, 1.0);
+  if (opacity <= 0.0) {
+    return;
+  }
+
+  const NSRect destination = PresenterBackgroundImageRect(image, canvas, options);
+  if (NSIsEmptyRect(destination)) {
+    return;
+  }
+
+  [NSGraphicsContext saveGraphicsState];
+  [[NSBezierPath bezierPathWithRect:canvas] addClip];
+  [image drawInRect:destination
+           fromRect:NSZeroRect
+          operation:NSCompositingOperationSourceOver
+           fraction:opacity
+     respectFlipped:YES
+              hints:@{ NSImageHintInterpolation : @(NSImageInterpolationHigh) }];
+  [NSGraphicsContext restoreGraphicsState];
+}
+
+std::string CueTitleForSlide(const std::vector<SlideMetadata> &slides, std::size_t index)
+{
+  if (index < slides.size()) {
+    const std::string title = TrimWhitespace(slides[index].title);
+    if (!title.empty()) {
+      return title;
+    }
+  }
+  return "Slide " + std::to_string(index + 1);
+}
+
+void DrawCueList(
+  const std::vector<SlideMetadata> &slides,
+  std::size_t current,
+  std::size_t slide_count,
+  NSRect cue_box)
+{
+  [[NSColor colorWithCalibratedRed:0.07 green:0.10 blue:0.13 alpha:0.96] setFill];
+  [[NSBezierPath bezierPathWithRoundedRect:cue_box xRadius:8 yRadius:8] fill];
+  DrawLabel(@"Cue List", NSMakeRect(cue_box.origin.x + 14, NSMaxY(cue_box) - 26, 220, 18), [NSColor colorWithWhite:0.78 alpha:1.0], [NSFont boldSystemFontOfSize:13]);
+
+  const std::size_t count = std::max<std::size_t>(slide_count, slides.size());
+  if (count == 0) {
+    DrawLabel(@"No cues available yet", NSInsetRect(cue_box, 14, 38), [NSColor colorWithWhite:0.58 alpha:1.0], [NSFont systemFontOfSize:12]);
+    return;
+  }
+
+  const std::size_t start = current > 1 ? current - 1 : 0;
+  const std::size_t end = std::min<std::size_t>(count, start + 5);
+  CGFloat y = NSMaxY(cue_box) - 48.0;
+  for (std::size_t index = start; index < end && y > cue_box.origin.y + 8.0; ++index) {
+    const bool is_current = index == current;
+    NSString *line = [NSString stringWithFormat:@"%s %02lu  %@",
+      is_current ? ">" : " ",
+      static_cast<unsigned long>(index + 1),
+      ToNSString(CueTitleForSlide(slides, index))];
+    NSDictionary *attrs = @{
+      NSForegroundColorAttributeName : is_current ? [NSColor colorWithCalibratedRed:0.33 green:0.89 blue:0.67 alpha:1.0] : [NSColor colorWithWhite:0.82 alpha:1.0],
+      NSFontAttributeName : [NSFont monospacedSystemFontOfSize:12 weight:(is_current ? NSFontWeightSemibold : NSFontWeightRegular)],
+    };
+    [line drawInRect:NSMakeRect(cue_box.origin.x + 14.0, y, cue_box.size.width - 28.0, 18.0)
+      withAttributes:attrs];
+    y -= 20.0;
+  }
 }
 
 void DrawCenteredMessage(NSString *title, NSString *subtitle, NSRect bounds)
@@ -2176,7 +2314,15 @@ void PresentationDocument::StartLivePowerPointAsync()
     }
     impl_->live_powerpoint_enabled = true;
     impl_->live_start_requested = true;
+    impl_->live_ready = false;
+    impl_->live_sync_in_flight = false;
+    impl_->live_window_title.clear();
+    impl_->live_presentation_path.clear();
+    impl_->live_slide_count = 0;
+    impl_->live_last_sync = Clock::time_point::min();
     impl_->live_error.clear();
+    impl_->black = false;
+    impl_->current_media_triggered = false;
     impl_->load_requested = true;
     impl_->version += 1;
   }
@@ -2305,7 +2451,12 @@ void PresentationDocument::SyncLiveStateAsync()
     }
 
     if (!ok) {
-      self->impl_->live_error = error;
+      self->impl_->live_ready = false;
+      self->impl_->live_window_title.clear();
+      self->impl_->live_presentation_path.clear();
+      self->impl_->live_slide_count = 0;
+      self->impl_->live_error = LiveRecoveryErrorMessage(error);
+      self->impl_->version += 1;
       return;
     }
 
@@ -2365,7 +2516,15 @@ void PresentationDocument::RunLivePowerPointCommandAsync(std::string command_lin
         self->impl_->black = false;
       }
     } else {
-      self->impl_->live_error = error;
+      self->impl_->live_ready = false;
+      self->impl_->live_sync_in_flight = false;
+      self->impl_->live_window_title.clear();
+      self->impl_->live_presentation_path.clear();
+      self->impl_->live_slide_count = 0;
+      self->impl_->live_error = LiveRecoveryErrorMessage(error);
+      if (clear_black) {
+        self->impl_->black = false;
+      }
     }
     self->impl_->version += 1;
   });
@@ -2817,6 +2976,47 @@ std::vector<EmbeddedMedia> PresentationDocument::CurrentMedia() const
   return impl_->media_by_slide[impl_->current];
 }
 
+bool PresentationDocument::ExportCueList(std::string &out_path, std::string &out_error) const
+{
+  std::vector<SlideMetadata> slides;
+  std::string deck_path;
+  std::string deck_name;
+  {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    if (!impl_->loaded || impl_->slides.empty()) {
+      out_error = impl_->loading ? "presentation is still loading" : "no loaded slides to export";
+      return false;
+    }
+    slides = impl_->slides;
+    deck_path = impl_->path;
+    deck_name = impl_->name;
+  }
+
+  fs::path output = fs::path(deck_path);
+  output.replace_extension(".pptbridge-cues.txt");
+
+  std::ofstream file(output, std::ios::out | std::ios::trunc);
+  if (!file) {
+    out_error = "could not create cue list at " + output.string();
+    return false;
+  }
+
+  file << "PPTBridge SK Cue List\n";
+  file << "Deck: " << deck_name << "\n\n";
+  for (std::size_t index = 0; index < slides.size(); ++index) {
+    const std::string title = CueTitleForSlide(slides, index);
+    file << (index + 1) << ". " << title << "\n";
+    const std::string notes = TrimWhitespace(slides[index].notes);
+    if (!notes.empty()) {
+      file << "   Notes: " << notes << "\n";
+    }
+  }
+
+  out_path = output.string();
+  out_error.clear();
+  return true;
+}
+
 bool PresentationDocument::RenderSlideBGRA(
   uint32_t width,
   uint32_t height,
@@ -2868,7 +3068,7 @@ bool PresentationDocument::RenderSlideBGRA(
     } else if (loaded && !black) {
       DrawPageThumbnail(document, current, canvas);
     } else if (live_waiting_for_manual_start) {
-      DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode is manual. Click START - Open PowerPoint / Start Live Mode in the highlighted source-property group.", canvas);
+      DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode is manual. Click START / RESTART - Open PowerPoint Live Mode in the highlighted source-property group.", canvas);
     } else if (live_enabled && loading) {
       DrawCenteredMessage(@"PPTBridge SK", @"Starting PowerPoint live mode…", canvas);
     } else if (live_enabled && !live_error.empty()) {
@@ -2938,7 +3138,8 @@ bool PresentationDocument::RenderPresenterBGRA(
     [NSGraphicsContext setCurrentContext:context];
 
     NSRect canvas = NSMakeRect(0, 0, width, height);
-    FillRect(canvas, [NSColor colorWithCalibratedRed:0.05 green:0.07 blue:0.10 alpha:1.0]);
+    FillRect(canvas, ColorFromRgb(options.background_color));
+    DrawPresenterBackgroundImage(canvas, options);
 
     const bool confidence_layout = options.layout == PresenterLayoutPreset::ConfidenceMonitor;
     const bool compact_layout = options.layout == PresenterLayoutPreset::Compact;
@@ -3030,6 +3231,7 @@ bool PresentationDocument::RenderPresenterBGRA(
     NSRect right = NSZeroRect;
     NSRect next_box = NSZeroRect;
     NSRect notes_box = NSZeroRect;
+    NSRect cue_box = NSZeroRect;
 
     if (confidence_layout) {
       const CGFloat strip_ratio =
@@ -3067,6 +3269,16 @@ bool PresentationDocument::RenderPresenterBGRA(
       SplitVerticalPanelHeights(right.size.height, gap, notes_ratio, next_height, notes_height);
       next_box = NSMakeRect(right.origin.x, NSMaxY(right) - next_height, right.size.width, next_height);
       notes_box = NSMakeRect(right.origin.x, right.origin.y, right.size.width, notes_height);
+    }
+
+    if (options.show_cue_list && notes_box.size.height >= 150.0) {
+      const CGFloat cue_height = ClampCGFloat(notes_box.size.height * 0.28, 92.0, 172.0);
+      cue_box = NSMakeRect(notes_box.origin.x, notes_box.origin.y, notes_box.size.width, cue_height);
+      notes_box = NSMakeRect(
+        notes_box.origin.x,
+        NSMaxY(cue_box) + gap,
+        notes_box.size.width,
+        std::max<CGFloat>(80.0, notes_box.size.height - cue_height - gap));
     }
 
     DrawPagePreview(document, current, left, options);
@@ -3122,6 +3334,10 @@ bool PresentationDocument::RenderPresenterBGRA(
       0.35;
     notes_text_rect.origin.y -= notes_offset_y;
     [notes_text drawInRect:notes_text_rect withAttributes:notes_attrs];
+
+    if (!NSIsEmptyRect(cue_box)) {
+      DrawCueList(slides, current, shown_slide_count, cue_box);
+    }
 
     [NSGraphicsContext restoreGraphicsState];
 

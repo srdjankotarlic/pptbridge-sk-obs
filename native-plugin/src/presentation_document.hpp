@@ -44,9 +44,16 @@ enum class PresenterPreviewScaleMode {
   Crop,
 };
 
+enum class PresenterBackgroundImageMode {
+  Fill,
+  Fit,
+  Watermark,
+};
+
 struct PresenterRenderOptions {
   PresenterLayoutPreset layout = PresenterLayoutPreset::Balanced;
   PresenterPreviewScaleMode preview_scale_mode = PresenterPreviewScaleMode::Fit;
+  PresenterBackgroundImageMode background_image_mode = PresenterBackgroundImageMode::Watermark;
   double preview_scale_percent = 100.0;
   double preview_position_x = 0.0;
   double preview_position_y = 0.0;
@@ -55,6 +62,10 @@ struct PresenterRenderOptions {
   double notes_area_percent = 100.0;
   double notes_zoom_percent = 100.0;
   double notes_position_y = 0.0;
+  uint32_t background_color = 0x0d121a;
+  std::string background_image_path;
+  double background_image_opacity_percent = 22.0;
+  bool show_cue_list = false;
 };
 
 class PresentationDocument : public std::enable_shared_from_this<PresentationDocument> {
@@ -99,6 +110,7 @@ public:
   uint64_t StateVersion() const;
   uint64_t PresentationSeconds() const;
   std::vector<EmbeddedMedia> CurrentMedia() const;
+  bool ExportCueList(std::string &out_path, std::string &out_error) const;
 
   bool RenderSlideBGRA(
     uint32_t width,
