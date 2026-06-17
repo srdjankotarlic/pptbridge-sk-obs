@@ -10,6 +10,7 @@
 #include <sstream>
 #include <obs-frontend-api.h>
 
+#include "pptbridge_osc_server.hpp"
 #include "pptbridge_registry.hpp"
 
 namespace pptbridge {
@@ -26,7 +27,7 @@ constexpr const char *kHotkeyHelp =
   "   clicker button. Use PPTBridge SK: Next Slide / Previous Slide, and add\n"
   "   PageDown/PageUp there if those keys only need to work while OBS is focused.\n"
   "4. For a stage clicker while you use Chrome, OBS, or another app, enable\n"
-  "   Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture. It captures\n"
+  "   Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off. It captures\n"
   "   PageDown/Right and PageUp/Left globally, sends them to the current\n"
   "   program scene deck, and keeps plain typing keys such as Space available.\n"
   "   This works for PPTX live mode and for PDF/cached decks without live mode.\n"
@@ -47,12 +48,12 @@ constexpr const char *kLiveHelp =
   "True live mode:\n"
   "PowerPoint itself runs the slideshow, so click-build animations, embedded video, and slide timing behave like real PowerPoint.\n"
   "Recommended for macOS when Microsoft PowerPoint is installed.\n"
-  "PowerPoint can either start automatically with OBS or wait until you click START / RESTART - Open PowerPoint Live Mode in the highlighted control group above.";
+  "PowerPoint can either start automatically with OBS or wait until you click Start / Restart PowerPoint Live Mode in the highlighted control group above.";
 
 constexpr const char *kLiveControlHelp =
   "Main PowerPoint live controls:\n"
-  "START / RESTART opens PowerPoint if needed, begins the live slideshow, and recovers the deck if the slideshow window was closed.\n"
-  "STOP ends the PowerPoint live slideshow without quitting OBS.";
+  "Start / Restart opens PowerPoint if needed, begins the live slideshow, and recovers the deck if the slideshow window was closed.\n"
+  "Stop ends the PowerPoint live slideshow without quitting OBS.";
 
 constexpr const char *kLiveResizeHelp =
   "PowerPoint window resize:\n"
@@ -1077,6 +1078,78 @@ float audio_gain_multiplier_db(double gain_db)
   return static_cast<float>(std::pow(10.0, gain_db / 20.0));
 }
 
+std::string format_timer_seconds(uint64_t seconds)
+{
+  std::ostringstream stream;
+  stream << (seconds / 60) << ":";
+  const auto remaining = seconds % 60;
+  if (remaining < 10) {
+    stream << "0";
+  }
+  stream << remaining;
+  return stream.str();
+}
+
+std::string summarize_operator_text(const std::string &text)
+{
+  constexpr size_t kMaxOperatorTextLength = 72;
+  if (text.size() <= kMaxOperatorTextLength) {
+    return text;
+  }
+  return text.substr(0, kMaxOperatorTextLength - 3) + "...";
+}
+
+std::string describe_operator_status(const PresentationStatus &snapshot)
+{
+  std::ostringstream status;
+  status << "Operator status: ";
+  if (snapshot.total_slides == 0) {
+    status << "no loaded cues yet";
+  } else {
+    status << "slide " << snapshot.current_slide << " / " << snapshot.total_slides;
+    if (!snapshot.current_title.empty()) {
+      status << "\nCurrent cue: " << summarize_operator_text(snapshot.current_title);
+    }
+  }
+  if (!snapshot.next_title.empty()) {
+    status << "\nNext cue: " << summarize_operator_text(snapshot.next_title);
+  } else if (snapshot.total_slides > 0) {
+    status << "\nNext cue: end of deck";
+  }
+  status << "\nChecked cues: " << snapshot.checked_count;
+  status << "\nTimer: " << format_timer_seconds(snapshot.timer_seconds);
+  status << "\nLive: "
+         << (snapshot.live_ready ? "PowerPoint attached" : (snapshot.live_enabled ? "waiting / cached fallback" : "cached PDF/PPT render"));
+  if (snapshot.black_screen) {
+    status << "\nBlack screen is ON";
+  }
+  return status.str();
+}
+
+bool send_osc_status(SourceContext *context, bool force)
+{
+  if (!context || !context->document || !context->osc_feedback_enabled) {
+    return false;
+  }
+
+  const auto state_version = context->document->StateVersion();
+  const auto timer_second = context->document->PresentationSeconds();
+  if (!force &&
+      context->osc_feedback_last_state_version == state_version &&
+      context->osc_feedback_last_timer_second == timer_second) {
+    return false;
+  }
+
+  const auto snapshot = context->document->SnapshotStatus();
+  const bool ok = SendOscStatusFeedback(context->osc_feedback_host, context->osc_feedback_port, snapshot);
+  context->osc_feedback_last_state_version = state_version;
+  context->osc_feedback_last_timer_second = timer_second;
+  context->osc_feedback_status = ok
+    ? "OSC status sent to " + context->osc_feedback_host + ":" + std::to_string(context->osc_feedback_port)
+    : "OSC status failed for " + context->osc_feedback_host + ":" + std::to_string(context->osc_feedback_port);
+  return ok;
+}
+
 std::string build_status_text(SourceContext *context)
 {
   std::ostringstream status;
@@ -1095,6 +1168,7 @@ std::string build_status_text(SourceContext *context)
   const auto slide_count = context->document->SlideCount();
   const auto current_slide = slide_count > 0 ? (context->document->CurrentIndex() + 1) : 0;
   const auto last_error = context->document->LastError();
+  const auto snapshot = context->document->SnapshotStatus();
 
   status << "Presentation: " << context->document->Name() << "\n";
   status << "Mode: " << (live_enabled ? "True Live PowerPoint" : "Legacy Render") << "\n";
@@ -1112,6 +1186,13 @@ std::string build_status_text(SourceContext *context)
   }
   status << "\n";
   status << "Slide: " << current_slide << " / " << slide_count << "\n";
+  if (!snapshot.current_title.empty()) {
+    status << "Current cue: " << snapshot.current_title << "\n";
+  }
+  if (!snapshot.next_title.empty()) {
+    status << "Next cue: " << snapshot.next_title << "\n";
+  }
+  status << "Checked cues: " << snapshot.checked_count << "\n";
 
   const auto kind = context->mode == ViewMode::Slide ? RegisteredSourceKind::Slide : RegisteredSourceKind::Presenter;
   const auto matching_sources = Registry::Instance().CountSources(context->pptx_path, kind);
@@ -1176,6 +1257,12 @@ std::string build_status_text(SourceContext *context)
 
   if (context->mode == ViewMode::Presenter && !context->cue_export_status.empty()) {
     status << "\nCue list: " << context->cue_export_status;
+  }
+  if (context->osc_feedback_enabled) {
+    status << "\nOSC feedback: " << context->osc_feedback_host << ":" << context->osc_feedback_port;
+    if (!context->osc_feedback_status.empty()) {
+      status << " (" << context->osc_feedback_status << ")";
+    }
   }
 
   if (!last_error.empty()) {
@@ -1310,6 +1397,75 @@ bool control_export_cue_list(obs_properties_t *, obs_property_t *, void *data)
   return true;
 }
 
+bool control_toggle_current_cue(obs_properties_t *, obs_property_t *, void *data)
+{
+  auto *context = static_cast<SourceContext *>(data);
+  if (!context || !context->document) {
+    return true;
+  }
+
+  Registry::Instance().SetActive(context->document);
+  const auto snapshot = context->document->SnapshotStatus();
+  if (snapshot.current_slide == 0) {
+    context->cue_export_status = "no current cue yet";
+    return true;
+  }
+
+  context->document->ToggleCueChecked(snapshot.current_index);
+  context->cue_export_status = "toggled current cue " + std::to_string(snapshot.current_slide);
+  send_osc_status(context, true);
+  return true;
+}
+
+bool control_toggle_next_cue(obs_properties_t *, obs_property_t *, void *data)
+{
+  auto *context = static_cast<SourceContext *>(data);
+  if (!context || !context->document) {
+    return true;
+  }
+
+  Registry::Instance().SetActive(context->document);
+  const auto snapshot = context->document->SnapshotStatus();
+  if (snapshot.current_slide == 0 || snapshot.current_index + 1 >= snapshot.total_slides) {
+    context->cue_export_status = "no next cue to toggle";
+    return true;
+  }
+
+  context->document->ToggleCueChecked(snapshot.current_index + 1);
+  context->cue_export_status = "toggled next cue " + std::to_string(snapshot.current_index + 2);
+  send_osc_status(context, true);
+  return true;
+}
+
+bool control_clear_cue_checks(obs_properties_t *, obs_property_t *, void *data)
+{
+  auto *context = static_cast<SourceContext *>(data);
+  if (!context || !context->document) {
+    return true;
+  }
+
+  context->document->ClearCueChecks();
+  context->cue_export_status = "cleared cue checks";
+  send_osc_status(context, true);
+  return true;
+}
+
+bool control_send_osc_status(obs_properties_t *, obs_property_t *, void *data)
+{
+  auto *context = static_cast<SourceContext *>(data);
+  if (!context || !context->document) {
+    return true;
+  }
+
+  if (!context->osc_feedback_enabled) {
+    context->osc_feedback_status = "enable OSC feedback first";
+    return true;
+  }
+
+  send_osc_status(context, true);
+  return true;
+}
+
 bool control_start_live(obs_properties_t *, obs_property_t *, void *data)
 {
   auto *context = static_cast<SourceContext *>(data);
@@ -1389,6 +1545,80 @@ bool control_reattach_live(obs_properties_t *, obs_property_t *, void *data)
   return false;
 }
 
+void add_operator_mode_properties(obs_properties_t *props, SourceContext *context)
+{
+  obs_properties_t *operator_props = obs_properties_create();
+  PresentationStatus snapshot;
+  if (context && context->document) {
+    snapshot = context->document->SnapshotStatus();
+  }
+
+  obs_property_t *operator_help = obs_properties_add_text(
+    operator_props,
+    "pptbridge_operator_help",
+    "Use this panel during the show: start live mode if needed, move slides, mark cues, and send Companion/OSC status.",
+    OBS_TEXT_INFO);
+  obs_property_text_set_info_type(operator_help, OBS_TEXT_INFO_WARNING);
+  obs_property_text_set_info_word_wrap(operator_help, true);
+
+  obs_properties_add_button(
+    operator_props,
+    "pptbridge_operator_start_live_btn",
+    "Start / Restart PowerPoint Live Mode",
+    control_start_live);
+  obs_properties_add_button(
+    operator_props,
+    "pptbridge_operator_stop_live_btn",
+    "Stop PowerPoint Live Mode",
+    control_stop_live);
+  obs_properties_add_button(operator_props, "pptbridge_operator_previous_btn", "Previous Slide", control_previous);
+  obs_properties_add_button(operator_props, "pptbridge_operator_next_btn", "Next Slide", control_next);
+  obs_properties_add_button(
+    operator_props,
+    "pptbridge_cue_toggle_current_btn",
+    "Check / Uncheck Current Cue",
+    control_toggle_current_cue);
+  obs_properties_add_button(
+    operator_props,
+    "pptbridge_cue_toggle_next_btn",
+    "Check / Uncheck Next Cue",
+    control_toggle_next_cue);
+  obs_properties_add_button(
+    operator_props,
+    "pptbridge_cue_clear_checks_btn",
+    "Clear Cue Checks",
+    control_clear_cue_checks);
+
+  const std::string operator_status = describe_operator_status(snapshot);
+  obs_property_t *operator_status_prop = obs_properties_add_text(
+    operator_props,
+    "pptbridge_operator_status",
+    operator_status.c_str(),
+    OBS_TEXT_INFO);
+  obs_property_text_set_info_type(operator_status_prop, OBS_TEXT_INFO_NORMAL);
+  obs_property_text_set_info_word_wrap(operator_status_prop, true);
+
+  obs_properties_add_bool(operator_props, "pptbridge_osc_feedback_enabled", "Send OSC Status Feedback");
+  obs_properties_add_text(
+    operator_props,
+    "pptbridge_osc_feedback_host",
+    "OSC Status Host/IP",
+    OBS_TEXT_DEFAULT);
+  obs_properties_add_int(operator_props, "pptbridge_osc_feedback_port", "OSC Status Port", 1, 65535, 1);
+  obs_properties_add_button(
+    operator_props,
+    "pptbridge_send_osc_status_btn",
+    "Send OSC Status Now",
+    control_send_osc_status);
+
+  obs_properties_add_group(
+    props,
+    "pptbridge_operator_group",
+    "Show Control (Operator Mode)",
+    OBS_GROUP_NORMAL,
+    operator_props);
+}
+
 }  // namespace
 
 void source_defaults(obs_data_t *settings)
@@ -1419,6 +1649,9 @@ void source_defaults(obs_data_t *settings)
   obs_data_set_default_string(settings, "presenter_background_image_mode", "watermark");
   obs_data_set_default_double(settings, "presenter_background_image_opacity_percent", 22.0);
   obs_data_set_default_bool(settings, "presenter_show_cue_list", false);
+  obs_data_set_default_bool(settings, "pptbridge_osc_feedback_enabled", false);
+  obs_data_set_default_string(settings, "pptbridge_osc_feedback_host", "127.0.0.1");
+  obs_data_set_default_int(settings, "pptbridge_osc_feedback_port", 57131);
 }
 
 obs_properties_t *source_properties(SourceContext *context)
@@ -1435,6 +1668,7 @@ obs_properties_t *source_properties(SourceContext *context)
     OBS_PATH_FILE,
     "Presentations (*.pptx *.pdf);;PowerPoint (*.pptx);;PDF (*.pdf)",
     nullptr);
+  add_operator_mode_properties(props, context);
   // The Slide source is hard-locked to Full HD (1920x1080) so the program
   // feed is always clean 16:9 broadcast-ready output. Only the Presenter
   // source exposes canvas size controls, since confidence monitors may
@@ -1457,12 +1691,12 @@ obs_properties_t *source_properties(SourceContext *context)
     obs_properties_add_button(
       presenter_live_controls,
       "pptbridge_presenter_start_live_btn",
-      "START / RESTART - Open PowerPoint Live Mode",
+      "Start / Restart PowerPoint Live Mode",
       control_start_live);
     obs_properties_add_button(
       presenter_live_controls,
       "pptbridge_presenter_stop_live_btn",
-      "STOP - Stop PowerPoint Live Mode",
+      "Stop PowerPoint Live Mode",
       control_stop_live);
     obs_properties_add_group(
       props,
@@ -1484,12 +1718,12 @@ obs_properties_t *source_properties(SourceContext *context)
     obs_properties_add_button(
       live_controls,
       "pptbridge_start_live_btn",
-      "START / RESTART - Open PowerPoint Live Mode",
+      "Start / Restart PowerPoint Live Mode",
       control_start_live);
     obs_properties_add_button(
       live_controls,
       "pptbridge_stop_live_btn",
-      "STOP - Stop PowerPoint Live Mode",
+      "Stop PowerPoint Live Mode",
       control_stop_live);
     obs_properties_add_group(
       props,
@@ -1582,6 +1816,10 @@ void source_update(SourceContext *context, obs_data_t *settings)
   const bool auto_recover_live = obs_data_get_bool(settings, "auto_recover_live");
   const double audio_gain_db = obs_data_get_double(settings, "audio_gain_db");
   const PresenterRenderOptions presenter_options = presenter_options_from_settings(settings);
+  const bool osc_feedback_enabled = obs_data_get_bool(settings, "pptbridge_osc_feedback_enabled");
+  const char *osc_feedback_host = obs_data_get_string(settings, "pptbridge_osc_feedback_host");
+  const uint16_t osc_feedback_port =
+    static_cast<uint16_t>(std::clamp<int64_t>(obs_data_get_int(settings, "pptbridge_osc_feedback_port"), 1, 65535));
 
   const std::shared_ptr<PresentationDocument> old_document = context->document;
   const bool old_use_live_powerpoint = context->use_live_powerpoint;
@@ -1620,6 +1858,14 @@ void source_update(SourceContext *context, obs_data_t *settings)
   context->auto_recover_live = auto_recover_live;
   context->audio_gain_db = audio_gain_db;
   context->presenter_options = presenter_options;
+  context->osc_feedback_enabled = osc_feedback_enabled;
+  context->osc_feedback_host = (osc_feedback_host && *osc_feedback_host) ? osc_feedback_host : "127.0.0.1";
+  context->osc_feedback_port = osc_feedback_port;
+  if (path_changed || live_mode_changed) {
+    context->osc_feedback_last_state_version = 0;
+    context->osc_feedback_last_timer_second = 0;
+    context->osc_feedback_status.clear();
+  }
 
   if (!context->pptx_path.empty()) {
     Registry::Instance().AttachSource(
@@ -1692,6 +1938,7 @@ void source_tick(SourceContext *context)
   sync_live_capture_source(context);
   sync_live_audio_source(context);
   sync_media_sources(context);
+  send_osc_status(context, false);
 
   if (!context || context->mode != ViewMode::Slide || !context->document) {
     return;

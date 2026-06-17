@@ -130,6 +130,43 @@ def main() -> int:
             raise AssertionError(f"Presenter customization properties must expose {key}")
     if "control_export_cue_list" not in source_slide:
         raise AssertionError("Presenter source should expose a cue-list export button")
+    for symbol in (
+        "pptbridge_operator_group",
+        "pptbridge_operator_next_btn",
+        "pptbridge_operator_previous_btn",
+        "pptbridge_cue_toggle_current_btn",
+        "pptbridge_cue_toggle_next_btn",
+        "pptbridge_cue_clear_checks_btn",
+        "pptbridge_osc_feedback_enabled",
+        "pptbridge_osc_feedback_host",
+        "pptbridge_osc_feedback_port",
+        "control_send_osc_status",
+    ):
+        if symbol not in source_slide:
+            raise AssertionError(f"Operator/feedback UI must expose {symbol}")
+
+    for label in (
+        "Show Control (Operator Mode)",
+        "Start / Restart PowerPoint Live Mode",
+        "Stop PowerPoint Live Mode",
+        "Check / Uncheck Current Cue",
+        "Check / Uncheck Next Cue",
+        "Send OSC Status Feedback",
+        "OSC Status Host/IP",
+        "OSC Status Port",
+    ):
+        if label not in source_slide:
+            raise AssertionError(f"macOS operator UI should use clear label: {label}")
+    if "START / RESTART - Open PowerPoint Live Mode" in source_slide:
+        raise AssertionError("macOS source properties should not use shouty START / RESTART button text")
+    if "STOP - Stop PowerPoint Live Mode" in source_slide:
+        raise AssertionError("macOS source properties should not use shouty STOP button text")
+    operator_props = extract_function(source_slide, "void add_operator_mode_properties(")
+    if operator_props.find("pptbridge_operator_start_live_btn") > operator_props.find("pptbridge_operator_status"):
+        raise AssertionError("macOS operator UI should show action buttons before the longer status text")
+    operator_status_desc = extract_function(source_slide, "std::string describe_operator_status(")
+    if "summarize_operator_text(" not in operator_status_desc:
+        raise AssertionError("macOS operator status should shorten long cue titles so buttons stay visible")
 
     header = (ROOT / "src" / "presentation_document.hpp").read_text(encoding="utf-8")
     for symbol in ("background_color", "background_image_path", "show_cue_list"):
@@ -137,13 +174,51 @@ def main() -> int:
             raise AssertionError(f"PresenterRenderOptions must include {symbol}")
     if "ExportCueList(" not in header:
         raise AssertionError("PresentationDocument must expose a cue-list export API")
+    for symbol in (
+        "struct CueListItem",
+        "struct PresentationStatus",
+        "SnapshotStatus(",
+        "SetCueChecked(",
+        "ToggleCueChecked(",
+        "ClearCueChecks(",
+    ):
+        if symbol not in header:
+            raise AssertionError(f"Interactive cue/status support must expose {symbol}")
 
     presenter_render = extract_function(source, "bool PresentationDocument::RenderPresenterBGRA(")
     for symbol in ("DrawPresenterBackgroundImage", "DrawCueList", "options.background_color"):
         if symbol not in presenter_render:
             raise AssertionError(f"Presenter renderer must use {symbol}")
+    if "checked_cues" not in source:
+        raise AssertionError("Cue list needs persistent check/uncheck state")
+
+    osc_header = (ROOT / "src" / "pptbridge_osc_server.hpp").read_text(encoding="utf-8")
+    osc_source = (ROOT / "src" / "pptbridge_osc_server.cpp").read_text(encoding="utf-8")
+    if "SendOscStatusFeedback(" not in osc_header:
+        raise AssertionError("OSC/Companion feedback must expose a status sender API")
+    for path in (
+        "/pptbridge/status/current",
+        "/pptbridge/status/total",
+        "/pptbridge/status/title",
+        "/pptbridge/status/next_title",
+        "/pptbridge/status/timer",
+        "/pptbridge/status/live",
+        "/pptbridge/status/black",
+    ):
+        if path not in osc_source:
+            raise AssertionError(f"OSC/Companion feedback must send {path}")
 
     plugin_main_mac = (ROOT / "src" / "plugin-main.mm").read_text(encoding="utf-8")
+    for label in (
+        "PPTBridge SK: Local OSC Control On/Off",
+        "PPTBridge SK: Spotlight/Clicker Capture On/Off",
+    ):
+        if label not in plugin_main_mac:
+            raise AssertionError(f"macOS Tools menu should use clear On/Off label: {label}")
+    if "PPTBridge SK: Toggle Local OSC Control" in plugin_main_mac:
+        raise AssertionError("macOS Tools menu should not use vague Toggle Local OSC Control wording")
+    if "PPTBridge SK: Toggle Spotlight/Clicker Capture" in plugin_main_mac:
+        raise AssertionError("macOS Tools menu should not use vague Toggle Spotlight/Clicker Capture wording")
     mac_defaults = extract_function(plugin_main_mac, "void apply_default_hotkeys_if_needed()")
     if "{ OBS_KEY_2, OBS_KEY_RIGHT }" not in mac_defaults:
         raise AssertionError("macOS default Next Slide hotkeys must include Right Arrow while OBS is focused")
@@ -167,6 +242,42 @@ def main() -> int:
     win_stop_control = extract_function(win_source_slide, "bool control_stop_live(")
     if "StopLivePowerPointAsync(" not in win_stop_control:
         raise AssertionError("The Windows stop button must not block the OBS UI thread")
+    for symbol in (
+        "pptbridge_operator_group",
+        "pptbridge_operator_next_btn",
+        "pptbridge_operator_previous_btn",
+        "pptbridge_cue_toggle_current_btn",
+        "pptbridge_cue_toggle_next_btn",
+        "pptbridge_cue_clear_checks_btn",
+        "pptbridge_osc_feedback_enabled",
+        "pptbridge_osc_feedback_host",
+        "pptbridge_osc_feedback_port",
+        "control_send_osc_status",
+    ):
+        if symbol not in win_source_slide:
+            raise AssertionError(f"Windows operator/feedback UI must expose {symbol}")
+    for label in (
+        "Show Control (Operator Mode)",
+        "Start / Restart PowerPoint Live Mode",
+        "Stop PowerPoint Live Mode",
+        "Check / Uncheck Current Cue",
+        "Check / Uncheck Next Cue",
+        "Send OSC Status Feedback",
+        "OSC Status Host/IP",
+        "OSC Status Port",
+    ):
+        if label not in win_source_slide:
+            raise AssertionError(f"Windows operator UI should use clear label: {label}")
+    if "START / RESTART - Open PowerPoint Live Mode" in win_source_slide:
+        raise AssertionError("Windows source properties should not use shouty START / RESTART button text")
+    if "STOP - Stop PowerPoint Live Mode" in win_source_slide:
+        raise AssertionError("Windows source properties should not use shouty STOP button text")
+    win_operator_props = extract_function(win_source_slide, "void add_operator_mode_properties(")
+    if win_operator_props.find("pptbridge_operator_start_live_btn") > win_operator_props.find("pptbridge_operator_status"):
+        raise AssertionError("Windows operator UI should show action buttons before the longer status text")
+    win_operator_status_desc = extract_function(win_source_slide, "std::string describe_operator_status(")
+    if "summarize_operator_text(" not in win_operator_status_desc:
+        raise AssertionError("Windows operator status should shorten long cue titles so buttons stay visible")
     win_presenter_props = extract_function(win_source_slide, "void add_presenter_customization_properties(")
     for key in (
         "presenter_background_color",

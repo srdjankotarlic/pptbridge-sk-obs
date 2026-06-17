@@ -11,6 +11,7 @@
 #include <optional>
 #include <string>
 #include <thread>
+#include <vector>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -85,6 +86,66 @@ std::optional<OscAction> parse_osc_action(const char *data, size_t size)
   }
 
   return std::nullopt;
+}
+
+void append_osc_string(std::vector<uint8_t> &packet, const std::string &value)
+{
+  packet.insert(packet.end(), value.begin(), value.end());
+  packet.push_back('\0');
+  while (packet.size() % 4 != 0) {
+    packet.push_back('\0');
+  }
+}
+
+void append_osc_int(std::vector<uint8_t> &packet, int32_t value)
+{
+  const uint32_t network_value = htonl(static_cast<uint32_t>(value));
+  const auto *bytes = reinterpret_cast<const uint8_t *>(&network_value);
+  packet.insert(packet.end(), bytes, bytes + sizeof(network_value));
+}
+
+std::vector<uint8_t> make_osc_int_packet(const std::string &address, int32_t value)
+{
+  std::vector<uint8_t> packet;
+  append_osc_string(packet, address);
+  append_osc_string(packet, ",i");
+  append_osc_int(packet, value);
+  return packet;
+}
+
+std::vector<uint8_t> make_osc_string_packet(const std::string &address, const std::string &value)
+{
+  std::vector<uint8_t> packet;
+  append_osc_string(packet, address);
+  append_osc_string(packet, ",s");
+  append_osc_string(packet, value);
+  return packet;
+}
+
+bool send_udp_packet(SocketHandle socket, const sockaddr_in &address, const std::vector<uint8_t> &packet)
+{
+  if (packet.empty()) {
+    return false;
+  }
+#ifdef _WIN32
+  const int sent = sendto(
+    socket,
+    reinterpret_cast<const char *>(packet.data()),
+    static_cast<int>(packet.size()),
+    0,
+    reinterpret_cast<const sockaddr *>(&address),
+    sizeof(address));
+  return sent == static_cast<int>(packet.size());
+#else
+  const ssize_t sent = sendto(
+    socket,
+    packet.data(),
+    packet.size(),
+    0,
+    reinterpret_cast<const sockaddr *>(&address),
+    sizeof(address));
+  return sent == static_cast<ssize_t>(packet.size());
+#endif
 }
 
 class OscServer {
@@ -271,6 +332,58 @@ void StopOscServer()
 bool OscServerRunning()
 {
   return g_server.Running();
+}
+
+bool SendOscStatusFeedback(const std::string &host, uint16_t port, const PresentationStatus &status)
+{
+  if (host.empty() || port == 0) {
+    return false;
+  }
+
+#ifdef _WIN32
+  WSADATA wsa_data = {};
+  const bool wsa_started = WSAStartup(MAKEWORD(2, 2), &wsa_data) == 0;
+  if (!wsa_started) {
+    blog(LOG_WARNING, "[PPTBridge SK] OSC feedback: WSAStartup failed");
+    return false;
+  }
+#endif
+
+  SocketHandle socket = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  if (socket == kInvalidSocket) {
+    blog(LOG_WARNING, "[PPTBridge SK] OSC feedback: could not create UDP socket");
+#ifdef _WIN32
+    WSACleanup();
+#endif
+    return false;
+  }
+
+  sockaddr_in address = {};
+  address.sin_family = AF_INET;
+  address.sin_port = htons(port);
+  if (inet_pton(AF_INET, host.c_str(), &address.sin_addr) != 1) {
+    blog(LOG_WARNING, "[PPTBridge SK] OSC feedback: invalid host '%s'", host.c_str());
+    close_socket(socket);
+#ifdef _WIN32
+    WSACleanup();
+#endif
+    return false;
+  }
+
+  bool ok = true;
+  ok = send_udp_packet(socket, address, make_osc_int_packet("/pptbridge/status/current", static_cast<int32_t>(status.current_slide))) && ok;
+  ok = send_udp_packet(socket, address, make_osc_int_packet("/pptbridge/status/total", static_cast<int32_t>(status.total_slides))) && ok;
+  ok = send_udp_packet(socket, address, make_osc_string_packet("/pptbridge/status/title", status.current_title)) && ok;
+  ok = send_udp_packet(socket, address, make_osc_string_packet("/pptbridge/status/next_title", status.next_title)) && ok;
+  ok = send_udp_packet(socket, address, make_osc_int_packet("/pptbridge/status/timer", static_cast<int32_t>(status.timer_seconds))) && ok;
+  ok = send_udp_packet(socket, address, make_osc_int_packet("/pptbridge/status/live", status.live_ready ? 1 : 0)) && ok;
+  ok = send_udp_packet(socket, address, make_osc_int_packet("/pptbridge/status/black", status.black_screen ? 1 : 0)) && ok;
+
+  close_socket(socket);
+#ifdef _WIN32
+  WSACleanup();
+#endif
+  return ok;
 }
 
 }  // namespace pptbridge

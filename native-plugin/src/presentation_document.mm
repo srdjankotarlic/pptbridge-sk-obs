@@ -13,6 +13,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <set>
 #include <sstream>
 #include <thread>
 #include <unordered_map>
@@ -246,7 +247,7 @@ std::string BuildTaskErrorMessage(const std::string &std_out, const std::string 
 std::string LiveRecoveryErrorMessage(const std::string &detail)
 {
   std::string message =
-    "PowerPoint slideshow is not available. Click START / RESTART - Open PowerPoint Live Mode in source properties to recover.";
+    "PowerPoint slideshow is not available. Click Start / Restart PowerPoint Live Mode in source properties to recover.";
   const std::string trimmed = TrimWhitespace(detail);
   if (!trimmed.empty()) {
     message += " Last PowerPoint response: " + trimmed;
@@ -2054,6 +2055,7 @@ std::string CueTitleForSlide(const std::vector<SlideMetadata> &slides, std::size
 
 void DrawCueList(
   const std::vector<SlideMetadata> &slides,
+  const std::set<std::size_t> &checked_cues,
   std::size_t current,
   std::size_t slide_count,
   NSRect cue_box)
@@ -2073,10 +2075,14 @@ void DrawCueList(
   CGFloat y = NSMaxY(cue_box) - 48.0;
   for (std::size_t index = start; index < end && y > cue_box.origin.y + 8.0; ++index) {
     const bool is_current = index == current;
-    NSString *line = [NSString stringWithFormat:@"%s %02lu  %@",
+    const bool is_next = index == current + 1;
+    const bool checked = checked_cues.find(index) != checked_cues.end();
+    NSString *line = [NSString stringWithFormat:@"%s %s %02lu  %@%@",
       is_current ? ">" : " ",
+      checked ? "[x]" : "[ ]",
       static_cast<unsigned long>(index + 1),
-      ToNSString(CueTitleForSlide(slides, index))];
+      ToNSString(CueTitleForSlide(slides, index)),
+      is_next ? @"  next" : @""];
     NSDictionary *attrs = @{
       NSForegroundColorAttributeName : is_current ? [NSColor colorWithCalibratedRed:0.33 green:0.89 blue:0.67 alpha:1.0] : [NSColor colorWithWhite:0.82 alpha:1.0],
       NSFontAttributeName : [NSFont monospacedSystemFontOfSize:12 weight:(is_current ? NSFontWeightSemibold : NSFontWeightRegular)],
@@ -2183,6 +2189,7 @@ struct PresentationDocument::Impl {
   std::string pdf_path;
   std::string error;
   std::vector<SlideMetadata> slides;
+  std::set<std::size_t> checked_cues;
   std::vector<std::vector<EmbeddedMedia>> media_by_slide;
   bool loading = false;
   bool loaded = false;
@@ -2976,11 +2983,115 @@ std::vector<EmbeddedMedia> PresentationDocument::CurrentMedia() const
   return impl_->media_by_slide[impl_->current];
 }
 
+PresentationStatus PresentationDocument::SnapshotStatus() const
+{
+  std::lock_guard<std::mutex> lock(impl_->mutex);
+
+  PresentationStatus status;
+  status.deck_name = impl_->name;
+  status.deck_path = impl_->path;
+  status.live_enabled = impl_->live_powerpoint_enabled;
+  status.live_ready = impl_->live_powerpoint_enabled && impl_->live_ready;
+  status.loading = impl_->loading;
+  status.loaded = impl_->loaded;
+  status.black_screen = impl_->black;
+  status.total_slides = impl_->live_powerpoint_enabled && impl_->live_slide_count > 0
+    ? impl_->live_slide_count
+    : (impl_->loaded && impl_->pdf_document ? static_cast<std::size_t>(impl_->pdf_document.pageCount) : impl_->slides.size());
+  status.current_index = status.total_slides > 0 ? std::min(impl_->current, status.total_slides - 1) : 0;
+  status.current_slide = status.total_slides > 0 ? status.current_index + 1 : 0;
+  status.current_title = status.current_slide > 0 ? CueTitleForSlide(impl_->slides, status.current_index) : "";
+  if (status.current_index + 1 < status.total_slides) {
+    status.next_title = CueTitleForSlide(impl_->slides, status.current_index + 1);
+  }
+  status.timer_seconds = static_cast<uint64_t>(
+    std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - impl_->started_at).count());
+
+  const std::size_t cue_count = std::max<std::size_t>(status.total_slides, impl_->slides.size());
+  status.cues.reserve(cue_count);
+  for (std::size_t index = 0; index < cue_count; ++index) {
+    const bool checked = impl_->checked_cues.find(index) != impl_->checked_cues.end();
+    CueListItem item;
+    item.index = index;
+    item.number = index + 1;
+    item.title = CueTitleForSlide(impl_->slides, index);
+    item.current = status.current_slide > 0 && index == status.current_index;
+    item.next = status.current_slide > 0 && index == status.current_index + 1 && index < cue_count;
+    item.checked = checked;
+    if (checked) {
+      status.checked_count += 1;
+    }
+    status.cues.push_back(std::move(item));
+  }
+
+  return status;
+}
+
+bool PresentationDocument::SetCueChecked(std::size_t index, bool checked)
+{
+  std::lock_guard<std::mutex> lock(impl_->mutex);
+  const std::size_t cue_count = std::max<std::size_t>(
+    impl_->slides.size(),
+    impl_->live_powerpoint_enabled && impl_->live_slide_count > 0
+      ? impl_->live_slide_count
+      : (impl_->loaded && impl_->pdf_document ? static_cast<std::size_t>(impl_->pdf_document.pageCount) : 0));
+  if (index >= cue_count) {
+    return false;
+  }
+
+  const bool was_checked = impl_->checked_cues.find(index) != impl_->checked_cues.end();
+  if (checked == was_checked) {
+    return true;
+  }
+
+  if (checked) {
+    impl_->checked_cues.insert(index);
+  } else {
+    impl_->checked_cues.erase(index);
+  }
+  impl_->version += 1;
+  return true;
+}
+
+bool PresentationDocument::ToggleCueChecked(std::size_t index)
+{
+  std::lock_guard<std::mutex> lock(impl_->mutex);
+  const std::size_t cue_count = std::max<std::size_t>(
+    impl_->slides.size(),
+    impl_->live_powerpoint_enabled && impl_->live_slide_count > 0
+      ? impl_->live_slide_count
+      : (impl_->loaded && impl_->pdf_document ? static_cast<std::size_t>(impl_->pdf_document.pageCount) : 0));
+  if (index >= cue_count) {
+    return false;
+  }
+
+  auto found = impl_->checked_cues.find(index);
+  if (found == impl_->checked_cues.end()) {
+    impl_->checked_cues.insert(index);
+  } else {
+    impl_->checked_cues.erase(found);
+  }
+  impl_->version += 1;
+  return true;
+}
+
+void PresentationDocument::ClearCueChecks()
+{
+  std::lock_guard<std::mutex> lock(impl_->mutex);
+  if (impl_->checked_cues.empty()) {
+    return;
+  }
+  impl_->checked_cues.clear();
+  impl_->version += 1;
+}
+
 bool PresentationDocument::ExportCueList(std::string &out_path, std::string &out_error) const
 {
   std::vector<SlideMetadata> slides;
+  std::set<std::size_t> checked_cues;
   std::string deck_path;
   std::string deck_name;
+  std::size_t current = 0;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     if (!impl_->loaded || impl_->slides.empty()) {
@@ -2988,8 +3099,10 @@ bool PresentationDocument::ExportCueList(std::string &out_path, std::string &out
       return false;
     }
     slides = impl_->slides;
+    checked_cues = impl_->checked_cues;
     deck_path = impl_->path;
     deck_name = impl_->name;
+    current = impl_->current;
   }
 
   fs::path output = fs::path(deck_path);
@@ -3005,6 +3118,14 @@ bool PresentationDocument::ExportCueList(std::string &out_path, std::string &out
   file << "Deck: " << deck_name << "\n\n";
   for (std::size_t index = 0; index < slides.size(); ++index) {
     const std::string title = CueTitleForSlide(slides, index);
+    file << (checked_cues.find(index) != checked_cues.end() ? "[x] " : "[ ] ");
+    if (index == current) {
+      file << "> ";
+    } else if (index == current + 1) {
+      file << "next ";
+    } else {
+      file << "  ";
+    }
     file << (index + 1) << ". " << title << "\n";
     const std::string notes = TrimWhitespace(slides[index].notes);
     if (!notes.empty()) {
@@ -3068,7 +3189,7 @@ bool PresentationDocument::RenderSlideBGRA(
     } else if (loaded && !black) {
       DrawPageThumbnail(document, current, canvas);
     } else if (live_waiting_for_manual_start) {
-      DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode is manual. Click START / RESTART - Open PowerPoint Live Mode in the highlighted source-property group.", canvas);
+      DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode is manual. Click Start / Restart PowerPoint Live Mode in the highlighted source-property group.", canvas);
     } else if (live_enabled && loading) {
       DrawCenteredMessage(@"PPTBridge SK", @"Starting PowerPoint live mode…", canvas);
     } else if (live_enabled && !live_error.empty()) {
@@ -3100,6 +3221,7 @@ bool PresentationDocument::RenderPresenterBGRA(
     std::lock_guard<std::mutex> render_lock(impl_->render_mutex);
     PDFDocument *document = nil;
     std::vector<SlideMetadata> slides;
+    std::set<std::size_t> checked_cues;
     bool loading = false;
     bool loaded = false;
     bool live_enabled = false;
@@ -3116,6 +3238,7 @@ bool PresentationDocument::RenderPresenterBGRA(
       std::lock_guard<std::mutex> lock(impl_->mutex);
       document = impl_->pdf_document;
       slides = impl_->slides;
+      checked_cues = impl_->checked_cues;
       loading = impl_->loading;
       loaded = impl_->loaded;
       live_enabled = impl_->live_powerpoint_enabled;
@@ -3336,7 +3459,7 @@ bool PresentationDocument::RenderPresenterBGRA(
     [notes_text drawInRect:notes_text_rect withAttributes:notes_attrs];
 
     if (!NSIsEmptyRect(cue_box)) {
-      DrawCueList(slides, current, shown_slide_count, cue_box);
+      DrawCueList(slides, checked_cues, current, shown_slide_count, cue_box);
     }
 
     [NSGraphicsContext restoreGraphicsState];

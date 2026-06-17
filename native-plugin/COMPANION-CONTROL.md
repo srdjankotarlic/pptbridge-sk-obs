@@ -16,7 +16,7 @@ For direct OSC, enable PPTBridge's local listener from the OBS `Tools` menu.
 It listens only on `127.0.0.1`, so it is intended for a control app running on the same machine.
 
 For a physical Logitech Spotlight or presenter clicker, use `Tools > PPTBridge
-SK: Toggle Spotlight/Clicker Capture` instead of Companion. It captures common
+SK: Spotlight/Clicker Capture On/Off` instead of Companion. It captures common
 presenter keys globally, routes them to the current OBS program scene, and
 suppresses those captured key presses from the focused app. Built-in clicker
 keys are `PageDown` or `Right` for next and `PageUp` or `Left` for previous.
@@ -74,6 +74,10 @@ See the official obs-websocket protocol entry:
 | Last slide | `pptbridge_last_btn` |
 | Toggle black screen | `pptbridge_black_btn` |
 | Reload presentation | `pptbridge_reload_btn` |
+| Toggle current cue checked | `pptbridge_cue_toggle_current_btn` |
+| Toggle next cue checked | `pptbridge_cue_toggle_next_btn` |
+| Clear checked cues | `pptbridge_cue_clear_checks_btn` |
+| Send OSC status now | `pptbridge_send_osc_status_btn` |
 
 ## Companion Setup
 
@@ -127,7 +131,7 @@ PPTBridge SK can also listen for local OSC messages without going through keyboa
 
 In OBS, use:
 
-`Tools > PPTBridge SK: Toggle Local OSC Control`
+`Tools > PPTBridge SK: Local OSC Control On/Off`
 
 The enabled/disabled state and port are stored in OBS app configuration, not in a scene collection.
 
@@ -164,6 +168,40 @@ native-plugin/scripts/send-osc.sh /pptbridge/next
 
 Companion can use a generic OSC action to send the same address to `127.0.0.1:57130`.
 
+## OSC Status Feedback
+
+PPTBridge SK can also send lightweight local OSC status feedback for Companion, TouchDesigner, QLab, or another show-control tool.
+
+In the PPTBridge source `Properties`, open `Show Control (Operator Mode)` and enable:
+
+- `Send OSC Status Feedback`
+- `OSC Status Host/IP`, usually `127.0.0.1`
+- `OSC Status Port`, default `57131`
+
+Feedback is sent when the deck state changes and once per timer second while enabled.
+Use `Send OSC Status Now` to test the output immediately.
+
+Status addresses:
+
+| Status | OSC address | Type |
+| --- | --- | --- |
+| Current slide number | `/pptbridge/status/current` | integer |
+| Total slides | `/pptbridge/status/total` | integer |
+| Current slide title | `/pptbridge/status/title` | string |
+| Next slide title | `/pptbridge/status/next_title` | string |
+| Timer seconds | `/pptbridge/status/timer` | integer |
+| Live PowerPoint ready | `/pptbridge/status/live` | integer, `0` or `1` |
+| Black screen state | `/pptbridge/status/black` | integer, `0` or `1` |
+
+For cue tracking, use the source property buttons directly through OBS WebSocket:
+
+```json
+{
+  "inputName": "PPTBridge SK Presenter",
+  "propertyName": "pptbridge_cue_toggle_current_btn"
+}
+```
+
 ## Test Checklist
 
 1. Open OBS.
@@ -175,6 +213,7 @@ Companion can use a generic OSC action to send the same address to `127.0.0.1:57
 7. Confirm typing does not move slides.
 8. Press the Companion `Next` button again.
 9. Confirm Companion still moves the chosen PPTBridge source.
+10. Enable OSC status feedback and confirm your receiver gets `/pptbridge/status/current`.
 
 ## Next OSC Phase
 
@@ -182,7 +221,6 @@ The current native OSC listener is intentionally small and local-only.
 The next OSC phase can add:
 
 - configurable port and bind address
-- status feedback/output
 - richer deck selection for multi-room shows
 - packaged Companion button templates
 

@@ -43,7 +43,8 @@ This native version is built around a practical conference workflow:
 
 ## Quick Platform Guide
 
-- `v0.5.1` = current Apple Silicon stable release with START/RESTART recovery, arrow-key defaults, presenter background customization, and cue-list display/export
+- `v0.5.2` = current Apple Silicon stable release with Operator Mode controls, interactive cue checks, OSC status feedback, and clearer menu labels
+- `v0.5.1` = previous Apple Silicon stable release with live-mode restart recovery, arrow-key defaults, presenter background customization, and cue-list display/export
 - `v0.5.0` = previous Apple Silicon stable release with modification-time cache validation and bounded timeouts on PowerPoint helper calls
 - `v0.5.0-beta.1` = Windows beta plugin ZIP with `INSTALL.cmd` for real OBS/PowerPoint testing
 - `v0.4.7` = Apple Silicon stable release with faster presenter preparation after live start and final-slide live-mode protection
@@ -183,7 +184,7 @@ Recommended workflow:
 1. Add `PPTBridge SK Slide` to the program scene
 2. Add `PPTBridge SK Presenter` to the stage confidence scene
 3. Point both to the same `.pptx` or `.pdf`
-4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `START / RESTART - Open PowerPoint Live Mode` in the highlighted `PowerPoint Live Start / Stop` group when you are ready
+4. For `.pptx` live mode, open `PPTBridge SK Slide` properties and click `Start / Restart PowerPoint Live Mode` in the highlighted `PowerPoint Live Start / Stop` group when you are ready
 5. Open `Settings > Hotkeys`
 6. Bind `PPTBridge SK: Next Slide` and `PPTBridge SK: Previous Slide`
 7. Let the speaker drive slides with OBS-focused hotkeys, optional Spotlight/Clicker Capture, Companion, local OSC, or source property buttons
@@ -226,19 +227,25 @@ Quick setup for stage control:
 
 After that, the speaker can drive the deck from OBS with the clicker and the active PPTBridge source will move forward/back.
 PPTBridge ignores hotkey callbacks while OBS is not the active app, so typing in another app will not move the presentation.
-For a Logitech Spotlight or other presenter clicker that should work while the operator uses Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. It captures `PageDown` or `Right` for next and `PageUp` or `Left` for previous by default. It also captures supported custom PPTBridge hotkeys, but plain typing keys such as letters, numbers, `Space`, `Enter`, `Tab`, and `Backspace` are never captured globally. Captured clicker keys route to the PPTBridge source in the current OBS program scene and are suppressed from the focused app. This works for PPTX live mode and PDF/cached decks.
+For a Logitech Spotlight or other presenter clicker that should work while the operator uses Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off`. It captures `PageDown` or `Right` for next and `PageUp` or `Left` for previous by default. It also captures supported custom PPTBridge hotkeys, but plain typing keys such as letters, numbers, `Space`, `Enter`, `Tab`, and `Backspace` are never captured globally. Captured clicker keys route to the PPTBridge source in the current OBS program scene and are suppressed from the focused app. This works for PPTX live mode and PDF/cached decks.
 If macOS asks, allow OBS in `System Settings > Privacy & Security > Accessibility` and `Input Monitoring`, then restart OBS or toggle the feature again.
 For Stream Deck or Bitfocus Companion control that must work while another app is focused, use the OBS WebSocket workflow in `COMPANION-CONTROL.md` instead of keyboard hotkeys.
-For direct local OSC, enable `Tools > PPTBridge SK: Toggle Local OSC Control` and send OSC messages such as `/pptbridge/next` to `127.0.0.1:57130`.
+For direct local OSC, enable `Tools > PPTBridge SK: Local OSC Control On/Off` and send OSC messages such as `/pptbridge/next` to `127.0.0.1:57130`.
+
+## Operator Mode
+
+Each PPTBridge source now has a `Show Control (Operator Mode)` group near the top of source properties.
+It keeps the show controls in one place: start/stop live mode, previous/next, current/next cue check buttons, clear cue checks, and optional OSC status feedback.
+Use `Show Cue List` in the presenter layout controls when the speaker or operator should see the running cue list on the confidence monitor.
 
 ## PowerPoint Startup Controls
 
 In `PPTBridge SK Slide` properties:
 
-- `START / RESTART - Open PowerPoint Live Mode` opens PowerPoint if needed, starts the slideshow on demand, and recovers if the slideshow window was closed
+- `Start / Restart PowerPoint Live Mode` opens PowerPoint if needed, starts the slideshow on demand, and recovers if the slideshow window was closed
 - `Auto Start PowerPoint When OBS Opens` restores automatic slideshow startup when OBS loads the source
 - `Close PowerPoint Slideshow When OBS Closes` cleans up the running slideshow when OBS quits
-- `STOP - Stop PowerPoint Live Mode` stops the live slideshow without quitting OBS from the highlighted `PowerPoint Live Start / Stop` group
+- `Stop PowerPoint Live Mode` stops the live slideshow without quitting OBS from the highlighted `PowerPoint Live Start / Stop` group
 - `PowerPoint Resize Behavior` controls whether OBS ignores or follows PowerPoint window resizing
 - `Lock OBS Size Against PPT Resize` keeps the OBS program output stable while the desktop PowerPoint window is made smaller
 - `Follow Current PPT Window Size` intentionally lets the PowerPoint window shape affect OBS
@@ -254,10 +261,10 @@ The included installers also remove legacy PPTBridge Python script entries from 
 This native pass is focused on the installable OBS source workflow and rendering path.
 It is designed to run as a real plugin bundle, without requiring the old Python PPTBridge script to stay loaded in OBS.
 On macOS with Microsoft PowerPoint installed, `PPTBridge SK Slide` supports true live mode and lets PowerPoint itself handle slideshow builds, animations, and embedded media.
-By default, PowerPoint live mode waits for `START / RESTART - Open PowerPoint Live Mode` in the highlighted source-property control group so OBS can open without immediately launching a slideshow. If PowerPoint is closed, that button opens it and starts the slideshow. If the slideshow window was closed but PowerPoint itself is still open, the same button recovers the live session. Enable `Auto Start PowerPoint When OBS Opens` if you want the older automatic behavior.
+By default, PowerPoint live mode waits for `Start / Restart PowerPoint Live Mode` in the highlighted source-property control group so OBS can open without immediately launching a slideshow. If PowerPoint is closed, that button opens it and starts the slideshow. If the slideshow window was closed but PowerPoint itself is still open, the same button recovers the live session. Enable `Auto Start PowerPoint When OBS Opens` if you want the older automatic behavior.
 Enable `Close PowerPoint Slideshow When OBS Closes` when the live slideshow should be cleaned up as OBS shuts down.
 `PPTBridge SK Presenter` is PPTBridge's own presenter layout, synchronized with the deck and fed by PPTX notes pages and slide thumbnails.
-The presenter source exposes balanced, large-preview, large-notes, compact, and confidence-monitor layout presets, plus presenter split, preview scale/position, notes zoom, notes text position, notes sizing controls, background color/image controls, and optional cue-list display/export.
+The presenter source exposes balanced, large-preview, large-notes, compact, and confidence-monitor layout presets, plus presenter split, preview scale/position, notes zoom, notes text position, notes sizing controls, background color/image controls, and optional cue-list display/export with current, next, and checked cue markers.
 Live builds, animations, and embedded video stay in `PPTBridge SK Slide`. Presenter-side live video preview is postponed until it can be verified without adding crash risk to OBS.
 Presenter notes will only appear when the `.pptx` really contains notes pages for those slides.
 If live mode is unavailable or disabled, PPTBridge falls back to cached render mode for compatibility.

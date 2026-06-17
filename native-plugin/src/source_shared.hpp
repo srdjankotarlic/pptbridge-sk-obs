@@ -77,6 +77,12 @@ struct SourceContext {
   int live_audio_owner_pid = 0;
   std::string live_audio_application;
   std::string cue_export_status;
+  bool osc_feedback_enabled = false;
+  std::string osc_feedback_host = "127.0.0.1";
+  uint16_t osc_feedback_port = 57131;
+  std::string osc_feedback_status;
+  uint64_t osc_feedback_last_state_version = 0;
+  uint64_t osc_feedback_last_timer_second = 0;
   bool live_audio_hooked = false;
   bool live_audio_showing = false;
   bool live_audio_active = false;

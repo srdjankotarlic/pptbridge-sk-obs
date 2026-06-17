@@ -84,7 +84,7 @@ macOS ZIP:
 1. Add \`PPTBridge SK Slide\` to the program/audience scene.
 2. Add \`PPTBridge SK Presenter\` to the speaker/confidence scene.
 3. Select the same .pptx or .pdf in both sources.
-4. For .pptx live mode, click \`START / RESTART - Open PowerPoint Live Mode\` in the highlighted \`PowerPoint Live Start / Stop\` group when you are ready.
+4. For .pptx live mode, click \`Start / Restart PowerPoint Live Mode\` in the highlighted \`PowerPoint Live Start / Stop\` group when you are ready.
 5. Use \`PPTBridge SK Presenter\` for notes, next slide, timer, and confidence-monitor layouts. Live animations and video stay in \`PPTBridge SK Slide\`.
 6. For PDF decks, PowerPoint is not required.
 
@@ -97,7 +97,7 @@ source can appear first while the confidence view catches up.
 
 - OBS hotkeys default to \`2\` or \`Right Arrow\` for next slide and \`1\` or \`Left Arrow\` for previous slide.
 - For a Logitech Spotlight or similar presenter clicker, enable
-  \`Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture\`.
+  \`Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off\`.
 - Clicker capture supports common next keys such as PageDown and Right, plus
   previous keys such as PageUp and Left.
 - If macOS asks, allow OBS in \`System Settings > Privacy & Security > Accessibility\`

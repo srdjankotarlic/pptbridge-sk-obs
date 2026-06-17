@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -68,6 +69,33 @@ struct PresenterRenderOptions {
   bool show_cue_list = false;
 };
 
+struct CueListItem {
+  std::size_t index = 0;
+  std::size_t number = 0;
+  std::string title;
+  bool current = false;
+  bool next = false;
+  bool checked = false;
+};
+
+struct PresentationStatus {
+  std::string deck_name;
+  std::string deck_path;
+  std::size_t current_index = 0;
+  std::size_t current_slide = 0;
+  std::size_t total_slides = 0;
+  std::string current_title;
+  std::string next_title;
+  uint64_t timer_seconds = 0;
+  bool live_enabled = false;
+  bool live_ready = false;
+  bool loading = false;
+  bool loaded = false;
+  bool black_screen = false;
+  std::size_t checked_count = 0;
+  std::vector<CueListItem> cues;
+};
+
 class PresentationDocument : public std::enable_shared_from_this<PresentationDocument> {
 public:
   explicit PresentationDocument(std::string pptx_path);
@@ -110,6 +138,10 @@ public:
   uint64_t StateVersion() const;
   uint64_t PresentationSeconds() const;
   std::vector<EmbeddedMedia> CurrentMedia() const;
+  PresentationStatus SnapshotStatus() const;
+  bool SetCueChecked(std::size_t index, bool checked);
+  bool ToggleCueChecked(std::size_t index);
+  void ClearCueChecks();
   bool ExportCueList(std::string &out_path, std::string &out_error) const;
 
   bool RenderSlideBGRA(

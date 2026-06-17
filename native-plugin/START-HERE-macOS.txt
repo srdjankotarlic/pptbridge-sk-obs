@@ -46,7 +46,7 @@ BASIC OBS SETUP
 3. Select the same .pptx or .pdf file in both sources.
 4. For .pptx live mode, open PPTBridge SK Slide properties and click:
 
-   START / RESTART - Open PowerPoint Live Mode
+   Start / Restart PowerPoint Live Mode
 
 5. For PDF decks, PowerPoint is not needed.
 6. PPTBridge SK Presenter stays lightweight and static for notes, next slide,
@@ -70,7 +70,7 @@ SPOTLIGHT / CLICKER CAPTURE
 If a presenter on stage uses a Logitech Spotlight or similar clicker while the
 operator uses Chrome, OBS, or another app:
 
-1. In OBS, open Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture.
+1. In OBS, open Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off.
 2. Use the clicker's normal next/previous buttons. PPTBridge captures
    PageDown or Right for next and PageUp or Left for previous
    by default.
@@ -90,14 +90,14 @@ POWERPOINT STARTUP
 In the PPTBridge SK Slide source properties:
 
 - Leave Auto Start PowerPoint When OBS Opens off if OBS should open quietly.
-- Click START / RESTART - Open PowerPoint Live Mode in the highlighted
+- Click Start / Restart PowerPoint Live Mode in the highlighted
   PowerPoint Live Start / Stop group when you are ready to launch the slideshow.
   If PowerPoint is not open yet, PPTBridge opens it for you.
 - If the slideshow window was closed but PowerPoint is still open, click
-  START / RESTART - Open PowerPoint Live Mode again to recover the live session.
+  Start / Restart PowerPoint Live Mode again to recover the live session.
 - Turn Auto Start PowerPoint When OBS Opens on if you want the slideshow to launch with OBS.
 - Leave Close PowerPoint Slideshow When OBS Closes on if OBS should clean up the slideshow on quit.
-- Use STOP - Stop PowerPoint Live Mode in the same highlighted group if you want
+- Use Stop PowerPoint Live Mode in the same highlighted group if you want
   to stop the slideshow without quitting OBS.
 - Leave PowerPoint Resize Behavior on Lock OBS Output Size if you want to shrink
   the PowerPoint window on your desktop without changing the OBS program output.
@@ -109,7 +109,7 @@ MULTIPLE PPTX DECKS
 - Create one OBS scene per deck.
 - Add PPTBridge SK Slide and PPTBridge SK Presenter to each scene.
 - Select that scene's .pptx in both sources.
-- Click START / RESTART - Open PowerPoint Live Mode once for each deck you want ready.
+- Click Start / Restart PowerPoint Live Mode once for each deck you want ready.
 - PPTBridge locks each PowerPoint live session to its exact staged deck file, so
   several slideshow windows can stay open and scene changes control the right deck.
 
@@ -117,7 +117,7 @@ COMPANION / OSC
 
 For Stream Deck or Bitfocus Companion control without keyboard focus:
 
-1. In OBS, open Tools > PPTBridge SK: Toggle Local OSC Control.
+1. In OBS, open Tools > PPTBridge SK: Local OSC Control On/Off.
 2. In Companion, add a Generic OSC connection:
    Host: 127.0.0.1
    Port: 57130

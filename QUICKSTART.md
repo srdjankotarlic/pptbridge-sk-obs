@@ -46,10 +46,10 @@ For PowerPoint decks:
 
 1. Open `PPTBridge SK Slide` properties.
 2. Find the highlighted `PowerPoint Live Start / Stop` section.
-3. Click `START / RESTART - Open PowerPoint Live Mode`.
+3. Click `Start / Restart PowerPoint Live Mode`.
 
-By default, OBS opens quietly and does not start PowerPoint until you click `START / RESTART`.
-If you close the slideshow window by accident but leave PowerPoint open, click `START / RESTART - Open PowerPoint Live Mode` again to recover the live session.
+By default, OBS opens quietly and does not start PowerPoint until you click `Start / Restart`.
+If you close the slideshow window by accident but leave PowerPoint open, click `Start / Restart PowerPoint Live Mode` again to recover the live session.
 
 Live builds, animations, and embedded video are handled by `PPTBridge SK Slide`. `PPTBridge SK Presenter` stays lightweight and static for notes, next slide, timer, and confidence-monitor layouts.
 
@@ -74,7 +74,7 @@ The OBS entries are `PPTBridge SK: Next Slide` and `PPTBridge SK: Previous Slide
 
 If a presenter clicker must work while the operator uses Chrome, OBS, or another app:
 
-1. In OBS, open `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`.
+1. In OBS, open `Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off`.
 2. Use the clicker's normal next/previous buttons. PPTBridge captures `PageDown` or `Right` for next and `PageUp` or `Left` for previous by default.
 3. If macOS asks, allow OBS in:
    - `System Settings > Privacy & Security > Accessibility`
@@ -92,7 +92,7 @@ For Bitfocus Companion or Stream Deck, avoid keyboard simulation. Use one of the
 
 Local OSC:
 
-- enable `Tools > PPTBridge SK: Toggle Local OSC Control`
+- enable `Tools > PPTBridge SK: Local OSC Control On/Off`
 - send UDP OSC to `127.0.0.1:57130`
 - use paths such as `/pptbridge/next` and `/pptbridge/previous`
 

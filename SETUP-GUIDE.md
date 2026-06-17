@@ -100,7 +100,7 @@ If you want `PageDown`/`PageUp` only while OBS is focused, add them to
 For a Logitech Spotlight or another stage clicker that must work while the
 operator uses Chrome, OBS, or another app, enable:
 
-`Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`
+`Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off`
 
 This captures common presenter remote keys globally, routes them to the
 PPTBridge source in the current OBS program scene, and suppresses those captured
@@ -120,19 +120,19 @@ Capture is enabled.
 
 | Control | What it does |
 |---|---|
-| `START / RESTART - Open PowerPoint Live Mode` | Opens PowerPoint if needed, starts the slideshow only when you click it, and recovers if the slideshow window was closed |
+| `Start / Restart PowerPoint Live Mode` | Opens PowerPoint if needed, starts the slideshow only when you click it, and recovers if the slideshow window was closed |
 | `Auto Start PowerPoint When OBS Opens` | Starts the slideshow automatically when OBS loads the source |
 | `Close PowerPoint Slideshow When OBS Closes` | Closes the live slideshow when OBS quits |
-| `STOP - Stop PowerPoint Live Mode` | Stops the live slideshow without quitting OBS from the highlighted `PowerPoint Live Start / Stop` group |
+| `Stop PowerPoint Live Mode` | Stops the live slideshow without quitting OBS from the highlighted `PowerPoint Live Start / Stop` group |
 | `PowerPoint Resize Behavior` | Keeps OBS locked to its canvas or lets OBS follow the PowerPoint window shape |
 | `Lock OBS Size Against PPT Resize` | Keeps the OBS output stable while you shrink the PowerPoint window on your desktop |
 | `Follow Current PPT Window Size` | Makes the OBS output intentionally follow the current PowerPoint window shape |
 
 Default behavior is manual. Leave `Auto Start PowerPoint When OBS Opens` off if
-you want OBS to open quietly, then click `START / RESTART - Open PowerPoint Live Mode`
+you want OBS to open quietly, then click `Start / Restart PowerPoint Live Mode`
 only when you are ready.
 If the PowerPoint slideshow window was closed but PowerPoint itself is still
-open, click the same `START / RESTART - Open PowerPoint Live Mode` button to
+open, click the same `Start / Restart PowerPoint Live Mode` button to
 reattach/restart the live session.
 
 Default resize behavior is locked. Use `Lock OBS Output Size` for live shows so
@@ -147,7 +147,7 @@ Use this setup when one show has several different presentations:
 2. In each scene, add `PPTBridge SK Slide` for the audience/program output.
 3. Add `PPTBridge SK Presenter` for the presenter/confidence view if needed.
 4. Select the same `.pptx` in that scene's slide and presenter sources.
-5. Click `START / RESTART - Open PowerPoint Live Mode` for each deck you want ready.
+5. Click `Start / Restart PowerPoint Live Mode` for each deck you want ready.
 6. Change OBS scenes during the show.
 
 PPTBridge identifies each live PowerPoint session by the exact staged deck file,
@@ -206,7 +206,7 @@ preview is postponed until it can be verified without adding crash risk.
 | Plugin does not appear in OBS | Restart OBS normally, not Safe Mode |
 | Slides do not load | Confirm the `.pptx` or `.pdf` exists and try `Reload Presentation` |
 | PowerPoint live mode does not start | Confirm Microsoft PowerPoint is installed and allowed to open the deck |
-| Clicker does not move slides | Enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture` and grant macOS permissions if prompted. For unusual clickers, also bind the clicker's keys in OBS Hotkeys |
+| Clicker does not move slides | Enable `Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off` and grant macOS permissions if prompted. For unusual clickers, also bind the clicker's keys in OBS Hotkeys |
 | Notes are missing | Check whether presenter notes exist inside the original `.pptx` |
 
 ## Public Release Notes
