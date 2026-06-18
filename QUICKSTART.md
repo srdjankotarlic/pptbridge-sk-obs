@@ -95,6 +95,8 @@ Local OSC:
 - enable `Tools > PPTBridge SK: Local OSC Control On/Off`
 - send UDP OSC to `127.0.0.1:57130`
 - use paths such as `/pptbridge/next` and `/pptbridge/previous`
+- use `native-plugin/companion/PPTBridge-SK-Companion-OSC-Template.json` as a Generic OSC starter map
+- optional status feedback can send slide number, deck/source name, loading/error state, timer, live state, and cue checked state to `127.0.0.1:57131`
 
 Full guide: [native-plugin/COMPANION-CONTROL.md](native-plugin/COMPANION-CONTROL.md)
 

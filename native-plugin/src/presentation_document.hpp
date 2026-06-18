@@ -81,6 +81,8 @@ struct CueListItem {
 struct PresentationStatus {
   std::string deck_name;
   std::string deck_path;
+  std::string source_name;
+  std::string error;
   std::size_t current_index = 0;
   std::size_t current_slide = 0;
   std::size_t total_slides = 0;
@@ -92,6 +94,8 @@ struct PresentationStatus {
   bool loading = false;
   bool loaded = false;
   bool black_screen = false;
+  bool current_cue_checked = false;
+  bool next_cue_checked = false;
   std::size_t checked_count = 0;
   std::vector<CueListItem> cues;
 };

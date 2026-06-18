@@ -1,4 +1,4 @@
-## PPTBridge SK for OBS v0.5.2
+## PPTBridge SK for OBS v0.5.3
 
 Created by **Srdjan Kotarlic**
 
@@ -29,7 +29,20 @@ https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptb
 
 Apple Silicon is the main stable build. Intel Mac and Windows remain separate beta paths while real-hardware feedback is collected.
 
-### What Is New In v0.5.2
+### What Is New In v0.5.3
+
+- Companion / Generic OSC starter template included in the repo and release ZIP:
+  `companion/PPTBridge-SK-Companion-OSC-Template.json`
+- Expanded OSC status feedback for show-control systems:
+  deck name, deck path, OBS source name, loading state, loaded state, last issue text,
+  current cue checked, next cue checked, and checked cue count
+- macOS release ZIP now includes the Companion control guide, starter template, and
+  `scripts/send-osc.sh` so users have the control setup files after download
+- New OSC feedback smoke test verifies all 16 status messages
+- Quickstart, README, macOS install docs, and Companion guide updated for the new
+  Companion/OSC workflow
+
+### Also Included From v0.5.2
 
 - New `Show Control (Operator Mode)` group near the top of source properties, with the practical show buttons in one place
 - Interactive cue buttons: check/uncheck current cue, check/uncheck next cue, and clear checked cues
@@ -130,6 +143,9 @@ The ZIP includes only the user-facing files needed to install and use the plugin
 - `1-Install-PPTBridge-SK.command`
 - `pptbridge-obs.plugin`
 - `README.md`
+- `COMPANION-CONTROL.md`
+- `companion/PPTBridge-SK-Companion-OSC-Template.json`
+- `scripts/send-osc.sh`
 
 ### Testing Notes
 

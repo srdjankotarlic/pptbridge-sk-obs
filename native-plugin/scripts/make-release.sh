@@ -32,11 +32,17 @@ fi
 mkdir -p "$PROJECT_DIR/release"
 rm -rf "$RELEASE_DIR"
 mkdir -p "$RELEASE_DIR"
+mkdir -p "$RELEASE_DIR/companion"
+mkdir -p "$RELEASE_DIR/scripts"
 
 cp -R "$BUNDLE_PATH" "$RELEASE_DIR/pptbridge-obs.plugin"
 cp "$PROJECT_DIR/PPTBridge-Install.command" "$RELEASE_DIR/$INSTALLER_NAME"
 cp "$PROJECT_DIR/START-HERE-macOS.txt" "$RELEASE_DIR/START-HERE-macOS.txt"
+cp "$PROJECT_DIR/COMPANION-CONTROL.md" "$RELEASE_DIR/COMPANION-CONTROL.md"
+cp "$PROJECT_DIR/companion/PPTBridge-SK-Companion-OSC-Template.json" "$RELEASE_DIR/companion/PPTBridge-SK-Companion-OSC-Template.json"
+cp "$PROJECT_DIR/scripts/send-osc.sh" "$RELEASE_DIR/scripts/send-osc.sh"
 chmod +x "$RELEASE_DIR/$INSTALLER_NAME"
+chmod +x "$RELEASE_DIR/scripts/send-osc.sh"
 
 cat > "$RELEASE_DIR/README.md" <<EOF
 # PPTBridge SK for OBS - macOS
@@ -56,6 +62,9 @@ similar presentation workflows.
 - \`$INSTALLER_NAME\` - double-click installer
 - \`START-HERE-macOS.txt\` - quick install and usage guide
 - \`pptbridge-obs.plugin\` - the OBS plugin bundle
+- \`COMPANION-CONTROL.md\` - Companion, WebSocket, and OSC control guide
+- \`companion/PPTBridge-SK-Companion-OSC-Template.json\` - Generic OSC starter map
+- \`scripts/send-osc.sh\` - local OSC command tester
 - \`README.md\` - this file
 
 ## Install
@@ -108,6 +117,21 @@ source can appear first while the confidence view catches up.
 - Create one OBS scene per deck.
 - Select that scene's .pptx in its PPTBridge SK Slide and Presenter sources.
 - PPTBridge locks each live PowerPoint session to its exact staged deck file, so several slideshow windows can stay open and scene changes control the right deck.
+
+## Companion / OSC
+
+Enable \`Tools > PPTBridge SK: Local OSC Control On/Off\` in OBS, then send
+Generic OSC messages to \`127.0.0.1:57130\`.
+
+Common control paths are \`/pptbridge/next\`, \`/pptbridge/previous\`,
+\`/pptbridge/first\`, \`/pptbridge/last\`, \`/pptbridge/black\`, and
+\`/pptbridge/reload\`.
+
+Use \`COMPANION-CONTROL.md\` and
+\`companion/PPTBridge-SK-Companion-OSC-Template.json\` as the Companion setup
+map. Optional status feedback can send slide number, deck/source name,
+loading/error state, timer, live state, and cue checked state to
+\`127.0.0.1:57131\`.
 
 ## Requirements
 

@@ -2990,6 +2990,7 @@ PresentationStatus PresentationDocument::SnapshotStatus() const
   PresentationStatus status;
   status.deck_name = impl_->name;
   status.deck_path = impl_->path;
+  status.error = !impl_->live_error.empty() ? impl_->live_error : impl_->error;
   status.live_enabled = impl_->live_powerpoint_enabled;
   status.live_ready = impl_->live_powerpoint_enabled && impl_->live_ready;
   status.loading = impl_->loading;
@@ -3018,6 +3019,12 @@ PresentationStatus PresentationDocument::SnapshotStatus() const
     item.current = status.current_slide > 0 && index == status.current_index;
     item.next = status.current_slide > 0 && index == status.current_index + 1 && index < cue_count;
     item.checked = checked;
+    if (item.current) {
+      status.current_cue_checked = checked;
+    }
+    if (item.next) {
+      status.next_cue_checked = checked;
+    }
     if (checked) {
       status.checked_count += 1;
     }

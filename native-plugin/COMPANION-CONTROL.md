@@ -103,6 +103,18 @@ PressInputPropertiesButton
 
 8. Duplicate the button for previous, first, last, black screen, and reload by changing only `propertyName`.
 
+## Companion OSC Starter Template
+
+A small Generic OSC starter template lives at:
+
+`native-plugin/companion/PPTBridge-SK-Companion-OSC-Template.json`
+
+Use it as a reference when building a Companion page. It includes the common
+control buttons and the status feedback addresses. Companion versions differ in
+how they import/export button pages, so treat the file as a clean setup map:
+create a `Generic OSC` connection to `127.0.0.1:57130`, then copy the listed
+OSC paths into your buttons.
+
 ## Suggested Button Layout
 
 | Button | Request Data |
@@ -189,9 +201,21 @@ Status addresses:
 | Total slides | `/pptbridge/status/total` | integer |
 | Current slide title | `/pptbridge/status/title` | string |
 | Next slide title | `/pptbridge/status/next_title` | string |
+| Deck file name | `/pptbridge/status/deck_name` | string |
+| Deck file path | `/pptbridge/status/deck_path` | string |
+| OBS source name | `/pptbridge/status/source_name` | string |
+| Loading state | `/pptbridge/status/loading` | integer, `0` or `1` |
+| Loaded state | `/pptbridge/status/loaded` | integer, `0` or `1` |
+| Last issue/error text | `/pptbridge/status/error` | string |
 | Timer seconds | `/pptbridge/status/timer` | integer |
 | Live PowerPoint ready | `/pptbridge/status/live` | integer, `0` or `1` |
 | Black screen state | `/pptbridge/status/black` | integer, `0` or `1` |
+| Current cue checked | `/pptbridge/status/cue_current_checked` | integer, `0` or `1` |
+| Next cue checked | `/pptbridge/status/cue_next_checked` | integer, `0` or `1` |
+| Checked cue count | `/pptbridge/status/cue_checked_count` | integer |
+
+`deck_path` is intended for trusted local show-control systems. If you stream or
+log OSC feedback publicly, prefer `deck_name` and `source_name`.
 
 For cue tracking, use the source property buttons directly through OBS WebSocket:
 

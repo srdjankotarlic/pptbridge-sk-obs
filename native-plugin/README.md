@@ -43,7 +43,8 @@ This native version is built around a practical conference workflow:
 
 ## Quick Platform Guide
 
-- `v0.5.2` = current Apple Silicon stable release with Operator Mode controls, interactive cue checks, OSC status feedback, and clearer menu labels
+- `v0.5.3` = current Apple Silicon stable release with Companion OSC starter template, expanded OSC feedback, and packaging polish
+- `v0.5.2` = previous Apple Silicon stable release with Operator Mode controls, interactive cue checks, OSC status feedback, and clearer menu labels
 - `v0.5.1` = previous Apple Silicon stable release with live-mode restart recovery, arrow-key defaults, presenter background customization, and cue-list display/export
 - `v0.5.0` = previous Apple Silicon stable release with modification-time cache validation and bounded timeouts on PowerPoint helper calls
 - `v0.5.0-beta.1` = Windows beta plugin ZIP with `INSTALL.cmd` for real OBS/PowerPoint testing
@@ -237,6 +238,7 @@ For direct local OSC, enable `Tools > PPTBridge SK: Local OSC Control On/Off` an
 Each PPTBridge source now has a `Show Control (Operator Mode)` group near the top of source properties.
 It keeps the show controls in one place: start/stop live mode, previous/next, current/next cue check buttons, clear cue checks, and optional OSC status feedback.
 Use `Show Cue List` in the presenter layout controls when the speaker or operator should see the running cue list on the confidence monitor.
+For Companion, `companion/PPTBridge-SK-Companion-OSC-Template.json` provides a Generic OSC starter map with common buttons and status feedback addresses.
 
 ## PowerPoint Startup Controls
 

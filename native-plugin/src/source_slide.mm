@@ -1140,7 +1140,12 @@ bool send_osc_status(SourceContext *context, bool force)
     return false;
   }
 
-  const auto snapshot = context->document->SnapshotStatus();
+  auto snapshot = context->document->SnapshotStatus();
+  if (context->source) {
+    if (const char *source_name = obs_source_get_name(context->source)) {
+      snapshot.source_name = source_name;
+    }
+  }
   const bool ok = SendOscStatusFeedback(context->osc_feedback_host, context->osc_feedback_port, snapshot);
   context->osc_feedback_last_state_version = state_version;
   context->osc_feedback_last_timer_second = timer_second;

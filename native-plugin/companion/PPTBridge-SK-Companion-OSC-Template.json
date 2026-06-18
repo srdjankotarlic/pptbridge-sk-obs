@@ -1,0 +1,125 @@
+{
+  "name": "PPTBridge SK Companion OSC Starter Template",
+  "description": "Starter layout for Bitfocus Companion using the Generic OSC module. Create a Generic OSC connection to 127.0.0.1 port 57130 for control, and listen on 57131 for PPTBridge status feedback.",
+  "connection": {
+    "module": "Generic OSC",
+    "label": "pptbridge-osc",
+    "targetHost": "127.0.0.1",
+    "targetPort": 57130,
+    "protocol": "UDP"
+  },
+  "buttons": [
+    {
+      "label": "PREV",
+      "action": "Send message without arguments",
+      "oscPath": "/pptbridge/previous"
+    },
+    {
+      "label": "NEXT",
+      "action": "Send message without arguments",
+      "oscPath": "/pptbridge/next"
+    },
+    {
+      "label": "FIRST",
+      "action": "Send message without arguments",
+      "oscPath": "/pptbridge/first"
+    },
+    {
+      "label": "LAST",
+      "action": "Send message without arguments",
+      "oscPath": "/pptbridge/last"
+    },
+    {
+      "label": "BLACK",
+      "action": "Send message without arguments",
+      "oscPath": "/pptbridge/black"
+    },
+    {
+      "label": "RELOAD",
+      "action": "Send message without arguments",
+      "oscPath": "/pptbridge/reload"
+    }
+  ],
+  "statusFeedback": [
+    {
+      "label": "Current slide",
+      "oscPath": "/pptbridge/status/current",
+      "type": "integer"
+    },
+    {
+      "label": "Total slides",
+      "oscPath": "/pptbridge/status/total",
+      "type": "integer"
+    },
+    {
+      "label": "Current slide title",
+      "oscPath": "/pptbridge/status/title",
+      "type": "string"
+    },
+    {
+      "label": "Next slide title",
+      "oscPath": "/pptbridge/status/next_title",
+      "type": "string"
+    },
+    {
+      "label": "Deck name",
+      "oscPath": "/pptbridge/status/deck_name",
+      "type": "string"
+    },
+    {
+      "label": "Deck path",
+      "oscPath": "/pptbridge/status/deck_path",
+      "type": "string"
+    },
+    {
+      "label": "OBS source name",
+      "oscPath": "/pptbridge/status/source_name",
+      "type": "string"
+    },
+    {
+      "label": "Loading",
+      "oscPath": "/pptbridge/status/loading",
+      "type": "integer"
+    },
+    {
+      "label": "Loaded",
+      "oscPath": "/pptbridge/status/loaded",
+      "type": "integer"
+    },
+    {
+      "label": "Last issue",
+      "oscPath": "/pptbridge/status/error",
+      "type": "string"
+    },
+    {
+      "label": "Timer seconds",
+      "oscPath": "/pptbridge/status/timer",
+      "type": "integer"
+    },
+    {
+      "label": "Live PowerPoint ready",
+      "oscPath": "/pptbridge/status/live",
+      "type": "integer"
+    },
+    {
+      "label": "Black screen",
+      "oscPath": "/pptbridge/status/black",
+      "type": "integer"
+    },
+    {
+      "label": "Current cue checked",
+      "oscPath": "/pptbridge/status/cue_current_checked",
+      "type": "integer"
+    },
+    {
+      "label": "Next cue checked",
+      "oscPath": "/pptbridge/status/cue_next_checked",
+      "type": "integer"
+    },
+    {
+      "label": "Checked cue count",
+      "oscPath": "/pptbridge/status/cue_checked_count",
+      "type": "integer"
+    }
+  ]
+}

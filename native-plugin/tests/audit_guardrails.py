@@ -204,9 +204,40 @@ def main() -> int:
         "/pptbridge/status/timer",
         "/pptbridge/status/live",
         "/pptbridge/status/black",
+        "/pptbridge/status/deck_name",
+        "/pptbridge/status/deck_path",
+        "/pptbridge/status/source_name",
+        "/pptbridge/status/loading",
+        "/pptbridge/status/loaded",
+        "/pptbridge/status/error",
+        "/pptbridge/status/cue_current_checked",
+        "/pptbridge/status/cue_next_checked",
+        "/pptbridge/status/cue_checked_count",
     ):
         if path not in osc_source:
             raise AssertionError(f"OSC/Companion feedback must send {path}")
+    companion_template = ROOT / "companion" / "PPTBridge-SK-Companion-OSC-Template.json"
+    if not companion_template.exists():
+        raise AssertionError("Companion OSC starter template must be included")
+    companion_template_text = companion_template.read_text(encoding="utf-8")
+    for symbol in (
+        "Generic OSC",
+        "/pptbridge/next",
+        "/pptbridge/previous",
+        "/pptbridge/status/current",
+        "/pptbridge/status/deck_name",
+        "/pptbridge/status/cue_current_checked",
+    ):
+        if symbol not in companion_template_text:
+            raise AssertionError(f"Companion template should include {symbol}")
+    make_release = (ROOT / "scripts" / "make-release.sh").read_text(encoding="utf-8")
+    for symbol in (
+        "COMPANION-CONTROL.md",
+        "PPTBridge-SK-Companion-OSC-Template.json",
+        "scripts/send-osc.sh",
+    ):
+        if symbol not in make_release:
+            raise AssertionError(f"macOS release ZIP should include {symbol}")
 
     plugin_main_mac = (ROOT / "src" / "plugin-main.mm").read_text(encoding="utf-8")
     for label in (

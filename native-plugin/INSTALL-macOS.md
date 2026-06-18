@@ -138,6 +138,7 @@ For Stream Deck or Bitfocus Companion control without keyboard focus:
    - `/pptbridge/reload`
 
 The release ZIP also includes `COMPANION-CONTROL.md` and `send-osc.sh` for setup/testing.
+The repo also includes `companion/PPTBridge-SK-Companion-OSC-Template.json` as a Companion/Generic OSC starter map with common buttons and status feedback paths.
 
 ## Requirements
 

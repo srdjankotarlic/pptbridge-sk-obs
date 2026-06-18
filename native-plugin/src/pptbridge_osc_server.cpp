@@ -375,9 +375,18 @@ bool SendOscStatusFeedback(const std::string &host, uint16_t port, const Present
   ok = send_udp_packet(socket, address, make_osc_int_packet("/pptbridge/status/total", static_cast<int32_t>(status.total_slides))) && ok;
   ok = send_udp_packet(socket, address, make_osc_string_packet("/pptbridge/status/title", status.current_title)) && ok;
   ok = send_udp_packet(socket, address, make_osc_string_packet("/pptbridge/status/next_title", status.next_title)) && ok;
+  ok = send_udp_packet(socket, address, make_osc_string_packet("/pptbridge/status/deck_name", status.deck_name)) && ok;
+  ok = send_udp_packet(socket, address, make_osc_string_packet("/pptbridge/status/deck_path", status.deck_path)) && ok;
+  ok = send_udp_packet(socket, address, make_osc_string_packet("/pptbridge/status/source_name", status.source_name)) && ok;
+  ok = send_udp_packet(socket, address, make_osc_string_packet("/pptbridge/status/error", status.error)) && ok;
   ok = send_udp_packet(socket, address, make_osc_int_packet("/pptbridge/status/timer", static_cast<int32_t>(status.timer_seconds))) && ok;
   ok = send_udp_packet(socket, address, make_osc_int_packet("/pptbridge/status/live", status.live_ready ? 1 : 0)) && ok;
+  ok = send_udp_packet(socket, address, make_osc_int_packet("/pptbridge/status/loading", status.loading ? 1 : 0)) && ok;
+  ok = send_udp_packet(socket, address, make_osc_int_packet("/pptbridge/status/loaded", status.loaded ? 1 : 0)) && ok;
   ok = send_udp_packet(socket, address, make_osc_int_packet("/pptbridge/status/black", status.black_screen ? 1 : 0)) && ok;
+  ok = send_udp_packet(socket, address, make_osc_int_packet("/pptbridge/status/cue_current_checked", status.current_cue_checked ? 1 : 0)) && ok;
+  ok = send_udp_packet(socket, address, make_osc_int_packet("/pptbridge/status/cue_next_checked", status.next_cue_checked ? 1 : 0)) && ok;
+  ok = send_udp_packet(socket, address, make_osc_int_packet("/pptbridge/status/cue_checked_count", static_cast<int32_t>(status.checked_count))) && ok;
 
   close_socket(socket);
 #ifdef _WIN32
