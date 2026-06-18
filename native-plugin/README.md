@@ -43,7 +43,8 @@ This native version is built around a practical conference workflow:
 
 ## Quick Platform Guide
 
-- `v0.5.3` = current Apple Silicon stable release with Companion OSC starter template, expanded OSC feedback, and packaging polish
+- `v0.5.4` = current Apple Silicon stable release with safer default hotkeys: `2`/`1`, while normal left/right arrows stay free
+- `v0.5.3` = previous Apple Silicon stable release with Companion OSC starter template, expanded OSC feedback, and packaging polish
 - `v0.5.2` = previous Apple Silicon stable release with Operator Mode controls, interactive cue checks, OSC status feedback, and clearer menu labels
 - `v0.5.1` = previous Apple Silicon stable release with live-mode restart recovery, arrow-key defaults, presenter background customization, and cue-list display/export
 - `v0.5.0` = previous Apple Silicon stable release with modification-time cache validation and bounded timeouts on PowerPoint helper calls
@@ -207,7 +208,7 @@ Each live PowerPoint session is matched by its exact staged file path, so multip
 
 You can change slides in these native ways:
 
-- bind OBS hotkeys such as `2`/`Right Arrow` for next and `1`/`Left Arrow` for previous, or choose your own focused bindings
+- use the default OBS hotkeys `2` for next and `1` for previous, or choose your own focused bindings
 - send local OSC commands from Companion or another show-control tool to `127.0.0.1:57130`
 - open source `Properties` and use the built-in buttons:
   - `Previous Slide`
@@ -221,14 +222,14 @@ Quick setup for stage control:
 
 1. In OBS, open `Settings > Hotkeys`
 2. Search for `PPTBridge SK`
-3. On first launch, PPTBridge SK defaults to `2` or `Right Arrow` for next slide and `1` or `Left Arrow` for previous slide if you have not set your own bindings yet
+3. On first launch, PPTBridge SK defaults to `2` for next slide and `1` for previous slide if you have not set your own bindings yet
 4. If your clicker sends unusual keys, optionally change `PPTBridge SK: Next Slide` to the key it sends for next
 5. If your clicker sends unusual keys, optionally change `PPTBridge SK: Previous Slide` to the key it sends for previous
 6. Click `Apply`
 
 After that, the speaker can drive the deck from OBS with the clicker and the active PPTBridge source will move forward/back.
 PPTBridge ignores hotkey callbacks while OBS is not the active app, so typing in another app will not move the presentation.
-For a Logitech Spotlight or other presenter clicker that should work while the operator uses Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off`. It captures `PageDown` or `Right` for next and `PageUp` or `Left` for previous by default. It also captures supported custom PPTBridge hotkeys, but plain typing keys such as letters, numbers, `Space`, `Enter`, `Tab`, and `Backspace` are never captured globally. Captured clicker keys route to the PPTBridge source in the current OBS program scene and are suppressed from the focused app. This works for PPTX live mode and PDF/cached decks.
+For a Logitech Spotlight or other presenter clicker that should work while the operator uses Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off`. It captures `PageDown` for next and `PageUp` for previous by default. It also captures supported custom PPTBridge hotkeys, but plain typing keys and normal left/right arrows are never captured globally. Captured clicker keys route to the PPTBridge source in the current OBS program scene and are suppressed from the focused app. This works for PPTX live mode and PDF/cached decks.
 If macOS asks, allow OBS in `System Settings > Privacy & Security > Accessibility` and `Input Monitoring`, then restart OBS or toggle the feature again.
 For Stream Deck or Bitfocus Companion control that must work while another app is focused, use the OBS WebSocket workflow in `COMPANION-CONTROL.md` instead of keyboard hotkeys.
 For direct local OSC, enable `Tools > PPTBridge SK: Local OSC Control On/Off` and send OSC messages such as `/pptbridge/next` to `127.0.0.1:57130`.

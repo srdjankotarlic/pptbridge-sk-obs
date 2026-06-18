@@ -34,8 +34,8 @@ INSTALL.cmd "D:\Path\To\obs-studio"
 - Use `START / RESTART - Open PowerPoint Live Mode` when you are ready for the live deck.
 - Use `STOP - Stop PowerPoint Live Mode` at the end of the deck.
 - Keep `Lock OBS Output Size` selected unless you intentionally want OBS to follow the PowerPoint window shape.
-- Enable `Tools -> PPTBridge SK: Toggle Spotlight/Clicker Capture` when the presenter clicker must control the Program scene while the operator uses another app.
-- Default clicker capture uses `PageDown` / `Right Arrow` and `PageUp` / `Left Arrow`.
+- Enable `Tools -> PPTBridge SK: Spotlight/Clicker Capture On/Off` when the presenter clicker must control the Program scene while the operator uses another app.
+- Default clicker capture uses `PageDown` and `PageUp`; normal left/right arrows stay free.
 - Plain typing keys such as letters, numbers, `Space`, `Enter`, `Tab`, and `Backspace` are never captured globally, so the operator can keep using the computer.
 - Put each deck in its own OBS scene for multi-deck shows.
 

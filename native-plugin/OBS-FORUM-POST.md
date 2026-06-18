@@ -72,15 +72,15 @@ Search for `PPTBridge SK` in OBS hotkeys and bind:
 
 The default safe bindings are:
 
-- `2` or `Right Arrow` for next
-- `1` or `Left Arrow` for previous
+- `2` for next
+- `1` for previous
 
 PPTBridge only acts on hotkeys while OBS is the active app, so typing in another
 app will not accidentally move the presentation. You can still bind different
 keys or clicker buttons in OBS Settings > Hotkeys.
 
 If a stage clicker needs to work while Chrome, OBS, or another app is focused,
-enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`. It captures
+enable `Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off`. It captures
 common presenter keys globally, routes them to the PPTBridge source in the
 current OBS program scene, and suppresses those captured key presses from the
 focused app. This is optional; leave it off for normal OBS-focused hotkeys.
@@ -90,7 +90,7 @@ focused app. This is optional; leave it off for normal OBS-focused hotkeys.
 PPTBridge SK can be controlled without keyboard focus:
 
 - OBS WebSocket can press PPTBridge source property buttons by name
-- local OSC can be enabled from `Tools > PPTBridge SK: Toggle Local OSC Control`
+- local OSC can be enabled from `Tools > PPTBridge SK: Local OSC Control On/Off`
 - local OSC listens on `127.0.0.1:57130`
 - useful paths include `/pptbridge/next`, `/pptbridge/previous`, `/pptbridge/first`, `/pptbridge/last`, `/pptbridge/black`, and `/pptbridge/reload`
 

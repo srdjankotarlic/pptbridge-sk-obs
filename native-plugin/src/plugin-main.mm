@@ -421,6 +421,8 @@ bool is_plain_typing_key_for_clicker(CGKeyCode key_code, CGEventFlags modifiers)
   // Stage clicker capture is global, so plain typing keys stay reserved for
   // the operator's focused app. Presenter remotes still work through nav keys.
   switch (key_code) {
+  case kVK_LeftArrow:
+  case kVK_RightArrow:
   case kVK_Space:
   case kVK_Return:
   case kVK_ANSI_KeypadEnter:
@@ -491,13 +493,10 @@ void append_clicker_bindings_from_hotkey_without_plain_typing_keys(
 
 void append_default_clicker_bindings(std::vector<ClickerBinding> &bindings)
 {
-  // Presenter remotes such as Logitech Spotlight usually send these keys.
-  // Normal OBS hotkeys stay intentionally narrow (2/1), but Stage Clicker
-  // Capture should work out-of-the-box while another app has focus.
+  // Presenter remotes commonly send PageUp/PageDown. Keep plain arrow keys
+  // free so the operator can still navigate text fields and OBS controls.
   append_clicker_binding_if_missing(bindings, kVK_PageDown, 0, HotkeyAction::Next);
-  append_clicker_binding_if_missing(bindings, kVK_RightArrow, 0, HotkeyAction::Next);
   append_clicker_binding_if_missing(bindings, kVK_PageUp, 0, HotkeyAction::Previous);
-  append_clicker_binding_if_missing(bindings, kVK_LeftArrow, 0, HotkeyAction::Previous);
 }
 
 std::vector<ClickerBinding> collect_clicker_bindings_from_obs_hotkeys()
@@ -864,28 +863,38 @@ void apply_default_hotkeys_if_needed()
   }
 
   g_default_hotkeys_checked = true;
-  // Keep first-launch defaults OBS-focused: number keys and arrows work while
-  // OBS is active, while the hotkey router ignores them in other apps.
+  // Keep first-launch defaults OBS-focused and avoid stealing normal arrow
+  // navigation from OBS controls, text fields, or other apps.
   migrate_legacy_default_bindings(
     g_next_hotkey,
     { OBS_KEY_2, OBS_KEY_PAGEDOWN, OBS_KEY_RIGHT, OBS_KEY_SPACE },
-    { OBS_KEY_2, OBS_KEY_RIGHT },
-    "Next Slide -> 2 + Right Arrow");
+    { OBS_KEY_2 },
+    "Next Slide -> 2");
   migrate_legacy_default_bindings(
     g_previous_hotkey,
     { OBS_KEY_1, OBS_KEY_PAGEUP, OBS_KEY_LEFT },
+    { OBS_KEY_1 },
+    "Previous Slide -> 1");
+  migrate_legacy_default_bindings(
+    g_next_hotkey,
+    { OBS_KEY_2, OBS_KEY_RIGHT },
+    { OBS_KEY_2 },
+    "Next Slide -> 2");
+  migrate_legacy_default_bindings(
+    g_previous_hotkey,
     { OBS_KEY_1, OBS_KEY_LEFT },
-    "Previous Slide -> 1 + Left Arrow");
+    { OBS_KEY_1 },
+    "Previous Slide -> 1");
   migrate_legacy_default_bindings(
     g_next_hotkey,
     { OBS_KEY_2 },
-    { OBS_KEY_2, OBS_KEY_RIGHT },
-    "Next Slide -> 2 + Right Arrow");
+    { OBS_KEY_2 },
+    "Next Slide -> 2");
   migrate_legacy_default_bindings(
     g_previous_hotkey,
     { OBS_KEY_1 },
-    { OBS_KEY_1, OBS_KEY_LEFT },
-    "Previous Slide -> 1 + Left Arrow");
+    { OBS_KEY_1 },
+    "Previous Slide -> 1");
   migrate_legacy_default_bindings(
     g_black_hotkey,
     { OBS_KEY_B },
@@ -904,12 +913,12 @@ void apply_default_hotkeys_if_needed()
 
   apply_default_bindings_if_empty(
     g_next_hotkey,
-    { OBS_KEY_2, OBS_KEY_RIGHT },
-    "Next Slide -> 2 + Right Arrow");
+    { OBS_KEY_2 },
+    "Next Slide -> 2");
   apply_default_bindings_if_empty(
     g_previous_hotkey,
-    { OBS_KEY_1, OBS_KEY_LEFT },
-    "Previous Slide -> 1 + Left Arrow");
+    { OBS_KEY_1 },
+    "Previous Slide -> 1");
 }
 
 void frontend_event_callback(enum obs_frontend_event event, void *)

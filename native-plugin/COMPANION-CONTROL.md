@@ -19,9 +19,10 @@ For a physical Logitech Spotlight or presenter clicker, use `Tools > PPTBridge
 SK: Spotlight/Clicker Capture On/Off` instead of Companion. It captures common
 presenter keys globally, routes them to the current OBS program scene, and
 suppresses those captured key presses from the focused app. Built-in clicker
-keys are `PageDown` or `Right` for next and `PageUp` or `Left` for previous.
-Custom PPTBridge hotkeys are captured too if you bind them
-in OBS Settings.
+keys are `PageDown` for next and `PageUp` for previous. Normal left/right
+arrows stay free for OBS controls and other apps. Custom PPTBridge hotkeys are
+captured too if you bind them in OBS Settings, except plain typing/navigation
+keys that should remain available to the operator.
 
 ## Requirements
 

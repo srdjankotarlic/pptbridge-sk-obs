@@ -57,8 +57,8 @@ Live builds, animations, and embedded video are handled by `PPTBridge SK Slide`.
 
 Default OBS hotkeys:
 
-- `2` or `Right Arrow` = next slide
-- `1` or `Left Arrow` = previous slide
+- `2` = next slide
+- `1` = previous slide
 
 To change them:
 
@@ -68,20 +68,20 @@ To change them:
 4. Click `Apply`.
 
 PPTBridge only accepts normal OBS hotkeys while OBS is the active app, so typing in another app will not move slides.
-The OBS entries are `PPTBridge SK: Next Slide` and `PPTBridge SK: Previous Slide`; add `PageDown`/`PageUp` there if those keys only need to work while OBS is focused.
+The OBS entries are `PPTBridge SK: Next Slide` and `PPTBridge SK: Previous Slide`; add your own keys there only if they should control slides while OBS is focused.
 
 ## 7. Use A Stage Clicker While Another App Is Focused
 
 If a presenter clicker must work while the operator uses Chrome, OBS, or another app:
 
 1. In OBS, open `Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off`.
-2. Use the clicker's normal next/previous buttons. PPTBridge captures `PageDown` or `Right` for next and `PageUp` or `Left` for previous by default.
+2. Use the clicker's normal next/previous buttons. PPTBridge captures `PageDown` for next and `PageUp` for previous by default.
 3. If macOS asks, allow OBS in:
    - `System Settings > Privacy & Security > Accessibility`
    - `System Settings > Privacy & Security > Input Monitoring`
 4. Restart OBS or toggle the feature again.
 
-You can still add custom bindings in `OBS Settings > Hotkeys` if your presenter sends unusual keys. If you bind normal typing keys such as `1` and `2`, those keys will be swallowed while Spotlight/Clicker Capture is enabled.
+You can still add custom bindings in `OBS Settings > Hotkeys` if your presenter sends unusual keys. Plain typing keys and normal left/right arrows are kept free so the operator can still type and navigate while OBS is open.
 
 ## 8. Companion Or Stream Deck
 

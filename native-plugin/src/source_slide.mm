@@ -19,8 +19,8 @@ namespace {
 
 constexpr const char *kHotkeyHelp =
   "Slide control (PPTX or PDF):\n"
-  "1. Built-in defaults while OBS is focused: 2 or Right Arrow = next slide,\n"
-  "   1 or Left Arrow = previous slide.\n"
+  "1. Built-in defaults while OBS is focused: 2 = next slide,\n"
+  "   1 = previous slide. Normal left/right arrows stay free.\n"
   "2. PPTBridge only acts on hotkeys while OBS is the active app, so typing\n"
   "   in another window will not accidentally move the presentation.\n"
   "3. Open OBS Settings > Hotkeys if you want to change the keys or bind a\n"
@@ -28,7 +28,7 @@ constexpr const char *kHotkeyHelp =
   "   PageDown/PageUp there if those keys only need to work while OBS is focused.\n"
   "4. For a stage clicker while you use Chrome, OBS, or another app, enable\n"
   "   Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off. It captures\n"
-  "   PageDown/Right and PageUp/Left globally, sends them to the current\n"
+  "   PageDown and PageUp globally, sends them to the current\n"
   "   program scene deck, and keeps plain typing keys such as Space available.\n"
   "   This works for PPTX live mode and for PDF/cached decks without live mode.\n"
   "5. If you brought a PDF presentation instead of a PPTX, pick the .pdf in\n"

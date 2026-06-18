@@ -121,7 +121,7 @@ Use at least these decks:
 ### Spotlight/Clicker Capture
 
 - use the built-in presenter keys or bind PPTBridge next/previous to unusual clicker keys
-- enable `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture`
+- enable `Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off`
 - focus Notepad, Chrome, or another app
 - press the clicker
 - verify PPTBridge moves the current Program scene deck
@@ -130,7 +130,7 @@ Use at least these decks:
 
 ### Local OSC / Companion
 
-- enable `Tools > PPTBridge SK: Toggle Local OSC Control`
+- enable `Tools > PPTBridge SK: Local OSC Control On/Off`
 - send `/pptbridge/next` to `127.0.0.1:57130` over UDP
 - confirm the current Program scene deck advances
 - repeat for `/pptbridge/previous`, `/pptbridge/first`, `/pptbridge/last`, `/pptbridge/black`, and `/pptbridge/reload`

@@ -430,6 +430,8 @@ bool is_default_operator_hotkey_for_clicker(DWORD virtual_key, uint32_t modifier
   }
 
   switch (virtual_key) {
+  case VK_LEFT:
+  case VK_RIGHT:
   case VK_SPACE:
   case VK_RETURN:
   case VK_TAB:
@@ -463,12 +465,8 @@ void append_clicker_bindings_from_hotkey_without_operator_defaults(
 
 void append_default_presenter_remote_bindings(std::vector<ClickerBinding> &bindings)
 {
-  for (const auto key : { VK_NEXT, VK_RIGHT }) {
-    append_clicker_binding_once(bindings, key, 0, HotkeyAction::Next);
-  }
-  for (const auto key : { VK_PRIOR, VK_LEFT }) {
-    append_clicker_binding_once(bindings, key, 0, HotkeyAction::Previous);
-  }
+  append_clicker_binding_once(bindings, VK_NEXT, 0, HotkeyAction::Next);
+  append_clicker_binding_once(bindings, VK_PRIOR, 0, HotkeyAction::Previous);
 }
 
 std::vector<ClickerBinding> collect_clicker_bindings_from_obs_hotkeys()
@@ -812,23 +810,33 @@ void apply_default_hotkeys_if_needed()
   migrate_legacy_default_bindings(
     g_next_hotkey,
     { OBS_KEY_2, OBS_KEY_PAGEDOWN, OBS_KEY_RIGHT, OBS_KEY_SPACE },
-    { OBS_KEY_2, OBS_KEY_RIGHT },
-    "Next Slide -> 2 + Right Arrow");
+    { OBS_KEY_2 },
+    "Next Slide -> 2");
   migrate_legacy_default_bindings(
     g_previous_hotkey,
     { OBS_KEY_1, OBS_KEY_PAGEUP, OBS_KEY_LEFT },
+    { OBS_KEY_1 },
+    "Previous Slide -> 1");
+  migrate_legacy_default_bindings(
+    g_next_hotkey,
+    { OBS_KEY_2, OBS_KEY_RIGHT },
+    { OBS_KEY_2 },
+    "Next Slide -> 2");
+  migrate_legacy_default_bindings(
+    g_previous_hotkey,
     { OBS_KEY_1, OBS_KEY_LEFT },
-    "Previous Slide -> 1 + Left Arrow");
+    { OBS_KEY_1 },
+    "Previous Slide -> 1");
   migrate_legacy_default_bindings(
     g_next_hotkey,
     { OBS_KEY_2 },
-    { OBS_KEY_2, OBS_KEY_RIGHT },
-    "Next Slide -> 2 + Right Arrow");
+    { OBS_KEY_2 },
+    "Next Slide -> 2");
   migrate_legacy_default_bindings(
     g_previous_hotkey,
     { OBS_KEY_1 },
-    { OBS_KEY_1, OBS_KEY_LEFT },
-    "Previous Slide -> 1 + Left Arrow");
+    { OBS_KEY_1 },
+    "Previous Slide -> 1");
   migrate_legacy_default_bindings(
     g_black_hotkey,
     { OBS_KEY_B },
@@ -847,12 +855,12 @@ void apply_default_hotkeys_if_needed()
 
   apply_default_bindings_if_empty(
     g_next_hotkey,
-    { OBS_KEY_2, OBS_KEY_RIGHT },
-    "Next Slide -> 2 + Right Arrow");
+    { OBS_KEY_2 },
+    "Next Slide -> 2");
   apply_default_bindings_if_empty(
     g_previous_hotkey,
-    { OBS_KEY_1, OBS_KEY_LEFT },
-    "Previous Slide -> 1 + Left Arrow");
+    { OBS_KEY_1 },
+    "Previous Slide -> 1");
 }
 
 void frontend_event_callback(enum obs_frontend_event event, void *)

@@ -1,4 +1,4 @@
-## PPTBridge SK for OBS v0.5.3
+## PPTBridge SK for OBS v0.5.4
 
 Created by **Srdjan Kotarlic**
 
@@ -29,18 +29,19 @@ https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptb
 
 Apple Silicon is the main stable build. Intel Mac and Windows remain separate beta paths while real-hardware feedback is collected.
 
-### What Is New In v0.5.3
+### What Is New In v0.5.4
 
-- Companion / Generic OSC starter template included in the repo and release ZIP:
-  `companion/PPTBridge-SK-Companion-OSC-Template.json`
-- Expanded OSC status feedback for show-control systems:
-  deck name, deck path, OBS source name, loading state, loaded state, last issue text,
-  current cue checked, next cue checked, and checked cue count
-- macOS release ZIP now includes the Companion control guide, starter template, and
-  `scripts/send-osc.sh` so users have the control setup files after download
-- New OSC feedback smoke test verifies all 16 status messages
-- Quickstart, README, macOS install docs, and Companion guide updated for the new
-  Companion/OSC workflow
+- Default OBS hotkeys now use `2` for next slide and `1` for previous slide.
+- Existing old defaults that included `Right Arrow` and `Left Arrow` are migrated to `2`/`1` on launch.
+- Spotlight/Clicker Capture defaults now use `PageDown` and `PageUp` only, so normal left/right arrows remain available for OBS controls, text fields, and other apps.
+- README, Quickstart, macOS install docs, packaged README, and Companion guide updated to match the safer keyboard behavior.
+- Audit guardrails now fail if plain left/right arrows are reintroduced as default global controls.
+
+### Also Included From v0.5.3
+
+- Companion OSC starter template included in the package
+- expanded OSC feedback for show-control workflows
+- packaging polish for the Apple Silicon ZIP
 
 ### Also Included From v0.5.2
 
@@ -54,7 +55,7 @@ Apple Silicon is the main stable build. Intel Mac and Windows remain separate be
 ### Also Included From v0.5.1 And Recent Releases
 
 - `Start / Restart PowerPoint Live Mode` recovers more clearly when the slideshow window was closed while PowerPoint is still open
-- default focused OBS hotkeys include `Right Arrow` for next and `Left Arrow` for previous, alongside `2` and `1`
+- default focused OBS hotkeys now use `2` for next and `1` for previous so normal left/right arrows stay available
 - `PPTBridge SK Presenter` supports presenter background color, optional background image/logo placement, opacity, and fit/fill/watermark modes
 - `PPTBridge SK Presenter` can show a compact cue list and export that cue list as a `.txt` file from source properties
 
@@ -79,7 +80,7 @@ Apple Silicon is the main stable build. Intel Mac and Windows remain separate be
 - live builds, animations, and embedded video stay in `PPTBridge SK Slide`
 - `PPTBridge SK Presenter` stays lightweight for notes, next slide, timer, and presenter layout customization
 - clear `PowerPoint Live Start / Stop` controls are available in the source properties
-- Spotlight/Clicker Capture works with common presenter keys: `PageDown` or `Right` for next and `PageUp` or `Left` for previous
+- Spotlight/Clicker Capture works with common presenter keys: `PageDown` for next and `PageUp` for previous by default
 - captured clicker keys route to the PPTBridge source in the current OBS program scene and are suppressed from the focused app
 - locked PowerPoint resize behavior keeps OBS output stable when the desktop PowerPoint window is made smaller
 - OBS can open quietly without immediately launching the PowerPoint slideshow
@@ -121,7 +122,7 @@ Default resize behavior is `Lock OBS Output Size`, so shrinking the PowerPoint w
 
 ### Slide Control
 
-- OBS hotkeys default to `2` or `Right Arrow` for next slide and `1` or `Left Arrow` for previous slide.
+- OBS hotkeys default to `2` for next slide and `1` for previous slide. Normal left/right arrows stay free.
 - PPTBridge ignores OBS hotkeys while another app has keyboard focus, so typing elsewhere will not move slides.
 - In PowerPoint live mode, extra next commands on the final slide are ignored so the slideshow stays open in OBS at the end of the deck.
 - For a Logitech Spotlight or another presenter clicker while the operator uses Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off`.
@@ -150,7 +151,7 @@ The ZIP includes only the user-facing files needed to install and use the plugin
 ### Testing Notes
 
 - Apple Silicon was built and runtime-tested locally on OBS Studio 32.1.1 (M1 Pro).
-- Runtime testing covered plugin load with zero errors, default hotkey migration to `2`/`Right Arrow` and `1`/`Left Arrow`, multi-deck PPTX and PDF loading across scenes, instant cache reloads for unchanged decks, and live OSC verification of every documented path including reload-from-cache.
+- Runtime testing covered plugin load with zero errors, default hotkey migration to `2` and `1`, multi-deck PPTX and PDF loading across scenes, instant cache reloads for unchanged decks, and live OSC verification of every documented path including reload-from-cache.
 - The export timeout fix and live-command safety rules are locked in by `tests/audit_guardrails.py`.
 - PowerPoint live-mode behavior (final-slide protection, presenter preload) carries over from the v0.4.7 validation.
 - Intel stays on the previous beta package until these Apple Silicon changes are separately validated there.

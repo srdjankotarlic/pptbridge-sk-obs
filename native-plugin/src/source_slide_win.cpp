@@ -37,11 +37,11 @@ namespace {
 
 constexpr const char *kHotkeyHelp =
   "Slide control:\n"
-  "1. First launch default while OBS is focused: key 2 or Right Arrow = next slide, key 1 or Left Arrow = previous slide\n"
+  "1. First launch default while OBS is focused: key 2 = next slide, key 1 = previous slide; normal left/right arrows stay free\n"
   "2. Open Settings > Hotkeys\n"
   "3. Bind or change PPTBridge SK: Next Slide / Previous Slide; add PageDown/PageUp there if those keys only need to work while OBS is focused\n"
   "4. PPTBridge only acts on hotkeys while OBS is the active app, so typing in another window will not move slides\n"
-  "5. For a stage clicker while you use Chrome, OBS, or another app, enable Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off; it uses PageDown/Right and PageUp/Left, not Space\n"
+  "5. For a stage clicker while you use Chrome, OBS, or another app, enable Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off; it uses PageDown/PageUp, not Space or normal arrows\n"
   "6. Use one scene per deck for multi-deck shows; hotkeys, clicker capture, and OSC follow the current OBS Program scene\n"
   "7. Use the buttons below for quick testing inside OBS";
 

@@ -116,6 +116,20 @@ def main() -> int:
         raise AssertionError("Live slide startup should request presenter assets before the presenter source waits")
 
     source_slide = (ROOT / "src" / "source_slide.mm").read_text(encoding="utf-8")
+    plugin_main = (ROOT / "src" / "plugin-main.mm").read_text(encoding="utf-8")
+    default_hotkeys = extract_function(plugin_main, "void apply_default_hotkeys_if_needed()")
+    if 'apply_default_bindings_if_empty(\n    g_next_hotkey,\n    { OBS_KEY_2, OBS_KEY_RIGHT }' in default_hotkeys:
+        raise AssertionError("Default Next Slide hotkey must not bind plain Right Arrow")
+    if 'apply_default_bindings_if_empty(\n    g_previous_hotkey,\n    { OBS_KEY_1, OBS_KEY_LEFT }' in default_hotkeys:
+        raise AssertionError("Default Previous Slide hotkey must not bind plain Left Arrow")
+    clicker_defaults = extract_function(plugin_main, "void append_default_clicker_bindings(")
+    if "kVK_RightArrow" in clicker_defaults or "kVK_LeftArrow" in clicker_defaults:
+        raise AssertionError("Global clicker capture defaults must not swallow plain left/right arrows")
+    plain_clicker_filter = extract_function(plugin_main, "bool is_plain_typing_key_for_clicker(")
+    for key in ("kVK_LeftArrow", "kVK_RightArrow"):
+        if key not in plain_clicker_filter:
+            raise AssertionError(f"Global clicker capture should leave {key} available to the operator")
+
     stop_control = extract_function(source_slide, "bool control_stop_live(")
     if "StopLivePowerPointAsync(" not in stop_control:
         raise AssertionError("The macOS stop button must not block the OBS UI thread")
@@ -251,10 +265,10 @@ def main() -> int:
     if "PPTBridge SK: Toggle Spotlight/Clicker Capture" in plugin_main_mac:
         raise AssertionError("macOS Tools menu should not use vague Toggle Spotlight/Clicker Capture wording")
     mac_defaults = extract_function(plugin_main_mac, "void apply_default_hotkeys_if_needed()")
-    if "{ OBS_KEY_2, OBS_KEY_RIGHT }" not in mac_defaults:
-        raise AssertionError("macOS default Next Slide hotkeys must include Right Arrow while OBS is focused")
-    if "{ OBS_KEY_1, OBS_KEY_LEFT }" not in mac_defaults:
-        raise AssertionError("macOS default Previous Slide hotkeys must include Left Arrow while OBS is focused")
+    if 'apply_default_bindings_if_empty(\n    g_next_hotkey,\n    { OBS_KEY_2 }' not in mac_defaults:
+        raise AssertionError("macOS default Next Slide hotkey should be 2 only")
+    if 'apply_default_bindings_if_empty(\n    g_previous_hotkey,\n    { OBS_KEY_1 }' not in mac_defaults:
+        raise AssertionError("macOS default Previous Slide hotkey should be 1 only")
 
     win_source = (ROOT / "src" / "presentation_document_win.cpp").read_text(encoding="utf-8")
     win_runner = extract_function(win_source, "bool RunProcessCapture(")
@@ -333,10 +347,10 @@ def main() -> int:
 
     plugin_main_win = (ROOT / "src" / "plugin-main.cpp").read_text(encoding="utf-8")
     win_defaults = extract_function(plugin_main_win, "void apply_default_hotkeys_if_needed()")
-    if "{ OBS_KEY_2, OBS_KEY_RIGHT }" not in win_defaults:
-        raise AssertionError("Windows default Next Slide hotkeys must include Right Arrow while OBS is focused")
-    if "{ OBS_KEY_1, OBS_KEY_LEFT }" not in win_defaults:
-        raise AssertionError("Windows default Previous Slide hotkeys must include Left Arrow while OBS is focused")
+    if 'apply_default_bindings_if_empty(\n    g_next_hotkey,\n    { OBS_KEY_2 }' not in win_defaults:
+        raise AssertionError("Windows default Next Slide hotkey should be 2 only")
+    if 'apply_default_bindings_if_empty(\n    g_previous_hotkey,\n    { OBS_KEY_1 }' not in win_defaults:
+        raise AssertionError("Windows default Previous Slide hotkey should be 1 only")
 
     return 0
 

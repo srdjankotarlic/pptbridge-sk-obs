@@ -28,8 +28,8 @@ How to use
   Next Slide: 2
   Previous Slide: 1
 - For a stage clicker while using the rest of the computer, enable:
-  Tools -> PPTBridge SK: Toggle Spotlight/Clicker Capture
-- Default clicker capture uses PageDown/Right for next and PageUp/Left for previous.
+  Tools -> PPTBridge SK: Spotlight/Clicker Capture On/Off
+- Default clicker capture uses PageDown for next and PageUp for previous; normal left/right arrows stay free.
 - Plain typing keys such as letters, numbers, Space, Enter, Tab, and Backspace are never captured globally.
 - Normal typing still works while the operator uses the computer.
 - The clicker controls only visible PPTBridge sources in the current OBS Program scene.

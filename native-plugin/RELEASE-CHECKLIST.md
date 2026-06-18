@@ -10,10 +10,10 @@
   - `PPTBridge SK Slide` appears
   - `PPTBridge SK Presenter` appears
   - hotkeys work
-  - `Tools > PPTBridge SK: Toggle Spotlight/Clicker Capture` appears and logs that it loaded PPTBridge hotkey bindings
+  - `Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off` appears and logs that it loaded PPTBridge hotkey bindings
   - with macOS permissions granted, a PageDown/PageUp presenter binding advances the current program deck while another app is focused
   - a sample `.pptx` loads
-  - `Tools > PPTBridge SK: Toggle Local OSC Control` starts the local OSC listener
+  - `Tools > PPTBridge SK: Local OSC Control On/Off` starts the local OSC listener
   - `send-osc.sh /pptbridge/next` moves the active program deck
   - Companion Generic OSC can send `/pptbridge/next` to `127.0.0.1:57130`
   - default/manual mode opens OBS without launching PowerPoint

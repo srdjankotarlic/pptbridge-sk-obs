@@ -78,8 +78,8 @@ Open `Settings > Hotkeys` in OBS and search for `PPTBridge SK`.
 
 Default bindings are:
 
-- Next Slide: `2` or `Right Arrow`
-- Previous Slide: `1` or `Left Arrow`
+- Next Slide: `2`
+- Previous Slide: `1`
 
 PPTBridge only moves slides from hotkeys while OBS is the active app.
 You can bind different keys in OBS Settings > Hotkeys if needed.
@@ -88,10 +88,12 @@ If you want `PageDown`/`PageUp` to work only while OBS is focused, bind them to
 
 For a Logitech Spotlight or another stage clicker while the operator works in
 Chrome, OBS, or another app, enable `Tools > PPTBridge SK: Spotlight/Clicker
-Capture On/Off`. It captures `PageDown` or `Right` for next and
-`PageUp` or `Left` for previous by default, sends those keys to the current OBS
-program scene deck, and suppresses them from the focused app. It also captures
-custom PPTBridge hotkeys if you bind them in OBS Settings.
+Capture On/Off`. It captures `PageDown` for next and `PageUp` for previous by
+default, sends those keys to the current OBS program scene deck, and suppresses
+them from the focused app. Normal left/right arrows stay free for OBS controls
+and other apps. It also captures custom PPTBridge hotkeys if you bind them in
+OBS Settings, except plain typing/navigation keys that should remain available
+to the operator.
 This works in PPTX live mode and PDF/cached mode.
 
 If macOS asks, allow OBS in `System Settings > Privacy & Security >

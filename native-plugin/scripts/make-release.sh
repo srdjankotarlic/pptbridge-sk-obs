@@ -104,11 +104,10 @@ source can appear first while the confidence view catches up.
 
 ## Slide Control
 
-- OBS hotkeys default to \`2\` or \`Right Arrow\` for next slide and \`1\` or \`Left Arrow\` for previous slide.
+- OBS hotkeys default to \`2\` for next slide and \`1\` for previous slide. Normal left/right arrows stay free.
 - For a Logitech Spotlight or similar presenter clicker, enable
   \`Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off\`.
-- Clicker capture supports common next keys such as PageDown and Right, plus
-  previous keys such as PageUp and Left.
+- Clicker capture supports PageDown for next and PageUp for previous by default.
 - If macOS asks, allow OBS in \`System Settings > Privacy & Security > Accessibility\`
   and \`Input Monitoring\`, then restart OBS.
 
