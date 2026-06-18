@@ -43,7 +43,8 @@ This native version is built around a practical conference workflow:
 
 ## Quick Platform Guide
 
-- `v0.5.4` = current Apple Silicon stable release with safer default hotkeys: `2`/`1`, while normal left/right arrows stay free
+- `v0.5.5` = current Apple Silicon stable release with faster first preview while notes/media finish preparing in the background
+- `v0.5.4` = previous Apple Silicon stable release with safer default hotkeys: `2`/`1`, while normal left/right arrows stay free
 - `v0.5.3` = previous Apple Silicon stable release with Companion OSC starter template, expanded OSC feedback, and packaging polish
 - `v0.5.2` = previous Apple Silicon stable release with Operator Mode controls, interactive cue checks, OSC status feedback, and clearer menu labels
 - `v0.5.1` = previous Apple Silicon stable release with live-mode restart recovery, arrow-key defaults, presenter background customization, and cue-list display/export

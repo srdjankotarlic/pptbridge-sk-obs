@@ -1564,6 +1564,16 @@ std::vector<SlideMetadata> ExtractDeckMetadata(const std::string &pptx_path, std
   return result;
 }
 
+std::vector<SlideMetadata> PlaceholderDeckMetadata(std::size_t slide_count, bool is_pdf_source)
+{
+  std::vector<SlideMetadata> result(slide_count);
+  const char *prefix = is_pdf_source ? "Page " : "Slide ";
+  for (std::size_t index = 0; index < slide_count; ++index) {
+    result[index].title = std::string(prefix) + std::to_string(index + 1);
+  }
+  return result;
+}
+
 struct SlideCanvasSize {
   double width = 9144000.0;
   double height = 6858000.0;
@@ -2718,6 +2728,32 @@ void PresentationDocument::LoadOnWorker()
     }
 
     auto slide_count = static_cast<std::size_t>(document.pageCount);
+    {
+      std::lock_guard<std::mutex> lock(impl_->mutex);
+      impl_->cache_dir = cache_dir;
+      impl_->pdf_path = pdf_path;
+      impl_->slides = PlaceholderDeckMetadata(slide_count, is_pdf_source);
+      impl_->media_by_slide.clear();
+      impl_->media_by_slide.resize(slide_count);
+      impl_->pdf_document = document;
+      impl_->loaded = true;
+      impl_->loading = true;
+      impl_->current_media_triggered = false;
+      if (!impl_->live_ready) {
+        impl_->black = false;
+        impl_->current = 0;
+        impl_->started_at = Clock::now();
+      }
+      impl_->error.clear();
+      impl_->version += 1;
+    }
+    blog(LOG_INFO,
+      "[PPTBridge] Opened static preview for '%s' with %ld slide(s) in %lld ms (PDF open %lld ms); preparing notes/media",
+      impl_->path.c_str(),
+      static_cast<long>(document.pageCount),
+      ElapsedMs(load_started),
+      pdf_open_ms);
+
     // pptx-only metadata extractors read inside the .pptx zip; skip them
     // entirely when the source is a standalone .pdf so we don't spawn
     // unzip processes against a file that is not a zip archive.

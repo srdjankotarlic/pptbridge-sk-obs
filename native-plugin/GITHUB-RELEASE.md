@@ -1,4 +1,4 @@
-## PPTBridge SK for OBS v0.5.4
+## PPTBridge SK for OBS v0.5.5
 
 Created by **Srdjan Kotarlic**
 
@@ -29,7 +29,15 @@ https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptb
 
 Apple Silicon is the main stable build. Intel Mac and Windows remain separate beta paths while real-hardware feedback is collected.
 
-### What Is New In v0.5.4
+### What Is New In v0.5.5
+
+- Faster first preview when a PPTX or PDF deck is loaded in OBS.
+- PPTBridge now publishes a renderable static preview as soon as the generated or cached PDF opens.
+- Presenter notes, slide titles, embedded media metadata, and cue details continue preparing in the background instead of blocking the first visible slide.
+- OBS log timing now clearly separates static preview open time from notes/media preparation time.
+- Audit guardrails now fail if deck loading regresses to waiting for slow notes/media extraction before the first preview can render.
+
+### Also Included From v0.5.4
 
 - Default OBS hotkeys now use `2` for next slide and `1` for previous slide.
 - Existing old defaults that included `Right Arrow` and `Left Arrow` are migrated to `2`/`1` on launch.

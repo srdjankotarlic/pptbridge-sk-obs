@@ -114,6 +114,10 @@ def main() -> int:
         raise AssertionError("Live slide startup should prewarm presenter assets in the background")
     if "impl_->presenter_assets_wanted = true" not in load_worker:
         raise AssertionError("Live slide startup should request presenter assets before the presenter source waits")
+    early_preview = load_worker.find("Opened static preview")
+    metadata_extract = load_worker.find("ExtractDeckMetadata")
+    if early_preview == -1 or metadata_extract == -1 or early_preview > metadata_extract:
+        raise AssertionError("Static preview should become renderable before slow notes/media extraction")
 
     source_slide = (ROOT / "src" / "source_slide.mm").read_text(encoding="utf-8")
     plugin_main = (ROOT / "src" / "plugin-main.mm").read_text(encoding="utf-8")
