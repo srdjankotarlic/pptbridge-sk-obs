@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cctype>
 #include <functional>
 #include <sstream>
 #include <obs-frontend-api.h>
@@ -1099,11 +1100,58 @@ std::string summarize_operator_text(const std::string &text)
   return text.substr(0, kMaxOperatorTextLength - 3) + "...";
 }
 
-std::string describe_operator_status(const PresentationStatus &snapshot)
+std::string lowercase_ascii(std::string value)
+{
+  std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+    return static_cast<char>(std::tolower(ch));
+  });
+  return value;
+}
+
+std::string file_extension_lower(const std::string &path)
+{
+  const auto dot = path.find_last_of('.');
+  const auto slash = path.find_last_of("/\\");
+  if (dot == std::string::npos || (slash != std::string::npos && dot < slash)) {
+    return "";
+  }
+  return lowercase_ascii(path.substr(dot));
+}
+
+bool is_pdf_deck_path(const std::string &path)
+{
+  return file_extension_lower(path) == ".pdf";
+}
+
+bool is_pptx_deck_path(const std::string &path)
+{
+  return file_extension_lower(path) == ".pptx";
+}
+
+bool selected_deck_is_pdf(const SourceContext *context)
+{
+  return context && is_pdf_deck_path(context->pptx_path);
+}
+
+bool selected_deck_is_pptx(const SourceContext *context)
+{
+  return context && is_pptx_deck_path(context->pptx_path);
+}
+
+bool should_show_powerpoint_live_controls(const SourceContext *context)
+{
+  // Show the live controls before a file is selected so new users can see
+  // where the controls will be, but hide them once the selected deck is a PDF.
+  return !context || context->pptx_path.empty() || selected_deck_is_pptx(context);
+}
+
+std::string describe_operator_status(const PresentationStatus &snapshot, bool pdf_deck, bool pptx_deck)
 {
   std::ostringstream status;
   status << "Operator status: ";
-  if (snapshot.total_slides == 0) {
+  if (!pdf_deck && !pptx_deck && snapshot.total_slides == 0) {
+    status << "select a .pptx or .pdf deck";
+  } else if (snapshot.total_slides == 0) {
     status << "no loaded cues yet";
   } else {
     status << "slide " << snapshot.current_slide << " / " << snapshot.total_slides;
@@ -1118,8 +1166,16 @@ std::string describe_operator_status(const PresentationStatus &snapshot)
   }
   status << "\nChecked cues: " << snapshot.checked_count;
   status << "\nTimer: " << format_timer_seconds(snapshot.timer_seconds);
-  status << "\nLive: "
-         << (snapshot.live_ready ? "PowerPoint attached" : (snapshot.live_enabled ? "waiting / cached fallback" : "cached PDF/PPT render"));
+  status << "\nLive: ";
+  if (pdf_deck) {
+    status << "PDF render (PowerPoint live mode not needed)";
+  } else if (snapshot.live_ready) {
+    status << "PowerPoint attached";
+  } else if (snapshot.live_enabled) {
+    status << "waiting / cached fallback";
+  } else {
+    status << "cached PPT render";
+  }
   if (snapshot.black_screen) {
     status << "\nBlack screen is ON";
   }
@@ -1477,6 +1533,14 @@ bool control_start_live(obs_properties_t *, obs_property_t *, void *data)
   if (!context || !context->document) {
     return false;
   }
+  if (!selected_deck_is_pptx(context)) {
+    context->cue_export_status = "PowerPoint Live Mode is only available for .pptx decks; PDF decks are controlled directly by PPTBridge.";
+    blog(
+      LOG_INFO,
+      "[PPTBridge SK] Ignoring PowerPoint live start for non-PPTX deck '%s'",
+      context->pptx_path.c_str());
+    return true;
+  }
 
   Registry::Instance().SetActive(context->document);
   clear_live_capture_source(context);
@@ -1492,6 +1556,10 @@ bool control_stop_live(obs_properties_t *, obs_property_t *, void *data)
   auto *context = static_cast<SourceContext *>(data);
   if (!context || !context->document) {
     return false;
+  }
+  if (!selected_deck_is_pptx(context)) {
+    context->cue_export_status = "PDF decks do not use PowerPoint Live Mode.";
+    return true;
   }
 
   clear_live_capture_source(context);
@@ -1557,25 +1625,33 @@ void add_operator_mode_properties(obs_properties_t *props, SourceContext *contex
   if (context && context->document) {
     snapshot = context->document->SnapshotStatus();
   }
+  const bool pdf_deck = selected_deck_is_pdf(context);
+  const bool pptx_deck = selected_deck_is_pptx(context);
+  const bool show_live_controls = should_show_powerpoint_live_controls(context);
+  const char *operator_help_text = pdf_deck
+    ? "Use this panel during the show: move PDF pages, mark cues, and send Companion/OSC status. PDF decks do not need PowerPoint Live Mode."
+    : "Use this panel during the show: start live mode if needed, move slides, mark cues, and send Companion/OSC status.";
 
   obs_property_t *operator_help = obs_properties_add_text(
     operator_props,
     "pptbridge_operator_help",
-    "Use this panel during the show: start live mode if needed, move slides, mark cues, and send Companion/OSC status.",
+    operator_help_text,
     OBS_TEXT_INFO);
-  obs_property_text_set_info_type(operator_help, OBS_TEXT_INFO_WARNING);
+  obs_property_text_set_info_type(operator_help, pdf_deck ? OBS_TEXT_INFO_NORMAL : OBS_TEXT_INFO_WARNING);
   obs_property_text_set_info_word_wrap(operator_help, true);
 
-  obs_properties_add_button(
-    operator_props,
-    "pptbridge_operator_start_live_btn",
-    "Start / Restart PowerPoint Live Mode",
-    control_start_live);
-  obs_properties_add_button(
-    operator_props,
-    "pptbridge_operator_stop_live_btn",
-    "Stop PowerPoint Live Mode",
-    control_stop_live);
+  if (show_live_controls) {
+    obs_properties_add_button(
+      operator_props,
+      "pptbridge_operator_start_live_btn",
+      "Start / Restart PowerPoint Live Mode",
+      control_start_live);
+    obs_properties_add_button(
+      operator_props,
+      "pptbridge_operator_stop_live_btn",
+      "Stop PowerPoint Live Mode",
+      control_stop_live);
+  }
   obs_properties_add_button(operator_props, "pptbridge_operator_previous_btn", "Previous Slide", control_previous);
   obs_properties_add_button(operator_props, "pptbridge_operator_next_btn", "Next Slide", control_next);
   obs_properties_add_button(
@@ -1594,7 +1670,7 @@ void add_operator_mode_properties(obs_properties_t *props, SourceContext *contex
     "Clear Cue Checks",
     control_clear_cue_checks);
 
-  const std::string operator_status = describe_operator_status(snapshot);
+  const std::string operator_status = describe_operator_status(snapshot, pdf_deck, pptx_deck);
   obs_property_t *operator_status_prop = obs_properties_add_text(
     operator_props,
     "pptbridge_operator_status",
@@ -1662,6 +1738,8 @@ void source_defaults(obs_data_t *settings)
 obs_properties_t *source_properties(SourceContext *context)
 {
   obs_properties_t *props = obs_properties_create_param(context, nullptr);
+  const bool pdf_deck = selected_deck_is_pdf(context);
+  const bool show_live_controls = should_show_powerpoint_live_controls(context);
   // The source accepts both PowerPoint decks (.pptx) and PDF presentations
   // (.pdf) — PDFs are rendered natively via PDFKit so guest speakers who
   // only bring a PDF can still run their deck through PPTBridge without
@@ -1684,70 +1762,82 @@ obs_properties_t *source_properties(SourceContext *context)
     add_presenter_customization_properties(props);
     obs_properties_add_button(props, "pptbridge_export_cue_list_btn", "Export Cue List (.txt)", control_export_cue_list);
 
-    obs_properties_t *presenter_live_controls = obs_properties_create();
-    obs_property_t *presenter_live_control_help =
-      obs_properties_add_text(
+    if (show_live_controls) {
+      obs_properties_t *presenter_live_controls = obs_properties_create();
+      obs_property_t *presenter_live_control_help =
+        obs_properties_add_text(
+          presenter_live_controls,
+          "pptbridge_presenter_live_control_help",
+          "Use START if this presenter source should launch the PowerPoint slideshow for this deck. Presenter view stays lightweight and static; use PPTBridge SK Slide for live animations and video.",
+          OBS_TEXT_INFO);
+      obs_property_text_set_info_type(presenter_live_control_help, OBS_TEXT_INFO_WARNING);
+      obs_property_text_set_info_word_wrap(presenter_live_control_help, true);
+      obs_properties_add_button(
         presenter_live_controls,
-        "pptbridge_presenter_live_control_help",
-        "Use START if this presenter source should launch the PowerPoint slideshow for this deck. Presenter view stays lightweight and static; use PPTBridge SK Slide for live animations and video.",
-        OBS_TEXT_INFO);
-    obs_property_text_set_info_type(presenter_live_control_help, OBS_TEXT_INFO_WARNING);
-    obs_property_text_set_info_word_wrap(presenter_live_control_help, true);
-    obs_properties_add_button(
-      presenter_live_controls,
-      "pptbridge_presenter_start_live_btn",
-      "Start / Restart PowerPoint Live Mode",
-      control_start_live);
-    obs_properties_add_button(
-      presenter_live_controls,
-      "pptbridge_presenter_stop_live_btn",
-      "Stop PowerPoint Live Mode",
-      control_stop_live);
-    obs_properties_add_group(
-      props,
-      "pptbridge_presenter_live_controls_group",
-      "PowerPoint Live Start / Stop",
-      OBS_GROUP_NORMAL,
-      presenter_live_controls);
+        "pptbridge_presenter_start_live_btn",
+        "Start / Restart PowerPoint Live Mode",
+        control_start_live);
+      obs_properties_add_button(
+        presenter_live_controls,
+        "pptbridge_presenter_stop_live_btn",
+        "Stop PowerPoint Live Mode",
+        control_stop_live);
+      obs_properties_add_group(
+        props,
+        "pptbridge_presenter_live_controls_group",
+        "PowerPoint Live Start / Stop",
+        OBS_GROUP_NORMAL,
+        presenter_live_controls);
+    }
   }
   if (context && context->mode == ViewMode::Slide) {
-    obs_properties_add_bool(props, "use_live_powerpoint", "Use True Live PowerPoint Mode");
-    obs_properties_add_bool(props, "auto_start_live_powerpoint", "Auto Start PowerPoint When OBS Opens");
-    obs_properties_add_bool(props, "close_live_powerpoint_on_shutdown", "Close PowerPoint Slideshow When OBS Closes");
+    if (show_live_controls) {
+      obs_properties_add_bool(props, "use_live_powerpoint", "Use True Live PowerPoint Mode");
+      obs_properties_add_bool(props, "auto_start_live_powerpoint", "Auto Start PowerPoint When OBS Opens");
+      obs_properties_add_bool(props, "close_live_powerpoint_on_shutdown", "Close PowerPoint Slideshow When OBS Closes");
 
-    obs_properties_t *live_controls = obs_properties_create();
-    obs_property_t *live_control_help =
-      obs_properties_add_text(live_controls, "pptbridge_live_control_help", kLiveControlHelp, OBS_TEXT_INFO);
-    obs_property_text_set_info_type(live_control_help, OBS_TEXT_INFO_WARNING);
-    obs_property_text_set_info_word_wrap(live_control_help, true);
-    obs_properties_add_button(
-      live_controls,
-      "pptbridge_start_live_btn",
-      "Start / Restart PowerPoint Live Mode",
-      control_start_live);
-    obs_properties_add_button(
-      live_controls,
-      "pptbridge_stop_live_btn",
-      "Stop PowerPoint Live Mode",
-      control_stop_live);
-    obs_properties_add_group(
-      props,
-      "pptbridge_live_controls_group",
-      "PowerPoint Live Start / Stop",
-      OBS_GROUP_NORMAL,
-      live_controls);
+      obs_properties_t *live_controls = obs_properties_create();
+      obs_property_t *live_control_help =
+        obs_properties_add_text(live_controls, "pptbridge_live_control_help", kLiveControlHelp, OBS_TEXT_INFO);
+      obs_property_text_set_info_type(live_control_help, OBS_TEXT_INFO_WARNING);
+      obs_property_text_set_info_word_wrap(live_control_help, true);
+      obs_properties_add_button(
+        live_controls,
+        "pptbridge_start_live_btn",
+        "Start / Restart PowerPoint Live Mode",
+        control_start_live);
+      obs_properties_add_button(
+        live_controls,
+        "pptbridge_stop_live_btn",
+        "Stop PowerPoint Live Mode",
+        control_stop_live);
+      obs_properties_add_group(
+        props,
+        "pptbridge_live_controls_group",
+        "PowerPoint Live Start / Stop",
+        OBS_GROUP_NORMAL,
+        live_controls);
 
-    obs_property_t *resize_mode = obs_properties_add_list(
-      props,
-      "live_capture_resize_mode",
-      "PowerPoint Resize Behavior",
-      OBS_COMBO_TYPE_LIST,
-      OBS_COMBO_FORMAT_STRING);
-    obs_property_list_add_string(resize_mode, "Lock OBS Output Size", "lock_canvas");
-    obs_property_list_add_string(resize_mode, "Follow PowerPoint Window Size", "fit_window");
+      obs_property_t *resize_mode = obs_properties_add_list(
+        props,
+        "live_capture_resize_mode",
+        "PowerPoint Resize Behavior",
+        OBS_COMBO_TYPE_LIST,
+        OBS_COMBO_FORMAT_STRING);
+      obs_property_list_add_string(resize_mode, "Lock OBS Output Size", "lock_canvas");
+      obs_property_list_add_string(resize_mode, "Follow PowerPoint Window Size", "fit_window");
+      obs_properties_add_bool(props, "use_live_app_audio", "Route PowerPoint App Audio Through OBS");
+      obs_properties_add_bool(props, "auto_recover_live", "Auto Recover Live PowerPoint Session");
+    } else if (pdf_deck) {
+      obs_property_t *pdf_live_note = obs_properties_add_text(
+        props,
+        "pptbridge_pdf_live_note",
+        "PDF deck selected: PPTBridge renders and controls pages directly. PowerPoint Live Mode, PowerPoint resize controls, and PowerPoint app-audio routing are only shown for .pptx files.",
+        OBS_TEXT_INFO);
+      obs_property_text_set_info_type(pdf_live_note, OBS_TEXT_INFO_NORMAL);
+      obs_property_text_set_info_word_wrap(pdf_live_note, true);
+    }
     obs_properties_add_bool(props, "audio_enabled", "Enable PPTBridge Audio Output");
-    obs_properties_add_bool(props, "use_live_app_audio", "Route PowerPoint App Audio Through OBS");
-    obs_properties_add_bool(props, "auto_recover_live", "Auto Recover Live PowerPoint Session");
     obs_properties_add_float_slider(props, "audio_gain_db", "Audio Gain (dB)", -30.0, 18.0, 0.5);
   }
 
@@ -1760,11 +1850,13 @@ obs_properties_t *source_properties(SourceContext *context)
   obs_property_text_set_info_type(help, OBS_TEXT_INFO_NORMAL);
   obs_property_text_set_info_word_wrap(help, true);
 
-  obs_property_t *live_help = obs_properties_add_text(props, "pptbridge_live_help", kLiveHelp, OBS_TEXT_INFO);
-  obs_property_text_set_info_type(live_help, OBS_TEXT_INFO_NORMAL);
-  obs_property_text_set_info_word_wrap(live_help, true);
+  if (show_live_controls) {
+    obs_property_t *live_help = obs_properties_add_text(props, "pptbridge_live_help", kLiveHelp, OBS_TEXT_INFO);
+    obs_property_text_set_info_type(live_help, OBS_TEXT_INFO_NORMAL);
+    obs_property_text_set_info_word_wrap(live_help, true);
+  }
 
-  if (context && context->mode == ViewMode::Slide) {
+  if (context && context->mode == ViewMode::Slide && show_live_controls) {
     obs_property_t *resize_help =
       obs_properties_add_text(props, "pptbridge_live_resize_help", kLiveResizeHelp, OBS_TEXT_INFO);
     obs_property_text_set_info_type(resize_help, OBS_TEXT_INFO_NORMAL);
@@ -1775,7 +1867,7 @@ obs_properties_t *source_properties(SourceContext *context)
   obs_property_text_set_info_type(media_help, OBS_TEXT_INFO_WARNING);
   obs_property_text_set_info_word_wrap(media_help, true);
 
-  if (context && context->mode == ViewMode::Slide) {
+  if (context && context->mode == ViewMode::Slide && show_live_controls) {
     obs_property_t *audio_help = obs_properties_add_text(props, "pptbridge_audio_help", kAudioHelp, OBS_TEXT_INFO);
     obs_property_text_set_info_type(audio_help, OBS_TEXT_INFO_NORMAL);
     obs_property_text_set_info_word_wrap(audio_help, true);
@@ -1787,7 +1879,7 @@ obs_properties_t *source_properties(SourceContext *context)
   obs_properties_add_button(props, "pptbridge_last_btn", "Last Slide", control_last);
   obs_properties_add_button(props, "pptbridge_black_btn", "Toggle Black Screen", control_black);
   obs_properties_add_button(props, "pptbridge_reload_btn", "Reload Presentation", control_reload);
-  if (context && context->mode == ViewMode::Slide) {
+  if (context && context->mode == ViewMode::Slide && show_live_controls) {
     obs_properties_add_button(props, "pptbridge_lock_live_resize_btn", "Lock OBS Size Against PPT Resize", control_lock_live_resize);
     obs_properties_add_button(props, "pptbridge_follow_live_resize_btn", "Follow Current PPT Window Size", control_follow_live_resize);
     obs_properties_add_button(props, "pptbridge_reattach_live_btn", "Reattach Live PowerPoint Window", control_reattach_live);
@@ -1802,6 +1894,8 @@ void source_update(SourceContext *context, obs_data_t *settings)
   }
 
   const char *path = obs_data_get_string(settings, "pptx_path");
+  const std::string selected_path = path ? path : "";
+  const bool powerpoint_live_available = is_pptx_deck_path(selected_path);
   // Slide source always renders at Full HD 1920x1080 regardless of any
   // stored canvas_width/canvas_height. Only the Presenter source honors
   // user-configurable canvas dimensions.
@@ -1811,13 +1905,14 @@ void source_update(SourceContext *context, obs_data_t *settings)
   const uint32_t height = (context->mode == ViewMode::Slide)
     ? 1080u
     : static_cast<uint32_t>(obs_data_get_int(settings, "canvas_height"));
-  const bool use_live_powerpoint = obs_data_get_bool(settings, "use_live_powerpoint");
-  const bool auto_start_live_powerpoint = obs_data_get_bool(settings, "auto_start_live_powerpoint");
+  const bool use_live_powerpoint = powerpoint_live_available && obs_data_get_bool(settings, "use_live_powerpoint");
+  const bool auto_start_live_powerpoint =
+    powerpoint_live_available && obs_data_get_bool(settings, "auto_start_live_powerpoint");
   const bool close_live_powerpoint_on_shutdown = obs_data_get_bool(settings, "close_live_powerpoint_on_shutdown");
   const LiveCaptureResizeMode live_capture_resize_mode =
     live_capture_resize_mode_from_setting(obs_data_get_string(settings, "live_capture_resize_mode"));
   const bool audio_enabled = obs_data_get_bool(settings, "audio_enabled");
-  const bool use_live_app_audio = obs_data_get_bool(settings, "use_live_app_audio");
+  const bool use_live_app_audio = powerpoint_live_available && obs_data_get_bool(settings, "use_live_app_audio");
   const bool auto_recover_live = obs_data_get_bool(settings, "auto_recover_live");
   const double audio_gain_db = obs_data_get_double(settings, "audio_gain_db");
   const PresenterRenderOptions presenter_options = presenter_options_from_settings(settings);
@@ -1829,7 +1924,7 @@ void source_update(SourceContext *context, obs_data_t *settings)
   const std::shared_ptr<PresentationDocument> old_document = context->document;
   const bool old_use_live_powerpoint = context->use_live_powerpoint;
   const bool old_close_live_powerpoint_on_shutdown = context->close_live_powerpoint_on_shutdown;
-  const bool path_changed = context->pptx_path != (path ? path : "");
+  const bool path_changed = context->pptx_path != selected_path;
   const bool size_changed = context->width != width || context->height != height;
   const bool live_mode_changed = context->use_live_powerpoint != use_live_powerpoint;
   const bool live_auto_start_changed = context->auto_start_live_powerpoint != auto_start_live_powerpoint;
@@ -1848,7 +1943,7 @@ void source_update(SourceContext *context, obs_data_t *settings)
     old_document->StopLivePowerPoint();
   }
 
-  context->pptx_path = path ? path : "";
+  context->pptx_path = selected_path;
   if (path_changed) {
     context->cue_export_status.clear();
   }

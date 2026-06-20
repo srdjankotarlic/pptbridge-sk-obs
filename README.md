@@ -4,13 +4,13 @@ PPTBridge separates a clean slide output from a presenter/confidence view inside
 
 Used in a live production workflow for slides, presenter notes, next-slide preview, and OBS/Companion control.
 
-**Download stable macOS Apple Silicon v0.5.5:** [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.5/pptbridge-obs-macos-apple-silicon.zip)
+**Download stable macOS Apple Silicon v0.5.6:** [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.6/pptbridge-obs-macos-apple-silicon.zip)
 
 ![PPTBridge SK Slide and Presenter sources running inside OBS](native-plugin/media/github/pptbridge-sk-social-preview.png)
 
 ## Download / Install
 
-**Primary stable build:** [macOS Apple Silicon v0.5.5 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.5/pptbridge-obs-macos-apple-silicon.zip) ([release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.5)).
+**Primary stable build:** [macOS Apple Silicon v0.5.6 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.6/pptbridge-obs-macos-apple-silicon.zip) ([release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.6)).
 
 Windows is beta; macOS Apple Silicon is the primary stable build.
 
@@ -45,7 +45,7 @@ Watch a short silent demo of PPTBridge SK running inside OBS:
 
 | Platform | Download | Status | Use this when |
 | --- | --- | --- | --- |
-| Apple Silicon Mac | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.5/pptbridge-obs-macos-apple-silicon.zip) | Stable v0.5.5 | Your Mac has an M1, M2, M3, or M4 chip |
+| Apple Silicon Mac | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.6/pptbridge-obs-macos-apple-silicon.zip) | Stable v0.5.6 | Your Mac has an M1, M2, M3, or M4 chip |
 | Intel Mac | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip) | Beta v0.4.4 | Your Mac says `Processor: Intel` in About This Mac |
 | Windows 64-bit | [`pptbridge-obs-windows-x64-v0.5.0-beta.1.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0-beta.1/pptbridge-obs-windows-x64-v0.5.0-beta.1.zip) | Beta installer | You want to test PowerPoint live mode on Windows OBS |
 
@@ -115,7 +115,7 @@ The presenter view is rendered by PPTBridge inside OBS. It is not a screen captu
 
 ## PowerPoint Live Controls
 
-`PPTBridge SK Slide` has a highlighted `PowerPoint Live Start / Stop` section in source properties. `PPTBridge SK Presenter` also has the same start/stop buttons for shows where the presenter source should launch or stop live mode for the deck, but animated/video rendering stays in the Slide source.
+`PPTBridge SK Slide` has a highlighted `PowerPoint Live Start / Stop` section in source properties when a `.pptx` deck is selected. `PPTBridge SK Presenter` also has the same start/stop buttons for shows where the presenter source should launch or stop live mode for the deck, but animated/video rendering stays in the Slide source. PDF decks are rendered and controlled directly by PPTBridge, so PowerPoint Live Mode controls are hidden for PDFs.
 
 | Control | What it does |
 | --- | --- |
@@ -221,7 +221,8 @@ Apple Silicon has been runtime-tested locally on OBS 32.x. Intel is cross-built 
 
 | Release | Status | Use it for |
 | --- | --- | --- |
-| [`v0.5.5`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.5) | Apple Silicon stable | Faster first preview when loading PPT/PDF decks in OBS |
+| [`v0.5.6`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.6) | Apple Silicon stable | Start Live reliability, PDF live-control clarity, and PowerPoint-readable live staging |
+| [`v0.5.5`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.5) | Previous stable | Faster first preview when loading PPT/PDF decks in OBS |
 | [`v0.5.4`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.4) | Previous stable | Hotkey patch: default controls use 2/1 and normal left/right arrows stay free |
 | [`v0.5.3`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.3) | Previous stable | Companion OSC starter template, expanded OSC feedback, and packaging polish |
 | [`v0.5.2`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.2) | Previous stable | Operator mode controls, interactive cue checks, OSC status feedback, clearer menus, and updated install docs |

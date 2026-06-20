@@ -29,6 +29,7 @@ using Clock = std::chrono::steady_clock;
 constexpr NSTimeInterval kDefaultTaskTimeoutSeconds = 300.0;
 constexpr NSTimeInterval kLibreOfficeExportTimeoutSeconds = 90.0;
 constexpr NSTimeInterval kPowerPointExportTimeoutSeconds = 60.0;
+constexpr NSTimeInterval kLiveStartTaskTimeoutSeconds = 30.0;
 constexpr NSTimeInterval kLiveTaskTimeoutSeconds = 12.0;
 constexpr NSTimeInterval kStopTaskTimeoutSeconds = 8.0;
 constexpr NSTimeInterval kTerminateGraceSeconds = 2.0;
@@ -352,6 +353,87 @@ bool IsPowerPointRunning()
   NSArray<NSRunningApplication *> *apps =
     [NSRunningApplication runningApplicationsWithBundleIdentifier:@"com.microsoft.Powerpoint"];
   return apps.count > 0;
+}
+
+std::vector<std::string> SplitLines(const std::string &value);
+bool RunAppleScriptLines(
+  const std::vector<std::string> &lines,
+  std::string &std_out,
+  std::string &std_err,
+  int &exit_code,
+  NSTimeInterval timeout_seconds = kDefaultTaskTimeoutSeconds);
+
+bool QueryPowerPointOpenCounts(int &presentation_count, int &slide_show_count)
+{
+  presentation_count = -1;
+  slide_show_count = -1;
+  if (!IsPowerPointRunning()) {
+    presentation_count = 0;
+    slide_show_count = 0;
+    return true;
+  }
+
+  std::string std_out;
+  std::string std_err;
+  int exit_code = 0;
+  const bool ok = RunAppleScriptLines(
+    {
+      "tell application \"Microsoft PowerPoint\"",
+      "return ((count of presentations) as text) & linefeed & ((count of slide show windows) as text)",
+      "end tell",
+    },
+    std_out,
+    std_err,
+    exit_code,
+    kStopTaskTimeoutSeconds);
+
+  if (!ok || exit_code != 0) {
+    return false;
+  }
+
+  const auto lines = SplitLines(std_out);
+  if (lines.size() < 2) {
+    return false;
+  }
+
+  try {
+    presentation_count = std::stoi(lines[0]);
+    slide_show_count = std::stoi(lines[1]);
+    return true;
+  } catch (const std::exception &) {
+    return false;
+  }
+}
+
+bool RestartPowerPointIfIdleForLiveRetry()
+{
+  int presentation_count = -1;
+  int slide_show_count = -1;
+  if (!QueryPowerPointOpenCounts(presentation_count, slide_show_count)) {
+    return false;
+  }
+  if (presentation_count != 0 || slide_show_count != 0) {
+    return false;
+  }
+  if (!IsPowerPointRunning()) {
+    return true;
+  }
+
+  std::string std_out;
+  std::string std_err;
+  int exit_code = 0;
+  const bool quit_ok = RunAppleScriptLines(
+    { "tell application \"Microsoft PowerPoint\" to quit saving no" },
+    std_out,
+    std_err,
+    exit_code,
+    kStopTaskTimeoutSeconds);
+  if (!quit_ok || exit_code != 0) {
+    return false;
+  }
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(700));
+  return true;
 }
 
 std::string DeckCacheHash(const std::string &pptx_path)
@@ -803,7 +885,8 @@ bool RunAppleScriptLines(
   const std::vector<std::string> &lines,
   std::string &std_out,
   std::string &std_err,
-  int &exit_code)
+  int &exit_code,
+  NSTimeInterval timeout_seconds)
 {
   NSMutableArray<NSString *> *arguments = [NSMutableArray array];
   for (const auto &line : lines) {
@@ -811,7 +894,7 @@ bool RunAppleScriptLines(
     [arguments addObject:ToNSString(line)];
   }
 
-  return RunTask(@"/usr/bin/osascript", arguments, std_out, std_err, exit_code);
+  return RunTask(@"/usr/bin/osascript", arguments, std_out, std_err, exit_code, timeout_seconds);
 }
 
 struct LivePowerPointSnapshot {
@@ -865,6 +948,15 @@ fs::path StagedPowerPointLivePath(const std::string &pptx_path, const fs::path &
   const std::string stem = input.stem().string().empty() ? "deck" : input.stem().string();
   const std::string extension = input.extension().string().empty() ? ".pptx" : input.extension().string();
   return work_dir / (stem + " - PPTBridge " + short_hash + extension);
+}
+
+fs::path PowerPointLiveWorkDirectory(const std::string &pptx_path)
+{
+  // PowerPoint on macOS can refuse or hang when AppleScript opens .pptx files
+  // staged under another app's Application Support tree. A per-deck temp
+  // folder keeps live-mode staging readable by PowerPoint while the static PDF
+  // cache remains in Application Support for OBS/PDFKit.
+  return fs::path(ToStdString(NSTemporaryDirectory())) / "pptbridge-sk-live" / DeckCacheHash(pptx_path);
 }
 
 std::string PowerPointAppleScriptLiveHandlers()
@@ -1078,7 +1170,7 @@ bool StartPowerPointLiveSession(
     return false;
   }
 
-  auto work_dir = fs::path(cache_dir) / "powerpoint-live";
+  auto work_dir = PowerPointLiveWorkDirectory(pptx_path);
   std::error_code error;
   fs::create_directories(work_dir, error);
   if (error) {
@@ -1124,25 +1216,48 @@ bool StartPowerPointLiveSession(
     }
   }
 
-  std::string std_out;
-  std::string std_err;
-  int exit_code = 0;
-  const bool launched = RunAppleScriptFile(
-    cache_dir,
-    "pptbridge_powerpoint_live_start.applescript",
-    PowerPointAppleScriptLiveStartSource(),
-    { copied_input.string() },
-    std_out,
-    std_err,
-    exit_code,
-    kPowerPointExportTimeoutSeconds);
+  auto start_once = [&](std::string &attempt_error) -> bool {
+    std::string std_out;
+    std::string std_err;
+    int exit_code = 0;
+    const bool launched = RunAppleScriptFile(
+      cache_dir,
+      "pptbridge_powerpoint_live_start.applescript",
+      PowerPointAppleScriptLiveStartSource(),
+      { copied_input.string() },
+      std_out,
+      std_err,
+      exit_code,
+      kLiveStartTaskTimeoutSeconds);
 
-  if (!launched || exit_code != 0) {
-    out_error = "PowerPoint live mode failed to start: " + BuildTaskErrorMessage(std_out, std_err, exit_code);
+    if (!launched || exit_code != 0) {
+      attempt_error = "PowerPoint live mode failed to start: " + BuildTaskErrorMessage(std_out, std_err, exit_code);
+      return false;
+    }
+
+    return ParseLivePowerPointOutput(std_out, snapshot, attempt_error);
+  };
+
+  std::string first_error;
+  if (start_once(first_error)) {
+    return true;
+  }
+
+  if (RestartPowerPointIfIdleForLiveRetry()) {
+    blog(
+      LOG_WARNING,
+      "[PPTBridge] PowerPoint live start failed once for '%s'; restarted idle PowerPoint and retrying",
+      pptx_path.c_str());
+    std::string retry_error;
+    if (start_once(retry_error)) {
+      return true;
+    }
+    out_error = first_error + " Retry after idle PowerPoint restart also failed: " + retry_error;
     return false;
   }
 
-  return ParseLivePowerPointOutput(std_out, snapshot, out_error);
+  out_error = first_error;
+  return false;
 }
 
 bool StopPowerPointLiveSession(
@@ -2600,14 +2715,12 @@ void PresentationDocument::LoadOnWorker()
     bool live_enabled = false;
     bool live_auto_start = false;
     bool live_start_requested = false;
-    bool presenter_assets_wanted = false;
     bool already_live_ready = false;
     {
       std::lock_guard<std::mutex> lock(impl_->mutex);
       live_enabled = impl_->live_powerpoint_enabled;
       live_auto_start = impl_->live_powerpoint_auto_start;
       live_start_requested = impl_->live_start_requested;
-      presenter_assets_wanted = impl_->presenter_assets_wanted;
       already_live_ready = impl_->live_ready;
     }
 
@@ -2651,32 +2764,6 @@ void PresentationDocument::LoadOnWorker()
           ElapsedMs(live_start_started),
           live_error.c_str());
       }
-    }
-
-    if (live_enabled && !presenter_assets_wanted) {
-      bool requested_presenter_preload = false;
-      {
-        std::lock_guard<std::mutex> lock(impl_->mutex);
-        impl_->cache_dir = cache_dir;
-        impl_->loading = false;
-        impl_->loaded = false;
-        impl_->error.clear();
-
-        if ((live_started_now || impl_->live_ready) && !impl_->presenter_assets_wanted) {
-          impl_->presenter_assets_wanted = true;
-          impl_->load_requested = true;
-          requested_presenter_preload = true;
-        }
-
-        impl_->version += 1;
-      }
-
-      if (requested_presenter_preload) {
-        blog(LOG_INFO,
-          "[PPTBridge] Preloading presenter notes/thumbnails for '%s' after live mode start",
-          impl_->path.c_str());
-      }
-      return;
     }
 
     if (is_pdf_source) {
@@ -2772,22 +2859,26 @@ void PresentationDocument::LoadOnWorker()
     }
     const auto metadata_ms = ElapsedMs(metadata_started);
 
-    std::lock_guard<std::mutex> lock(impl_->mutex);
-    impl_->cache_dir = cache_dir;
-    impl_->pdf_path = pdf_path;
-    impl_->slides = std::move(metadata);
-    impl_->media_by_slide = std::move(media_by_slide);
-    impl_->pdf_document = document;
-    impl_->loaded = true;
-    impl_->loading = false;
-    impl_->current_media_triggered = false;
-    if (!impl_->live_ready) {
-      impl_->black = false;
-      impl_->current = 0;
-      impl_->started_at = Clock::now();
+    bool restart_for_queued_request = false;
+    {
+      std::lock_guard<std::mutex> lock(impl_->mutex);
+      impl_->cache_dir = cache_dir;
+      impl_->pdf_path = pdf_path;
+      impl_->slides = std::move(metadata);
+      impl_->media_by_slide = std::move(media_by_slide);
+      impl_->pdf_document = document;
+      impl_->loaded = true;
+      impl_->loading = false;
+      impl_->current_media_triggered = false;
+      if (!impl_->live_ready) {
+        impl_->black = false;
+        impl_->current = 0;
+        impl_->started_at = Clock::now();
+      }
+      impl_->error.clear();
+      restart_for_queued_request = impl_->load_requested;
+      impl_->version += 1;
     }
-    impl_->error.clear();
-    impl_->version += 1;
     blog(LOG_INFO,
       "[PPTBridge] Loaded '%s' with %ld slide(s) in %lld ms (PDF open %lld ms, metadata/media %lld ms)",
       impl_->path.c_str(),
@@ -2795,6 +2886,12 @@ void PresentationDocument::LoadOnWorker()
       ElapsedMs(load_started),
       pdf_open_ms,
       metadata_ms);
+    if (restart_for_queued_request) {
+      blog(LOG_INFO,
+        "[PPTBridge] Continuing queued load/start request for '%s' after notes/media preparation",
+        impl_->path.c_str());
+      StartLoadIfNeeded(false);
+    }
   }
 }
 

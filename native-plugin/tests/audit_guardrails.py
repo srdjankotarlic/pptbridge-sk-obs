@@ -45,6 +45,8 @@ def main() -> int:
         raise AssertionError("RunTask must not read pipe output unless the drain workers finished")
     if "kStopTaskTimeoutSeconds" not in source:
         raise AssertionError("PowerPoint live stop needs its own short timeout, not the default task timeout")
+    if "kLiveStartTaskTimeoutSeconds" not in source:
+        raise AssertionError("PowerPoint live start needs its own timeout so Start Live cannot hang indefinitely")
 
     stop_session = extract_function(source, "bool StopPowerPointLiveSession(")
     if "kStopTaskTimeoutSeconds" not in stop_session:
@@ -55,6 +57,15 @@ def main() -> int:
     live_runner = extract_function(source, "bool RunPowerPointLiveCommand(")
     if "kLiveTaskTimeoutSeconds" not in live_runner:
         raise AssertionError("PowerPoint live commands must use a short live-task timeout")
+    live_start_session = extract_function(source, "bool StartPowerPointLiveSession(")
+    if "kLiveStartTaskTimeoutSeconds" not in live_start_session:
+        raise AssertionError("PowerPoint live start must use the live-start timeout, not the export timeout")
+    if "PowerPointLiveWorkDirectory(pptx_path)" not in live_start_session:
+        raise AssertionError("PowerPoint live staging should use a PowerPoint-readable temp folder, not Application Support")
+    if "RestartPowerPointIfIdleForLiveRetry()" not in live_start_session:
+        raise AssertionError("PowerPoint live start should retry once after restarting an idle stuck PowerPoint")
+    if "Retry after idle PowerPoint restart also failed" not in live_start_session:
+        raise AssertionError("PowerPoint live start retry failures should preserve both attempts in the error")
     pdf_export = extract_function(source, "bool ConvertPptxToPdfWithPowerPoint(")
     if "kPowerPointExportTimeoutSeconds" not in pdf_export:
         raise AssertionError("PowerPoint Save As PDF export must use the export timeout, not the default task timeout")
@@ -110,10 +121,14 @@ def main() -> int:
     load_worker = extract_function(source, "void PresentationDocument::LoadOnWorker(")
     if "live_started_now" not in load_worker:
         raise AssertionError("Live startup should track whether this worker just opened PowerPoint")
-    if "Preloading presenter notes/thumbnails" not in load_worker:
-        raise AssertionError("Live slide startup should prewarm presenter assets in the background")
-    if "impl_->presenter_assets_wanted = true" not in load_worker:
-        raise AssertionError("Live slide startup should request presenter assets before the presenter source waits")
+    if "if (live_enabled && !presenter_assets_wanted)" in load_worker:
+        raise AssertionError("Manual live mode must still prepare the static preview instead of returning blank")
+    if "!live_enabled || live_auto_start || live_start_requested || already_live_ready || live_started_now" not in load_worker:
+        raise AssertionError("Manual live mode must not auto-open PowerPoint just to build a static preview")
+    if "restart_for_queued_request" not in load_worker or "StartLoadIfNeeded(false)" not in load_worker:
+        raise AssertionError("A Start Live request made while notes/media are loading must continue after the current load finishes")
+    if "Continuing queued load/start request" not in load_worker:
+        raise AssertionError("Queued live-start continuation should be visible in OBS logs")
     early_preview = load_worker.find("Opened static preview")
     metadata_extract = load_worker.find("ExtractDeckMetadata")
     if early_preview == -1 or metadata_extract == -1 or early_preview > metadata_extract:
@@ -137,6 +152,11 @@ def main() -> int:
     stop_control = extract_function(source_slide, "bool control_stop_live(")
     if "StopLivePowerPointAsync(" not in stop_control:
         raise AssertionError("The macOS stop button must not block the OBS UI thread")
+    start_control = extract_function(source_slide, "bool control_start_live(")
+    if "!selected_deck_is_pptx(context)" not in start_control:
+        raise AssertionError("PowerPoint live start must ignore non-PPTX/PDF decks instead of doing nothing silently")
+    if "PowerPoint Live Mode is only available for .pptx decks" not in start_control:
+        raise AssertionError("PDF/non-PPTX live start should leave a clear user-facing explanation")
     presenter_props = extract_function(source_slide, "void add_presenter_customization_properties(")
     for key in (
         "presenter_background_color",
@@ -180,11 +200,26 @@ def main() -> int:
     if "STOP - Stop PowerPoint Live Mode" in source_slide:
         raise AssertionError("macOS source properties should not use shouty STOP button text")
     operator_props = extract_function(source_slide, "void add_operator_mode_properties(")
+    if "selected_deck_is_pdf(context)" not in operator_props:
+        raise AssertionError("Operator UI must detect PDF decks")
+    if "should_show_powerpoint_live_controls(context)" not in operator_props:
+        raise AssertionError("Operator UI must gate PowerPoint live buttons by selected deck type")
+    if "PDF decks do not need PowerPoint Live Mode" not in operator_props:
+        raise AssertionError("Operator UI should explain that PDF decks are controlled directly")
     if operator_props.find("pptbridge_operator_start_live_btn") > operator_props.find("pptbridge_operator_status"):
         raise AssertionError("macOS operator UI should show action buttons before the longer status text")
     operator_status_desc = extract_function(source_slide, "std::string describe_operator_status(")
     if "summarize_operator_text(" not in operator_status_desc:
         raise AssertionError("macOS operator status should shorten long cue titles so buttons stay visible")
+    if "PowerPoint live mode not needed" not in operator_status_desc:
+        raise AssertionError("Operator status should make PDF live-mode behavior clear")
+    source_properties = extract_function(source_slide, "obs_properties_t *source_properties(")
+    if "pptbridge_pdf_live_note" not in source_properties:
+        raise AssertionError("PDF source properties should show a clear note instead of live-mode controls")
+    if "PowerPoint Live Mode, PowerPoint resize controls, and PowerPoint app-audio routing are only shown for .pptx files" not in source_properties:
+        raise AssertionError("PDF source properties should explain why live controls are hidden")
+    if "powerpoint_live_available && obs_data_get_bool(settings, \"use_live_powerpoint\")" not in source_slide:
+        raise AssertionError("source_update should normalize stored live-mode settings off for PDF decks")
 
     header = (ROOT / "src" / "presentation_document.hpp").read_text(encoding="utf-8")
     for symbol in ("background_color", "background_image_path", "show_cue_list"):

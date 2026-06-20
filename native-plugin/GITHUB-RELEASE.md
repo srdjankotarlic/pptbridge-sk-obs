@@ -1,4 +1,4 @@
-## PPTBridge SK for OBS v0.5.5
+## PPTBridge SK for OBS v0.5.6
 
 Created by **Srdjan Kotarlic**
 
@@ -29,7 +29,15 @@ https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptb
 
 Apple Silicon is the main stable build. Intel Mac and Windows remain separate beta paths while real-hardware feedback is collected.
 
-### What Is New In v0.5.5
+### What Is New In v0.5.6
+
+- Fixed `Start / Restart PowerPoint Live Mode` when clicked immediately after a fast preview appears but notes/media are still preparing.
+- PowerPoint live-mode staging now uses a PowerPoint-readable temp folder instead of the OBS/Application Support cache path, avoiding macOS PowerPoint automation failures when opening staged decks.
+- If PowerPoint is running but idle and stuck after a failed live-start attempt, PPTBridge now restarts idle PowerPoint and retries once.
+- PDF decks now hide PowerPoint Live Mode controls and show a clear note that PDFs are rendered and controlled directly by PPTBridge.
+- Added a live PowerPoint smoke test that verifies manual preview, live start, and live stop.
+
+### Also Included From v0.5.5
 
 - Faster first preview when a PPTX or PDF deck is loaded in OBS.
 - PPTBridge now publishes a renderable static preview as soon as the generated or cached PDF opens.

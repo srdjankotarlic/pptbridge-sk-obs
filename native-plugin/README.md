@@ -43,7 +43,8 @@ This native version is built around a practical conference workflow:
 
 ## Quick Platform Guide
 
-- `v0.5.5` = current Apple Silicon stable release with faster first preview while notes/media finish preparing in the background
+- `v0.5.6` = current Apple Silicon stable release with more reliable manual PowerPoint live start, clearer PDF controls, and PowerPoint-readable live staging
+- `v0.5.5` = previous Apple Silicon stable release with faster first preview while notes/media finish preparing in the background
 - `v0.5.4` = previous Apple Silicon stable release with safer default hotkeys: `2`/`1`, while normal left/right arrows stay free
 - `v0.5.3` = previous Apple Silicon stable release with Companion OSC starter template, expanded OSC feedback, and packaging polish
 - `v0.5.2` = previous Apple Silicon stable release with Operator Mode controls, interactive cue checks, OSC status feedback, and clearer menu labels
@@ -244,7 +245,7 @@ For Companion, `companion/PPTBridge-SK-Companion-OSC-Template.json` provides a G
 
 ## PowerPoint Startup Controls
 
-In `PPTBridge SK Slide` properties:
+In `PPTBridge SK Slide` properties for `.pptx` decks:
 
 - `Start / Restart PowerPoint Live Mode` opens PowerPoint if needed, starts the slideshow on demand, and recovers if the slideshow window was closed
 - `Auto Start PowerPoint When OBS Opens` restores automatic slideshow startup when OBS loads the source
@@ -256,6 +257,7 @@ In `PPTBridge SK Slide` properties:
 
 Default behavior is manual startup, so OBS can open quietly before the operator starts PowerPoint.
 Default resize behavior is locked to the OBS canvas.
+For PDF decks, these PowerPoint-specific controls are hidden because PowerPoint is not used.
 
 This plugin does not require the old `pptbridge_obs.py` workflow.
 The included installers also remove legacy PPTBridge Python script entries from OBS scene collections.
@@ -266,6 +268,7 @@ This native pass is focused on the installable OBS source workflow and rendering
 It is designed to run as a real plugin bundle, without requiring the old Python PPTBridge script to stay loaded in OBS.
 On macOS with Microsoft PowerPoint installed, `PPTBridge SK Slide` supports true live mode and lets PowerPoint itself handle slideshow builds, animations, and embedded media.
 By default, PowerPoint live mode waits for `Start / Restart PowerPoint Live Mode` in the highlighted source-property control group so OBS can open without immediately launching a slideshow. If PowerPoint is closed, that button opens it and starts the slideshow. If the slideshow window was closed but PowerPoint itself is still open, the same button recovers the live session. Enable `Auto Start PowerPoint When OBS Opens` if you want the older automatic behavior.
+For PDF decks, PPTBridge renders and controls pages directly, so PowerPoint Live Mode is not shown or required.
 Enable `Close PowerPoint Slideshow When OBS Closes` when the live slideshow should be cleaned up as OBS shuts down.
 `PPTBridge SK Presenter` is PPTBridge's own presenter layout, synchronized with the deck and fed by PPTX notes pages and slide thumbnails.
 The presenter source exposes balanced, large-preview, large-notes, compact, and confidence-monitor layout presets, plus presenter split, preview scale/position, notes zoom, notes text position, notes sizing controls, background color/image controls, and optional cue-list display/export with current, next, and checked cue markers.
