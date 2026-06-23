@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <set>
@@ -28,12 +29,14 @@ using Clock = std::chrono::steady_clock;
 
 constexpr NSTimeInterval kDefaultTaskTimeoutSeconds = 300.0;
 constexpr NSTimeInterval kLibreOfficeExportTimeoutSeconds = 90.0;
-constexpr NSTimeInterval kPowerPointExportTimeoutSeconds = 60.0;
+constexpr NSTimeInterval kPowerPointExportTimeoutSeconds = 180.0;
+constexpr int kPowerPointAppleEventTimeoutSeconds = 165;
 constexpr NSTimeInterval kLiveStartTaskTimeoutSeconds = 30.0;
 constexpr NSTimeInterval kLiveTaskTimeoutSeconds = 12.0;
 constexpr NSTimeInterval kStopTaskTimeoutSeconds = 8.0;
 constexpr NSTimeInterval kTerminateGraceSeconds = 2.0;
 constexpr NSTimeInterval kPipeDrainGraceSeconds = 2.0;
+constexpr const char *kPowerPointBundleIdentifier = "com.microsoft.Powerpoint";
 
 NSString *ToNSString(const std::string &value)
 {
@@ -142,17 +145,22 @@ bool RunTask(
     NSFileHandle *stderr_handle = [err_pipe fileHandleForReading];
     dispatch_queue_t io_queue = dispatch_get_global_queue(QOS_CLASS_UTILITY, 0);
     dispatch_group_t io_group = dispatch_group_create();
-    __block NSData *stdout_data = nil;
-    __block NSData *stderr_data = nil;
-    __block NSString *stdout_read_error = nil;
-    __block NSString *stderr_read_error = nil;
+    __block std::string stdout_text;
+    __block std::string stderr_text;
+    __block std::string stdout_read_error;
+    __block std::string stderr_read_error;
 
     dispatch_group_async(io_group, io_queue, ^{
       @autoreleasepool {
         @try {
-          stdout_data = [stdout_handle readDataToEndOfFile];
+          NSData *data = [stdout_handle readDataToEndOfFile];
+          NSString *text = [[NSString alloc] initWithData:(data ?: [NSData data]) encoding:NSUTF8StringEncoding];
+          stdout_text = ToStdString(text ?: @"");
+#if !__has_feature(objc_arc)
+          [text release];
+#endif
         } @catch (NSException *exception) {
-          stdout_read_error = exception.reason ?: @"Could not read process stdout.";
+          stdout_read_error = ToStdString(exception.reason ?: @"Could not read process stdout.");
         }
       }
     });
@@ -160,9 +168,14 @@ bool RunTask(
     dispatch_group_async(io_group, io_queue, ^{
       @autoreleasepool {
         @try {
-          stderr_data = [stderr_handle readDataToEndOfFile];
+          NSData *data = [stderr_handle readDataToEndOfFile];
+          NSString *text = [[NSString alloc] initWithData:(data ?: [NSData data]) encoding:NSUTF8StringEncoding];
+          stderr_text = ToStdString(text ?: @"");
+#if !__has_feature(objc_arc)
+          [text release];
+#endif
         } @catch (NSException *exception) {
-          stderr_read_error = exception.reason ?: @"Could not read process stderr.";
+          stderr_read_error = ToStdString(exception.reason ?: @"Could not read process stderr.");
         }
       }
     });
@@ -194,22 +207,20 @@ bool RunTask(
     }
 
     if (pipes_drained) {
-      std_out = ToStdString(
-        [[NSString alloc] initWithData:(stdout_data ?: [NSData data]) encoding:NSUTF8StringEncoding] ?: @"");
-      std_err = ToStdString(
-        [[NSString alloc] initWithData:(stderr_data ?: [NSData data]) encoding:NSUTF8StringEncoding] ?: @"");
-      if (stdout_read_error || stderr_read_error) {
+      std_out = stdout_text;
+      std_err = stderr_text;
+      if (!stdout_read_error.empty() || !stderr_read_error.empty()) {
         if (!std_err.empty()) {
           std_err += "\n";
         }
-        if (stdout_read_error) {
-          std_err += ToStdString(stdout_read_error);
+        if (!stdout_read_error.empty()) {
+          std_err += stdout_read_error;
         }
-        if (stderr_read_error) {
-          if (stdout_read_error) {
+        if (!stderr_read_error.empty()) {
+          if (!stdout_read_error.empty()) {
             std_err += "\n";
           }
-          std_err += ToStdString(stderr_read_error);
+          std_err += stderr_read_error;
         }
       }
     } else {
@@ -225,7 +236,7 @@ bool RunTask(
     }
 
     exit_code = task.terminationStatus;
-    return !stdout_read_error && !stderr_read_error;
+    return stdout_read_error.empty() && stderr_read_error.empty();
   }
 }
 
@@ -348,11 +359,92 @@ std::string FindPowerPointBundle()
   return cached;
 }
 
+std::string AppleScriptStringLiteral(const std::string &value)
+{
+  std::string literal = "\"";
+  for (char ch : value) {
+    if (ch == '\\' || ch == '"') {
+      literal.push_back('\\');
+    }
+    literal.push_back(ch);
+  }
+  literal.push_back('"');
+  return literal;
+}
+
+std::string AppleScriptListLiteral(const std::vector<std::string> &values)
+{
+  std::string literal = "{";
+  for (std::size_t index = 0; index < values.size(); ++index) {
+    if (index > 0) {
+      literal += ", ";
+    }
+    literal += AppleScriptStringLiteral(values[index]);
+  }
+  literal += "}";
+  return literal;
+}
+
+std::string PowerPointApplicationTellLine(const std::string &powerpoint_bundle)
+{
+  const auto bundle = powerpoint_bundle.empty() ? FindPowerPointBundle() : powerpoint_bundle;
+  if (bundle.empty()) {
+    return "tell application \"Microsoft PowerPoint\"";
+  }
+  // AppleScript cannot target a POSIX .app path directly in a tell block.
+  // Keep bundle discovery as validation, then use the display name because
+  // `osascript file.applescript` resolves it more reliably than application id.
+  return "tell application \"Microsoft PowerPoint\"";
+}
+
+std::string PowerPointTerminologyWrapped(const std::string &source)
+{
+  return "using terms from application \"Microsoft PowerPoint\"\n" + source + "\nend using terms from\n";
+}
+
 bool IsPowerPointRunning()
 {
   NSArray<NSRunningApplication *> *apps =
-    [NSRunningApplication runningApplicationsWithBundleIdentifier:@"com.microsoft.Powerpoint"];
+    [NSRunningApplication runningApplicationsWithBundleIdentifier:@(kPowerPointBundleIdentifier)];
   return apps.count > 0;
+}
+
+bool WaitForPowerPointExit(NSTimeInterval timeout_seconds)
+{
+  const auto deadline = Clock::now() +
+    std::chrono::milliseconds(static_cast<int64_t>(timeout_seconds * 1000.0));
+  while (Clock::now() < deadline) {
+    if (!IsPowerPointRunning()) {
+      return true;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+  return !IsPowerPointRunning();
+}
+
+bool TerminatePowerPointApplications(bool force_after_grace)
+{
+  NSArray<NSRunningApplication *> *apps =
+    [NSRunningApplication runningApplicationsWithBundleIdentifier:@(kPowerPointBundleIdentifier)];
+  if (apps.count == 0) {
+    return true;
+  }
+
+  for (NSRunningApplication *app in apps) {
+    [app terminate];
+  }
+  if (WaitForPowerPointExit(kTerminateGraceSeconds)) {
+    return true;
+  }
+  if (!force_after_grace) {
+    return false;
+  }
+
+  apps = [NSRunningApplication runningApplicationsWithBundleIdentifier:@(kPowerPointBundleIdentifier)];
+  for (NSRunningApplication *app in apps) {
+    [app forceTerminate];
+  }
+  return WaitForPowerPointExit(kTerminateGraceSeconds);
 }
 
 std::vector<std::string> SplitLines(const std::string &value);
@@ -376,12 +468,13 @@ bool QueryPowerPointOpenCounts(int &presentation_count, int &slide_show_count)
   std::string std_out;
   std::string std_err;
   int exit_code = 0;
+  const auto tell_powerpoint = PowerPointApplicationTellLine({});
   const bool ok = RunAppleScriptLines(
-    {
-      "tell application \"Microsoft PowerPoint\"",
-      "return ((count of presentations) as text) & linefeed & ((count of slide show windows) as text)",
-      "end tell",
-    },
+      {
+        tell_powerpoint,
+      "return ((count of presentations) as text) & \",\" & ((count of slide show windows) as text)",
+        "end tell",
+      },
     std_out,
     std_err,
     exit_code,
@@ -391,7 +484,9 @@ bool QueryPowerPointOpenCounts(int &presentation_count, int &slide_show_count)
     return false;
   }
 
-  const auto lines = SplitLines(std_out);
+  auto counts_text = TrimWhitespace(std_out);
+  std::replace(counts_text.begin(), counts_text.end(), ',', '\n');
+  const auto lines = SplitLines(counts_text);
   if (lines.size() < 2) {
     return false;
   }
@@ -405,12 +500,12 @@ bool QueryPowerPointOpenCounts(int &presentation_count, int &slide_show_count)
   }
 }
 
-bool RestartPowerPointIfIdleForLiveRetry()
+bool RestartPowerPointIfIdleForLiveRetry(bool allow_unresponsive_restart)
 {
   int presentation_count = -1;
   int slide_show_count = -1;
   if (!QueryPowerPointOpenCounts(presentation_count, slide_show_count)) {
-    return false;
+    return allow_unresponsive_restart ? TerminatePowerPointApplications(true) : false;
   }
   if (presentation_count != 0 || slide_show_count != 0) {
     return false;
@@ -422,18 +517,19 @@ bool RestartPowerPointIfIdleForLiveRetry()
   std::string std_out;
   std::string std_err;
   int exit_code = 0;
+  const auto tell_powerpoint = PowerPointApplicationTellLine({});
   const bool quit_ok = RunAppleScriptLines(
-    { "tell application \"Microsoft PowerPoint\" to quit saving no" },
+    { tell_powerpoint + " to quit saving no" },
     std_out,
     std_err,
     exit_code,
     kStopTaskTimeoutSeconds);
   if (!quit_ok || exit_code != 0) {
-    return false;
+    return TerminatePowerPointApplications(true);
   }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(700));
-  return true;
+  return !IsPowerPointRunning() || TerminatePowerPointApplications(true);
 }
 
 std::string DeckCacheHash(const std::string &pptx_path)
@@ -788,19 +884,49 @@ bool ConvertPptxToPdfWithLibreOffice(
   return true;
 }
 
-std::string PowerPointAppleScriptSaveAsSource()
+std::string PowerPointAppleScriptSaveAsSource(const std::string &powerpoint_bundle)
 {
-  return R"APPLESCRIPT(
-on wait_for_active_presentation(max_wait_seconds)
-	repeat max_wait_seconds times
-		tell application "Microsoft PowerPoint"
+  const auto tell_powerpoint = PowerPointApplicationTellLine(powerpoint_bundle);
+  const auto apple_event_timeout = std::to_string(kPowerPointAppleEventTimeoutSeconds);
+  const std::string source = std::string(R"APPLESCRIPT(
+on normalize_posix_path(candidate)
+	try
+		return POSIX path of ((POSIX file candidate) as alias)
+	on error
+		try
+			return POSIX path of (candidate as alias)
+		on error
 			try
-				return active presentation
+				return candidate as text
+			on error
+				return ""
 			end try
-		end tell
+		end try
+	end try
+end normalize_posix_path
+
+on active_presentation_path()
+)APPLESCRIPT") + "\t" + tell_powerpoint + R"APPLESCRIPT(
+		try
+			return my normalize_posix_path((full name of active presentation) as text)
+		end try
+		try
+			return my normalize_posix_path((path of active presentation) as text)
+		end try
+	end tell
+	return ""
+end active_presentation_path
+
+on wait_for_active_presentation(expected_path, max_wait_seconds)
+	repeat max_wait_seconds times
+		if my active_presentation_path() is expected_path then
+)APPLESCRIPT" + "\t\t\t" + tell_powerpoint + R"APPLESCRIPT(
+				return active presentation
+			end tell
+		end if
 		delay 1
 	end repeat
-	error "PowerPoint opened the file, but the presentation did not become active."
+	error "PowerPoint opened the file, but the staged presentation did not become active."
 end wait_for_active_presentation
 
 on wait_for_output(file_path, max_wait_seconds)
@@ -815,26 +941,34 @@ on wait_for_output(file_path, max_wait_seconds)
 end wait_for_output
 
 on close_opened_presentation(opened_presentation)
-	tell application "Microsoft PowerPoint"
-		try
-			close opened_presentation saving no
-		end try
+)APPLESCRIPT" + "\twith timeout of " + apple_event_timeout + R"APPLESCRIPT( seconds
+)APPLESCRIPT" + "\t\t" + tell_powerpoint + R"APPLESCRIPT(
+			try
+				close opened_presentation saving no
+			end try
 	end tell
+	end timeout
 end close_opened_presentation
 
 on run argv
 	if (count of argv) is not 2 then error "Expected input and output paths."
-	set input_path to item 1 of argv
+	set raw_input_path to item 1 of argv
+	set input_path to my normalize_posix_path(raw_input_path)
+	if input_path is "" then set input_path to raw_input_path
 	set output_path to item 2 of argv
 
 	try
-		tell application "Microsoft PowerPoint"
-			open POSIX file input_path
+)APPLESCRIPT" + "\t\twith timeout of " + apple_event_timeout + R"APPLESCRIPT( seconds
+)APPLESCRIPT" + "\t\t\t" + tell_powerpoint + R"APPLESCRIPT(
+				open (POSIX file input_path)
 		end tell
-		set opened_presentation to my wait_for_active_presentation(20)
-		tell application "Microsoft PowerPoint"
-			save active presentation in (POSIX file output_path) as save as PDF
+		end timeout
+		set opened_presentation to my wait_for_active_presentation(input_path, 20)
+)APPLESCRIPT" + "\t\twith timeout of " + apple_event_timeout + R"APPLESCRIPT( seconds
+)APPLESCRIPT" + "\t\t\t" + tell_powerpoint + R"APPLESCRIPT(
+				save active presentation in (POSIX file output_path) as save as PDF
 		end tell
+		end timeout
 	on error err_message number err_number
 		try
 			my close_opened_presentation(opened_presentation)
@@ -851,6 +985,7 @@ on run argv
 	return output_path
 end run
 )APPLESCRIPT";
+  return PowerPointTerminologyWrapped(source);
 }
 
 bool RunAppleScriptFile(
@@ -872,13 +1007,30 @@ bool RunAppleScriptFile(
     return false;
   }
 
-  NSMutableArray<NSString *> *arguments = [NSMutableArray array];
-  [arguments addObject:ToNSString(script_path.string())];
-  for (const auto &argument : script_arguments) {
-    [arguments addObject:ToNSString(argument)];
-  }
+  const std::vector<std::string> wrapper_lines = {
+    "set pptbridge_script_args to " + AppleScriptListLiteral(script_arguments),
+    "set pptbridge_script_file to POSIX file " + AppleScriptStringLiteral(script_path.string()),
+    "run script pptbridge_script_file with parameters pptbridge_script_args",
+  };
 
-  return RunTask(@"/usr/bin/osascript", arguments, std_out, std_err, exit_code, timeout_seconds);
+  const bool ok = RunAppleScriptLines(
+    wrapper_lines,
+    std_out,
+    std_err,
+    exit_code,
+    timeout_seconds);
+  if (std::getenv("PPTBRIDGE_DEBUG_APPLESCRIPT")) {
+    blog(
+      LOG_INFO,
+      "[PPTBridge] AppleScript debug: script=%s exit=%d ok=%s",
+      script_path.string().c_str(),
+      exit_code,
+      ok ? "true" : "false");
+    for (const auto &line : wrapper_lines) {
+      blog(LOG_INFO, "[PPTBridge] AppleScript debug wrapper: %s", line.c_str());
+    }
+  }
+  return ok;
 }
 
 bool RunAppleScriptLines(
@@ -959,9 +1111,10 @@ fs::path PowerPointLiveWorkDirectory(const std::string &pptx_path)
   return fs::path(ToStdString(NSTemporaryDirectory())) / "pptbridge-sk-live" / DeckCacheHash(pptx_path);
 }
 
-std::string PowerPointAppleScriptLiveHandlers()
+std::string PowerPointAppleScriptLiveHandlers(const std::string &powerpoint_bundle)
 {
-  return R"APPLESCRIPT(
+  const auto tell_powerpoint = PowerPointApplicationTellLine(powerpoint_bundle);
+  return std::string(R"APPLESCRIPT(
 on normalize_posix_path(candidate)
 	try
 		return POSIX path of (candidate as alias)
@@ -974,20 +1127,10 @@ on normalize_posix_path(candidate)
 	end try
 end normalize_posix_path
 
-on presentation_posix_path(targetPresentation)
-	tell application "Microsoft PowerPoint"
-		try
-			return my normalize_posix_path((full name of targetPresentation) as text)
-		end try
-		try
-			return my normalize_posix_path((path of targetPresentation) as text)
-		end try
-	end tell
-	return ""
-end presentation_posix_path
-
-on find_presentation_by_path(target_path)
-	tell application "Microsoft PowerPoint"
+on snapshot_for_path(target_path)
+)APPLESCRIPT") + "\t" + tell_powerpoint + R"APPLESCRIPT(
+		set targetPresentation to missing value
+		set presentationPath to ""
 		repeat with i from 1 to count of presentations
 			set candidatePresentation to presentation i
 			set candidatePath to ""
@@ -999,39 +1142,35 @@ on find_presentation_by_path(target_path)
 					set candidatePath to my normalize_posix_path((path of candidatePresentation) as text)
 				end try
 			end if
-			if candidatePath is target_path then return candidatePresentation
+			if candidatePath is target_path then
+				set targetPresentation to candidatePresentation
+				set presentationPath to candidatePath
+				exit repeat
+			end if
 		end repeat
-	end tell
-	return missing value
-end find_presentation_by_path
 
-on snapshot_for_presentation(targetPresentation, target_path)
-	tell application "Microsoft PowerPoint"
+		if targetPresentation is missing value then error "PowerPoint presentation is not open for this deck."
 		set targetWindow to slide show window of targetPresentation
 		set windowTitle to name of targetWindow
 		set slideNumber to slide index of slide of slideshow view of targetWindow
 		set slideCount to count of slides of targetPresentation
-		set presentationPath to my presentation_posix_path(targetPresentation)
 		if presentationPath is "" then set presentationPath to target_path
 		return windowTitle & linefeed & (slideNumber as text) & linefeed & (slideCount as text) & linefeed & presentationPath
 	end tell
-end snapshot_for_presentation
+end snapshot_for_path
 
 )APPLESCRIPT";
 }
 
-std::string PowerPointAppleScriptLiveStartSource()
+std::string PowerPointAppleScriptLiveStartSource(const std::string &powerpoint_bundle)
 {
-  return PowerPointAppleScriptLiveHandlers() + R"APPLESCRIPT(
-on wait_for_slide_show_window(target_path, openedPresentation, max_wait_seconds)
+  const auto tell_powerpoint = PowerPointApplicationTellLine(powerpoint_bundle);
+  const std::string source = PowerPointAppleScriptLiveHandlers(powerpoint_bundle) + R"APPLESCRIPT(
+on wait_for_slide_show_window(target_path, max_wait_seconds)
 	repeat (max_wait_seconds * 10) times
-		set targetPresentation to openedPresentation
-		if targetPresentation is missing value then set targetPresentation to my find_presentation_by_path(target_path)
-		if targetPresentation is not missing value then
-			try
-				return my snapshot_for_presentation(targetPresentation, target_path)
-			end try
-		end if
+		try
+			return my snapshot_for_path(target_path)
+		end try
 		delay 0.1
 	end repeat
 	error "PowerPoint live slideshow window did not appear."
@@ -1041,14 +1180,10 @@ on run argv
 	if (count of argv) is not 1 then error "Expected PowerPoint input path."
 	set input_path to my normalize_posix_path(item 1 of argv)
 
-	tell application "Microsoft PowerPoint"
+)APPLESCRIPT" + "\t" + tell_powerpoint + R"APPLESCRIPT(
 		activate
 		open POSIX file input_path
 		set targetPresentation to active presentation
-		try
-			set foundPresentation to my find_presentation_by_path(input_path)
-			if foundPresentation is not missing value then set targetPresentation to foundPresentation
-		end try
 		tell slide show settings of targetPresentation
 			-- Windowed slide show keeps PowerPoint in a normal resizable
 			-- window so the presenter can still use OBS (and the rest of the
@@ -1062,27 +1197,28 @@ on run argv
 		end tell
 	end tell
 
-	return my wait_for_slide_show_window(input_path, targetPresentation, 20)
+	return my wait_for_slide_show_window(input_path, 20)
 end run
 	)APPLESCRIPT";
+  return PowerPointTerminologyWrapped(source);
 }
 
-std::string PowerPointAppleScriptLiveQuerySource()
+std::string PowerPointAppleScriptLiveQuerySource(const std::string &powerpoint_bundle)
 {
-  return PowerPointAppleScriptLiveHandlers() + R"APPLESCRIPT(
+  const std::string source = PowerPointAppleScriptLiveHandlers(powerpoint_bundle) + R"APPLESCRIPT(
 on run argv
 	if (count of argv) is not 1 then error "Expected PowerPoint input path."
 	set input_path to my normalize_posix_path(item 1 of argv)
-	set targetPresentation to my find_presentation_by_path(input_path)
-	if targetPresentation is missing value then error "PowerPoint presentation is not open for this deck."
-	return my snapshot_for_presentation(targetPresentation, input_path)
+	return my snapshot_for_path(input_path)
 end run
 	)APPLESCRIPT";
+  return PowerPointTerminologyWrapped(source);
 }
 
-std::string PowerPointAppleScriptLiveStopSource()
+std::string PowerPointAppleScriptLiveStopSource(const std::string &powerpoint_bundle)
 {
-  return PowerPointAppleScriptLiveHandlers() + R"APPLESCRIPT(
+  const auto tell_powerpoint = PowerPointApplicationTellLine(powerpoint_bundle);
+  const std::string source = PowerPointAppleScriptLiveHandlers(powerpoint_bundle) + R"APPLESCRIPT(
 on run argv
 	if (count of argv) is less than 1 then error "Expected PowerPoint input path."
 	set input_path to my normalize_posix_path(item 1 of argv)
@@ -1090,8 +1226,24 @@ on run argv
 	if (count of argv) is greater than 1 then set target_title to item 2 of argv
 	set did_close to false
 
-	tell application "Microsoft PowerPoint"
-		set targetPresentation to my find_presentation_by_path(input_path)
+)APPLESCRIPT" + "\t" + tell_powerpoint + R"APPLESCRIPT(
+		set targetPresentation to missing value
+		repeat with i from 1 to count of presentations
+			set candidatePresentation to presentation i
+			set candidatePath to ""
+			try
+				set candidatePath to my normalize_posix_path((full name of candidatePresentation) as text)
+			end try
+			if candidatePath is "" then
+				try
+					set candidatePath to my normalize_posix_path((path of candidatePresentation) as text)
+				end try
+			end if
+			if candidatePath is input_path then
+				set targetPresentation to candidatePresentation
+				exit repeat
+			end if
+		end repeat
 		if targetPresentation is not missing value then
 			try
 				tell slideshow view of slide show window of targetPresentation to exit slide show
@@ -1124,6 +1276,7 @@ on run argv
 	return "not running"
 end run
 	)APPLESCRIPT";
+  return PowerPointTerminologyWrapped(source);
 }
 
 bool QueryPowerPointLiveState(
@@ -1136,6 +1289,11 @@ bool QueryPowerPointLiveState(
     out_error = "PowerPoint live query has no target presentation path.";
     return false;
   }
+  const auto powerpoint_bundle = FindPowerPointBundle();
+  if (powerpoint_bundle.empty()) {
+    out_error = "Microsoft PowerPoint was not found.";
+    return false;
+  }
 
   std::string std_out;
   std::string std_err;
@@ -1143,7 +1301,7 @@ bool QueryPowerPointLiveState(
   const bool ok = RunAppleScriptFile(
     cache_dir.empty() ? CacheDirectoryForDeck(presentation_path) : cache_dir,
     "pptbridge_powerpoint_live_query.applescript",
-    PowerPointAppleScriptLiveQuerySource(),
+    PowerPointAppleScriptLiveQuerySource(powerpoint_bundle),
     { presentation_path },
     std_out,
     std_err,
@@ -1169,15 +1327,13 @@ bool StartPowerPointLiveSession(
     out_error = "Microsoft PowerPoint was not found.";
     return false;
   }
+  const bool powerpoint_was_running_before_start = IsPowerPointRunning();
 
-  auto work_dir = PowerPointLiveWorkDirectory(pptx_path);
   std::error_code error;
+  auto work_dir = PowerPointLiveWorkDirectory(pptx_path);
   fs::create_directories(work_dir, error);
-  if (error) {
-    out_error = "Could not prepare PowerPoint live cache folder.";
-    return false;
-  }
-
+  const bool can_stage_copy = !error;
+  const auto original_input = fs::path(pptx_path);
   const auto copied_input = StagedPowerPointLivePath(pptx_path, work_dir);
 
   // Fast path: if PowerPoint already has this exact staged deck running
@@ -1185,10 +1341,16 @@ bool StartPowerPointLiveSession(
   // to that session. Do not use PowerPoint's active presentation here:
   // multi-deck shows often have a different slideshow active.
   {
+    std::string query_error;
+    LivePowerPointSnapshot existing;
+    if (QueryPowerPointLiveState(cache_dir, original_input.string(), existing, query_error) &&
+        !existing.window_title.empty()) {
+      snapshot = existing;
+      return true;
+    }
+
     std::error_code exists_error;
     if (fs::exists(copied_input, exists_error)) {
-      std::string query_error;
-      LivePowerPointSnapshot existing;
       if (QueryPowerPointLiveState(cache_dir, copied_input.string(), existing, query_error) &&
           !existing.window_title.empty()) {
         snapshot = existing;
@@ -1197,34 +1359,38 @@ bool StartPowerPointLiveSession(
     }
   }
 
-  error.clear();
-  fs::copy_file(pptx_path, copied_input, fs::copy_options::overwrite_existing, error);
-  if (error) {
-    // Copy may fail if PowerPoint still has the destination open from a
-    // previous run (leaves a ~$...pptx lock file next to it). If we still
-    // have a usable copy from an earlier session, reuse it; otherwise try
-    // a tmp-dir rename, and only then report an error.
-    std::error_code exists_error;
-    if (!fs::exists(copied_input, exists_error)) {
-      auto tmp_staged = work_dir / ("pptbridge_stage_" + copied_input.filename().string());
-      error.clear();
-      fs::copy_file(pptx_path, tmp_staged, fs::copy_options::overwrite_existing, error);
-      if (error) {
-        out_error = "Could not stage PowerPoint file for live mode.";
-        return false;
+  bool staged_copy_available = false;
+  if (can_stage_copy) {
+    error.clear();
+    fs::copy_file(pptx_path, copied_input, fs::copy_options::overwrite_existing, error);
+    if (!error) {
+      staged_copy_available = true;
+    } else {
+      // Copy may fail if PowerPoint still has the destination open from a
+      // previous run (leaves a ~$...pptx lock file next to it). If we still
+      // have a usable copy from an earlier session, reuse it; otherwise try
+      // a tmp-dir rename, and only then give up on the fallback copy.
+      std::error_code exists_error;
+      if (fs::exists(copied_input, exists_error)) {
+        staged_copy_available = true;
+      } else {
+        auto tmp_staged = work_dir / ("pptbridge_stage_" + copied_input.filename().string());
+        error.clear();
+        fs::copy_file(pptx_path, tmp_staged, fs::copy_options::overwrite_existing, error);
+        staged_copy_available = !error;
       }
     }
   }
 
-  auto start_once = [&](std::string &attempt_error) -> bool {
+  auto start_once = [&](const std::string &input_path, std::string &attempt_error) -> bool {
     std::string std_out;
     std::string std_err;
     int exit_code = 0;
     const bool launched = RunAppleScriptFile(
       cache_dir,
       "pptbridge_powerpoint_live_start.applescript",
-      PowerPointAppleScriptLiveStartSource(),
-      { copied_input.string() },
+      PowerPointAppleScriptLiveStartSource(powerpoint_bundle),
+      { input_path },
       std_out,
       std_err,
       exit_code,
@@ -1238,25 +1404,40 @@ bool StartPowerPointLiveSession(
     return ParseLivePowerPointOutput(std_out, snapshot, attempt_error);
   };
 
+  auto start_with_retry = [&](const std::string &input_path, const char *label, std::string &attempt_error) -> bool {
+    if (start_once(input_path, attempt_error)) {
+      return true;
+    }
+
+    if (RestartPowerPointIfIdleForLiveRetry(!powerpoint_was_running_before_start)) {
+      blog(
+        LOG_WARNING,
+        "[PPTBridge] PowerPoint live start failed once for '%s' using %s; restarted idle PowerPoint and retrying",
+        pptx_path.c_str(),
+        label);
+      std::string retry_error;
+      if (start_once(input_path, retry_error)) {
+        return true;
+      }
+      attempt_error += " Retry after idle PowerPoint restart also failed: " + retry_error;
+    }
+    return false;
+  };
+
   std::string first_error;
-  if (start_once(first_error)) {
+  if (start_with_retry(original_input.string(), "original deck path", first_error)) {
     return true;
   }
 
-  if (RestartPowerPointIfIdleForLiveRetry()) {
-    blog(
-      LOG_WARNING,
-      "[PPTBridge] PowerPoint live start failed once for '%s'; restarted idle PowerPoint and retrying",
-      pptx_path.c_str());
-    std::string retry_error;
-    if (start_once(retry_error)) {
+  if (staged_copy_available) {
+    std::string staged_error;
+    if (start_with_retry(copied_input.string(), "staged deck copy", staged_error)) {
       return true;
     }
-    out_error = first_error + " Retry after idle PowerPoint restart also failed: " + retry_error;
-    return false;
+    out_error = first_error + " Staged fallback also failed: " + staged_error;
+  } else {
+    out_error = first_error;
   }
-
-  out_error = first_error;
   return false;
 }
 
@@ -1272,6 +1453,11 @@ bool StopPowerPointLiveSession(
   if (!IsPowerPointRunning()) {
     return true;
   }
+  const auto powerpoint_bundle = FindPowerPointBundle();
+  if (powerpoint_bundle.empty()) {
+    out_error = "Microsoft PowerPoint was not found.";
+    return false;
+  }
 
   std::string std_out;
   std::string std_err;
@@ -1281,7 +1467,7 @@ bool StopPowerPointLiveSession(
       ? CacheDirectoryForDeck(!presentation_path.empty() ? presentation_path : window_title)
       : cache_dir,
     "pptbridge_powerpoint_live_stop.applescript",
-    PowerPointAppleScriptLiveStopSource(),
+    PowerPointAppleScriptLiveStopSource(powerpoint_bundle),
     { presentation_path, window_title },
     std_out,
     std_err,
@@ -1296,25 +1482,44 @@ bool StopPowerPointLiveSession(
   return true;
 }
 
-std::string PowerPointAppleScriptLiveCommandSource(const std::string &command_line)
+std::string PowerPointAppleScriptLiveCommandSource(
+  const std::string &command_line,
+  const std::string &powerpoint_bundle)
 {
-  std::string source = PowerPointAppleScriptLiveHandlers() + R"APPLESCRIPT(
+  std::string source = PowerPointAppleScriptLiveHandlers(powerpoint_bundle) + R"APPLESCRIPT(
 on run argv
 	if (count of argv) is not 1 then error "Expected PowerPoint input path."
 	set input_path to my normalize_posix_path(item 1 of argv)
-	set targetPresentation to my find_presentation_by_path(input_path)
-	if targetPresentation is missing value then error "PowerPoint presentation is not open for this deck."
 )APPLESCRIPT";
   if (!command_line.empty()) {
-    source += "\ttell application \"Microsoft PowerPoint\"\n\t\t";
+    source += "\t" + PowerPointApplicationTellLine(powerpoint_bundle) + "\n\t\t";
+    source += R"(set targetPresentation to missing value
+		repeat with i from 1 to count of presentations
+			set candidatePresentation to presentation i
+			set candidatePath to ""
+			try
+				set candidatePath to my normalize_posix_path((full name of candidatePresentation) as text)
+			end try
+			if candidatePath is "" then
+				try
+					set candidatePath to my normalize_posix_path((path of candidatePresentation) as text)
+				end try
+			end if
+			if candidatePath is input_path then
+				set targetPresentation to candidatePresentation
+				exit repeat
+			end if
+		end repeat
+		if targetPresentation is missing value then error "PowerPoint presentation is not open for this deck."
+		)";
     source += command_line;
     source += "\n\tend tell\n\tdelay 0.05\n";
   }
   source += R"APPLESCRIPT(
-	return my snapshot_for_presentation(targetPresentation, input_path)
+	return my snapshot_for_path(input_path)
 end run
 	)APPLESCRIPT";
-  return source;
+  return PowerPointTerminologyWrapped(source);
 }
 
 bool RunPowerPointLiveCommand(
@@ -1328,6 +1533,11 @@ bool RunPowerPointLiveCommand(
     out_error = "PowerPoint live command has no target presentation path.";
     return false;
   }
+  const auto powerpoint_bundle = FindPowerPointBundle();
+  if (powerpoint_bundle.empty()) {
+    out_error = "Microsoft PowerPoint was not found.";
+    return false;
+  }
 
   std::string std_out;
   std::string std_err;
@@ -1335,7 +1545,7 @@ bool RunPowerPointLiveCommand(
   const bool ok = RunAppleScriptFile(
     cache_dir.empty() ? CacheDirectoryForDeck(presentation_path) : cache_dir,
     "pptbridge_powerpoint_live_command.applescript",
-    PowerPointAppleScriptLiveCommandSource(command_line),
+    PowerPointAppleScriptLiveCommandSource(command_line, powerpoint_bundle),
     { presentation_path },
     std_out,
     std_err,
@@ -1387,7 +1597,7 @@ bool ConvertPptxToPdfWithPowerPoint(
   const bool launched = RunAppleScriptFile(
     cache_dir,
     "pptbridge_powerpoint_save_as.applescript",
-    PowerPointAppleScriptSaveAsSource(),
+    PowerPointAppleScriptSaveAsSource(powerpoint_bundle),
     { copied_input.string(), output_pdf.string() },
     std_out,
     std_err,
@@ -3366,6 +3576,7 @@ bool PresentationDocument::RenderPresenterBGRA(
     bool loaded = false;
     bool live_enabled = false;
     bool live_ready = false;
+    bool live_waiting_for_manual_start = false;
     bool black = false;
     std::string error;
     std::string live_error;
@@ -3383,6 +3594,12 @@ bool PresentationDocument::RenderPresenterBGRA(
       loaded = impl_->loaded;
       live_enabled = impl_->live_powerpoint_enabled;
       live_ready = impl_->live_ready;
+      live_waiting_for_manual_start =
+        impl_->live_powerpoint_enabled &&
+        !impl_->live_powerpoint_auto_start &&
+        !impl_->live_start_requested &&
+        !impl_->live_ready &&
+        !impl_->path.empty();
       black = impl_->black;
       error = impl_->error;
       live_error = impl_->live_error;
@@ -3441,6 +3658,8 @@ bool PresentationDocument::RenderPresenterBGRA(
       NSString *subtitle = nil;
       if (live_enabled && live_ready) {
         subtitle = @"Live slideshow is ready. Loading presenter notes and thumbnails…";
+      } else if (live_waiting_for_manual_start) {
+        subtitle = @"PowerPoint live mode is manual. Click Start / Restart PowerPoint Live Mode in the highlighted source-property group.";
       } else if (live_enabled && loading) {
         subtitle = @"Starting PowerPoint live mode and loading presenter notes…";
       } else if (live_enabled && !live_error.empty()) {

@@ -47,6 +47,18 @@ def main() -> int:
         raise AssertionError("PowerPoint live stop needs its own short timeout, not the default task timeout")
     if "kLiveStartTaskTimeoutSeconds" not in source:
         raise AssertionError("PowerPoint live start needs its own timeout so Start Live cannot hang indefinitely")
+    applescript_file_runner = extract_function(source, "bool RunAppleScriptFile(")
+    if "set pptbridge_script_file to POSIX file " not in applescript_file_runner:
+        raise AssertionError("AppleScript files must run through an -e wrapper so PowerPoint terminology resolves reliably")
+    if "run script pptbridge_script_file with parameters pptbridge_script_args" not in applescript_file_runner:
+        raise AssertionError("AppleScript files must use variable-backed parameters to avoid wrapper parse failures")
+    if "[arguments addObject:ToNSString(script_path.string())]" in applescript_file_runner:
+        raise AssertionError("AppleScript files must not be passed directly as osascript's first argument")
+    if "AppleScriptListLiteral(script_arguments)" not in applescript_file_runner:
+        raise AssertionError("AppleScript file arguments must be passed through a quoted AppleScript parameter list")
+    terminology_wrapper = extract_function(source, "std::string PowerPointTerminologyWrapped(")
+    if 'using terms from application \\"Microsoft PowerPoint\\"' not in terminology_wrapper:
+        raise AssertionError("PowerPoint AppleScript files must compile with the PowerPoint terminology dictionary")
 
     stop_session = extract_function(source, "bool StopPowerPointLiveSession(")
     if "kStopTaskTimeoutSeconds" not in stop_session:
@@ -62,13 +74,64 @@ def main() -> int:
         raise AssertionError("PowerPoint live start must use the live-start timeout, not the export timeout")
     if "PowerPointLiveWorkDirectory(pptx_path)" not in live_start_session:
         raise AssertionError("PowerPoint live staging should use a PowerPoint-readable temp folder, not Application Support")
-    if "RestartPowerPointIfIdleForLiveRetry()" not in live_start_session:
-        raise AssertionError("PowerPoint live start should retry once after restarting an idle stuck PowerPoint")
+    if "RestartPowerPointIfIdleForLiveRetry(!powerpoint_was_running_before_start)" not in live_start_session:
+        raise AssertionError("PowerPoint live start should retry once after safely restarting an idle stuck PowerPoint")
     if "Retry after idle PowerPoint restart also failed" not in live_start_session:
         raise AssertionError("PowerPoint live start retry failures should preserve both attempts in the error")
+    if "PowerPointAppleScriptLiveStartSource(powerpoint_bundle)" not in live_start_session:
+        raise AssertionError("PowerPoint live start must target the validated PowerPoint application")
     pdf_export = extract_function(source, "bool ConvertPptxToPdfWithPowerPoint(")
     if "kPowerPointExportTimeoutSeconds" not in pdf_export:
         raise AssertionError("PowerPoint Save As PDF export must use the export timeout, not the default task timeout")
+    if "PowerPointAppleScriptSaveAsSource(powerpoint_bundle)" not in pdf_export:
+        raise AssertionError("PowerPoint Save As PDF export must target the validated PowerPoint application")
+    if "std::string PowerPointAppleScriptSaveAsSource()" in source:
+        raise AssertionError("PowerPoint Save As PDF AppleScript source must receive the app bundle path")
+    save_as_source = extract_function(source, "std::string PowerPointAppleScriptSaveAsSource(")
+    if "kPowerPointAppleEventTimeoutSeconds" not in source:
+        raise AssertionError("PowerPoint Save As PDF fallback needs an AppleEvent timeout constant")
+    if "std::to_string(kPowerPointAppleEventTimeoutSeconds)" not in save_as_source:
+        raise AssertionError("PowerPoint Save As PDF fallback must pass the AppleEvent timeout into AppleScript")
+    if "with timeout of " not in save_as_source:
+        raise AssertionError("PowerPoint Save As PDF fallback must wrap PowerPoint AppleEvents in an AppleScript timeout")
+    if "((POSIX file candidate) as alias)" not in save_as_source:
+        raise AssertionError("PowerPoint Save As PDF fallback must normalize POSIX input paths before active deck matching")
+    if "set raw_input_path to item 1 of argv" not in save_as_source:
+        raise AssertionError("PowerPoint Save As PDF fallback must preserve and normalize the raw input path")
+    if "wait_for_active_presentation(input_path, 20)" not in save_as_source:
+        raise AssertionError("PowerPoint Save As PDF fallback must verify the staged deck became active before export")
+    if "if my active_presentation_path() is expected_path then" not in save_as_source:
+        raise AssertionError("PowerPoint Save As PDF fallback must match the active deck path before exporting")
+    if "PowerPointTerminologyWrapped(source)" not in save_as_source:
+        raise AssertionError("PowerPoint Save As PDF fallback must wrap generated AppleScript with PowerPoint terms")
+    app_tell = extract_function(source, "std::string PowerPointApplicationTellLine(")
+    if "FindPowerPointBundle()" not in app_tell or 'tell application \\"Microsoft PowerPoint\\"' not in app_tell:
+        raise AssertionError("PowerPoint AppleScript helpers must validate the app bundle before using the display-name target")
+    if '"tell application " + AppleScriptStringLiteral(bundle)' in app_tell:
+        raise AssertionError("PowerPoint AppleScript helpers must not emit a POSIX .app path as the tell target")
+    live_handlers = extract_function(source, "std::string PowerPointAppleScriptLiveHandlers(")
+    if "PowerPointApplicationTellLine(powerpoint_bundle)" not in live_handlers:
+        raise AssertionError("PowerPoint live handlers must use the validated application target, not only the app name")
+    if "snapshot_for_path" not in live_handlers:
+        raise AssertionError("PowerPoint live handlers must snapshot by deck path")
+    for removed_handler in (
+        "find_presentation_by_path",
+        "snapshot_for_presentation",
+        "presentation_posix_path",
+    ):
+        if removed_handler in live_handlers:
+            raise AssertionError("PowerPoint live AppleScript must not pass presentation objects between handlers")
+    for signature in (
+        "std::string PowerPointAppleScriptLiveStartSource(",
+        "std::string PowerPointAppleScriptLiveQuerySource(",
+        "std::string PowerPointAppleScriptLiveStopSource(",
+        "std::string PowerPointAppleScriptLiveCommandSource(",
+    ):
+        live_source = extract_function(source, signature)
+        if "PowerPointTerminologyWrapped(source)" not in live_source:
+            raise AssertionError(f"{signature} must wrap generated AppleScript with PowerPoint terms")
+    if "std::string PowerPointAppleScriptLiveCommandSource(const std::string &command_line)" in source:
+        raise AssertionError("PowerPoint live command AppleScript source must receive the app bundle path")
     if "dispatch_queue_create(\"com.srdjankotarlic.pptbridge.live\", DISPATCH_QUEUE_SERIAL)" not in source:
         raise AssertionError("Live PowerPoint AppleScript operations need one FIFO serial queue")
 
@@ -242,6 +305,10 @@ def main() -> int:
     for symbol in ("DrawPresenterBackgroundImage", "DrawCueList", "options.background_color"):
         if symbol not in presenter_render:
             raise AssertionError(f"Presenter renderer must use {symbol}")
+    if "live_waiting_for_manual_start" not in presenter_render:
+        raise AssertionError("Presenter renderer should explain manual PowerPoint live mode before showing conversion errors")
+    if "PowerPoint live mode is manual. Click Start / Restart PowerPoint Live Mode" not in presenter_render:
+        raise AssertionError("Presenter manual-live message should point users to Start / Restart")
     if "checked_cues" not in source:
         raise AssertionError("Cue list needs persistent check/uncheck state")
 

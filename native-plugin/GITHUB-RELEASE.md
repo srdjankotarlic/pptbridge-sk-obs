@@ -1,4 +1,4 @@
-## PPTBridge SK for OBS v0.5.6
+## PPTBridge SK for OBS v0.5.7
 
 Created by **Srdjan Kotarlic**
 
@@ -29,7 +29,20 @@ https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptb
 
 Apple Silicon is the main stable build. Intel Mac and Windows remain separate beta paths while real-hardware feedback is collected.
 
-### What Is New In v0.5.6
+### What Is New In v0.5.7
+
+- Hardened the PowerPoint AppleScript runner used by live mode and the PowerPoint Save As PDF fallback.
+- Fixed a non-ARC task-output lifetime bug that could crash PPTX loading while reading helper-process stdout/stderr.
+- Fixed idle PowerPoint retry detection so a stuck empty PowerPoint session can be restarted and retried instead of leaving Start Live looking idle.
+- If PPTBridge launches PowerPoint and that fresh launch becomes unresponsive during Start Live, it can now terminate that owned launch and retry without touching a PowerPoint session that was already open before the attempt.
+- Live mode now opens the original selected `.pptx` first and uses the staged deck copy only as a fallback, which makes Start Live faster and avoids PowerPoint getting stuck on hidden temporary paths.
+- PowerPoint helper scripts now run through a parameterized wrapper so PowerPoint terminology resolves more reliably on macOS.
+- Live PowerPoint handlers now resolve slideshow state by the exact deck path that was opened instead of carrying fragile PowerPoint presentation objects between AppleScript handlers.
+- PowerPoint Save As PDF fallback now has longer bounded AppleEvent timeouts and verifies that the expected staged deck became active before exporting.
+- Presenter view now gives a clearer manual-live-mode message instead of looking like a stalled conversion when live mode is enabled but not started.
+- Added regression coverage for immediate Start Live Mode, preview-first Start Live Mode, presenter cue-list rendering, current/next cue check state, and clearing cue checks.
+
+### Also Included From v0.5.6
 
 - Fixed `Start / Restart PowerPoint Live Mode` when clicked immediately after a fast preview appears but notes/media are still preparing.
 - PowerPoint live-mode staging now uses a PowerPoint-readable temp folder instead of the OBS/Application Support cache path, avoiding macOS PowerPoint automation failures when opening staged decks.
