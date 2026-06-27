@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<!-- ============================================================= -->
+<!-- GOOGLE SEARCH CONSOLE: after you add the property in Search    -->
+<!-- Console (URL prefix method), copy the verification code and    -->
+<!-- uncomment the line below, replacing PASTE_CODE_HERE.           -->
+<!-- <meta name="google-site-verification" content="PASTE_CODE_HERE" /> -->
+<!-- ============================================================= -->
+
+<title>PPTBridge SK for OBS — PowerPoint &amp; PDF slides as native OBS sources (free)</title>
+<meta name="description" content="PPTBridge SK is a free, open-source OBS Studio plugin that brings PowerPoint and PDF slides into OBS as native sources, with a presenter/confidence view, next-slide preview, timer, notes, and slide control over hotkeys, a clicker, Companion/Stream Deck, or OSC. macOS Apple Silicon stable, Windows beta." />
+<meta name="keywords" content="OBS plugin, OBS Studio plugin, PowerPoint to OBS, PowerPoint in OBS, PDF to OBS, presenter view OBS, confidence monitor OBS, OBS slides, OSC, Companion, Stream Deck, livestream, webinar, conference, broadcast" />
+<meta name="author" content="Srdjan Kotarlic" />
+<link rel="canonical" href="https://srdjankotarlic.github.io/pptbridge-sk-obs/" />
+<link rel="icon" type="image/png" href="assets/favicon.png" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="PPTBridge SK for OBS" />
+<meta property="og:title" content="PPTBridge SK for OBS — PowerPoint &amp; PDF slides as native OBS sources" />
+<meta property="og:description" content="Free, open-source OBS plugin. PowerPoint and PDF slides as native OBS sources, plus a presenter view with notes, next slide, and timer. Control via hotkeys, clicker, Companion/Stream Deck, or OSC." />
+<meta property="og:url" content="https://srdjankotarlic.github.io/pptbridge-sk-obs/" />
+<meta property="og:image" content="https://srdjankotarlic.github.io/pptbridge-sk-obs/assets/og-image.png" />
+<meta property="og:image:width" content="1280" />
+<meta property="og:image:height" content="640" />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PPTBridge SK for OBS — PowerPoint &amp; PDF slides as native OBS sources" />
+<meta name="twitter:description" content="Free, open-source OBS plugin for live PowerPoint and PDF decks. Clean slide output + presenter view. Hotkeys, clicker, Companion/Stream Deck, OSC." />
+<meta name="twitter:image" content="https://srdjankotarlic.github.io/pptbridge-sk-obs/assets/og-image.png" />
+
+<!-- JSON-LD: SoftwareApplication -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "PPTBridge SK for OBS",
+  "operatingSystem": "macOS, Windows",
+  "applicationCategory": "MultimediaApplication",
+  "description": "Free, open-source OBS Studio plugin that adds PowerPoint and PDF slides to OBS as native sources, with a presenter/confidence view (current slide, next slide, timer, notes) and slide control over OBS hotkeys, a presenter clicker, Bitfocus Companion / Stream Deck, or local OSC.",
+  "url": "https://srdjankotarlic.github.io/pptbridge-sk-obs/",
+  "downloadUrl": "https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest",
+  "softwareVersion": "0.5.7",
+  "license": "https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/LICENSE",
+  "image": "https://srdjankotarlic.github.io/pptbridge-sk-obs/assets/og-image.png",
+  "screenshot": "https://srdjankotarlic.github.io/pptbridge-sk-obs/assets/workflow-overview.png",
+  "author": {
+    "@type": "Person",
+    "name": "Srdjan Kotarlic",
+    "url": "https://github.com/srdjankotarlic"
+  },
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+}
+</script>
+
+<!-- JSON-LD: FAQPage -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is PPTBridge SK free?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. PPTBridge SK is free and open source (the native plugin is GPL-2.0-or-later because it links against OBS Studio). There is no paywall or trial." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I add PowerPoint to OBS?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Install the PPTBridge SK plugin, then in OBS click + in Sources and add 'PPTBridge SK Slide'. Pick your .pptx file. For live PowerPoint mode, open the source properties and click START - Open PowerPoint / Start Live Mode. PDF decks render directly without PowerPoint." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I install an OBS plugin on macOS?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Download the macOS Apple Silicon ZIP, unzip it, and double-click 1-Install-PPTBridge-SK.command. If macOS blocks it, right-click and choose Open. Then launch OBS in normal mode (not Safe Mode) so third-party plugins load." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does PPTBridge SK work on Windows?",
+      "acceptedAnswer": { "@type": "Answer", "text": "There is a Windows beta installer for PowerPoint live mode on OBS 30+. macOS Apple Silicon is the primary stable build; Windows and Intel Mac are beta while real-hardware feedback is collected." }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need PowerPoint installed?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Only for live .pptx mode. PDF decks work without PowerPoint on macOS — PPTBridge renders and controls them directly." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I control slides?",
+      "acceptedAnswer": { "@type": "Answer", "text": "OBS hotkeys (2 = next, 1 = previous by default), the source property buttons, a presenter clicker via Spotlight/Clicker Capture, Bitfocus Companion / Stream Deck, or local OSC on 127.0.0.1:57130." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does it support OSC?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Enable Tools > PPTBridge SK: Toggle Local OSC Control. It listens on 127.0.0.1:57130 and accepts /pptbridge/next, /previous, /first, /last, /black, and /reload, plus OSC status feedback for Companion, QLab, or TouchDesigner." }
+    }
+  ]
+}
+</script>
+
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#283041;
+    --text:#e6edf3; --muted:#9aa7b4; --accent:#1f6feb; --accent2:#388bfd; --green:#2ea043;
+    --radius:14px; --maxw:1000px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent2); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 20px}
+  header.site{border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(13,17,23,.85); backdrop-filter:blur(8px); z-index:10}
+  header.site .wrap{display:flex; align-items:center; gap:12px; height:60px}
+  header.site img{width:30px; height:30px; border-radius:7px}
+  header.site .name{font-weight:700}
+  header.site nav{margin-left:auto; display:flex; gap:18px; font-size:14px}
+  header.site nav a{color:var(--muted)}
+  .hero{padding:64px 0 40px; text-align:center}
+  .hero h1{font-size:clamp(28px,5vw,46px); line-height:1.15; margin:0 0 14px; letter-spacing:-.02em}
+  .hero p.sub{font-size:clamp(16px,2.4vw,20px); color:var(--muted); max-width:720px; margin:0 auto 28px}
+  .badges{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:26px; font-size:13px}
+  .badge{background:var(--panel); border:1px solid var(--line); color:var(--muted); padding:4px 11px; border-radius:999px}
+  .cta{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+  .btn{display:inline-block; padding:13px 22px; border-radius:10px; font-weight:600; border:1px solid var(--line)}
+  .btn.primary{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .btn.primary:hover{background:var(--accent2); text-decoration:none}
+  .btn.ghost{background:var(--panel); color:var(--text)}
+  .btn.ghost:hover{background:var(--panel2); text-decoration:none}
+  .btn small{display:block; font-weight:400; font-size:12px; color:rgba(255,255,255,.75)}
+  .btn.ghost small{color:var(--muted)}
+  .shot{margin:42px auto 0; max-width:920px}
+  .shot img{width:100%; height:auto; border:1px solid var(--line); border-radius:var(--radius); display:block}
+  section{padding:46px 0; border-top:1px solid var(--line)}
+  section h2{font-size:clamp(22px,3.4vw,30px); margin:0 0 8px; letter-spacing:-.01em}
+  section p.lead{color:var(--muted); margin:0 0 26px; max-width:760px}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:20px}
+  .card h3{margin:0 0 8px; font-size:17px}
+  .card p{margin:0; color:var(--muted); font-size:14.5px}
+  .os{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px}
+  .os .card ol{margin:10px 0 0; padding-left:18px; color:var(--muted); font-size:14.5px}
+  .os .card li{margin:6px 0}
+  .pill{display:inline-block; font-size:12px; padding:2px 9px; border-radius:999px; margin-left:8px}
+  .pill.stable{background:rgba(46,160,67,.15); color:#3fb950; border:1px solid rgba(46,160,67,.4)}
+  .pill.beta{background:rgba(187,128,9,.15); color:#d29922; border:1px solid rgba(187,128,9,.4)}
+  code{background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:1px 6px; font-size:13px}
+  .faq details{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:0 18px; margin-bottom:10px}
+  .faq summary{cursor:pointer; padding:15px 0; font-weight:600; list-style:none}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary::before{content:"+ "; color:var(--accent2); font-weight:700}
+  .faq details[open] summary::before{content:"– "}
+  .faq details p{margin:0 0 16px; color:var(--muted)}
+  footer{border-top:1px solid var(--line); padding:34px 0; color:var(--muted); font-size:14px; text-align:center}
+  footer a{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <img src="assets/favicon.png" alt="PPTBridge SK icon" />
+    <span class="name">PPTBridge SK</span>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="#control">Control</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="hero" style="border-top:none">
+  <div class="wrap">
+    <h1>PowerPoint and PDF slides as native OBS sources</h1>
+    <p class="sub">PPTBridge SK is a free, open-source <strong>OBS Studio plugin</strong>. It gives OBS a clean slide output and a separate presenter/confidence view — current slide, next slide, timer, and notes — for live shows, webinars, conferences, and church streams.</p>
+    <div class="badges">
+      <span class="badge">Free &amp; open source</span>
+      <span class="badge">macOS Apple Silicon — stable</span>
+      <span class="badge">Windows — beta</span>
+      <span class="badge">OBS Studio 30+</span>
+    </div>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip">Download for macOS<small>Apple Silicon · stable</small></a>
+      <a class="btn ghost" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest">All downloads<small>Windows beta · Intel beta</small></a>
+    </div>
+    <div class="shot">
+      <img src="assets/hero.png" alt="PPTBridge SK Slide and Presenter sources running inside OBS Studio" width="1280" height="640" />
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <h2>What it does</h2>
+    <p class="lead">PowerPoint is awkward in live production: full-screen takeover, fragile window captures, presenter notes on the wrong screen, and keyboard focus that moves slides by accident. PPTBridge SK keeps the audience feed and the speaker view separate inside OBS.</p>
+    <div class="grid">
+      <div class="card"><h3>Clean slide output</h3><p>The <code>PPTBridge SK Slide</code> source is a clean audience feed for projector, stream, recording, or your switcher — no desktop, no taskbar.</p></div>
+      <div class="card"><h3>Presenter / confidence view</h3><p><code>PPTBridge SK Presenter</code> shows the current slide, next slide, a timer, and speaker notes. Rendered in OBS, so you can resize, crop, and lay it out for any stage monitor.</p></div>
+      <div class="card"><h3>PowerPoint live mode</h3><p>Drive the real PowerPoint slideshow with builds, animations, and embedded video, captured cleanly into OBS on macOS.</p></div>
+      <div class="card"><h3>PDF decks, no PowerPoint</h3><p>Open a <code>.pdf</code> deck directly — PPTBridge renders and controls it natively, with no PowerPoint required.</p></div>
+      <div class="card"><h3>Show control built in</h3><p>Hotkeys, presenter clicker, Bitfocus Companion / Stream Deck, and local <strong>OSC</strong> with status feedback for QLab or TouchDesigner.</p></div>
+      <div class="card"><h3>Multi-deck routing</h3><p>One scene per deck. Hotkeys, OSC, and the clicker follow the deck in the current OBS Program scene, so several presentations stay open without crossing wires.</p></div>
+    </div>
+    <div class="shot"><img src="assets/workflow-overview.png" alt="PPTBridge SK workflow: Slide source for the audience and Presenter source for the speaker monitor" width="1350" height="1350" style="max-width:560px;margin:0 auto" /></div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2>Install</h2>
+    <p class="lead">Quit OBS first. After installing, launch OBS in normal mode (not Safe Mode) so third-party plugins load, then add <code>PPTBridge SK Slide</code> or <code>PPTBridge SK Presenter</code> from the Sources <code>+</code> menu.</p>
+    <div class="os">
+      <div class="card">
+        <h3>macOS <span class="pill stable">Apple Silicon · stable</span></h3>
+        <ol>
+          <li>Download the <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip">Apple Silicon ZIP</a> and unzip it.</li>
+          <li>Open <code>START-HERE-macOS.txt</code>.</li>
+          <li>Double-click <code>1-Install-PPTBridge-SK.command</code> (if blocked, right-click → Open).</li>
+          <li>Let it copy the plugin and open OBS.</li>
+          <li>Add <code>PPTBridge SK Slide</code> / <code>PPTBridge SK Presenter</code>.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>Windows <span class="pill beta">beta</span></h3>
+        <ol>
+          <li>Open the <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest">latest release</a> and download the Windows x64 ZIP.</li>
+          <li>Extract it.</li>
+          <li>Double-click <code>INSTALL.cmd</code>.</li>
+          <li>Open OBS Studio (30+) with PowerPoint installed.</li>
+          <li>Add <code>PPTBridge SK Slide</code> for the audience output.</li>
+        </ol>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:18px">Full guides: <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/QUICKSTART.md">Quickstart</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/SETUP-GUIDE.md">Setup guide</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/native-plugin/COMPANION-CONTROL.md">Companion / OSC</a></p>
+  </div>
+</section>
+
+<section id="control">
+  <div class="wrap">
+    <h2>Control your slides any way you run a show</h2>
+    <p class="lead">PPTBridge ignores OBS hotkeys while another app is focused, so typing elsewhere never moves a slide. Turn on global clicker capture only when you want a stage remote to drive slides across apps.</p>
+    <div class="grid">
+      <div class="card"><h3>OBS hotkeys</h3><p>Default <code>2</code> = next, <code>1</code> = previous. Works while OBS is focused.</p></div>
+      <div class="card"><h3>Presenter clicker</h3><p>Spotlight/Clicker Capture maps <code>PageDown</code>/<code>PageUp</code> so a remote works while you use Chrome or OBS.</p></div>
+      <div class="card"><h3>Companion / Stream Deck</h3><p>Drive slides from a control surface with no dependence on keyboard focus.</p></div>
+      <div class="card"><h3>OSC</h3><p>Local OSC on <code>127.0.0.1:57130</code>: <code>/pptbridge/next</code>, <code>/previous</code>, <code>/first</code>, <code>/last</code>, <code>/black</code>, <code>/reload</code> — plus status feedback.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq" class="faq">
+  <div class="wrap">
+    <h2>FAQ</h2>
+    <details open><summary>Is PPTBridge SK free?</summary><p>Yes — free and open source. The native plugin is GPL-2.0-or-later because it links against OBS Studio. No paywall, no trial.</p></details>
+    <details><summary>How do I add PowerPoint to OBS?</summary><p>Install the plugin, add a <code>PPTBridge SK Slide</code> source, and pick your <code>.pptx</code>. For live mode with animations and video, open the source properties and click <em>START - Open PowerPoint / Start Live Mode</em>. PDF decks render directly without PowerPoint.</p></details>
+    <details><summary>How do I install an OBS plugin on macOS?</summary><p>Download the Apple Silicon ZIP, unzip, and double-click <code>1-Install-PPTBridge-SK.command</code>. If macOS blocks it, right-click → Open. Then launch OBS in normal mode so third-party plugins load.</p></details>
+    <details><summary>Does it work on Windows?</summary><p>There is a Windows beta installer for PowerPoint live mode on OBS 30+. macOS Apple Silicon is the primary stable build; Windows and Intel Mac are beta while real-hardware feedback is collected.</p></details>
+    <details><summary>Do I need PowerPoint installed?</summary><p>Only for live <code>.pptx</code> mode. PDF decks work without PowerPoint on macOS.</p></details>
+    <details><summary>Does it support OSC and Companion?</summary><p>Yes. Enable <em>Tools &gt; PPTBridge SK: Toggle Local OSC Control</em>. It listens on <code>127.0.0.1:57130</code> and accepts next/previous/first/last/black/reload, with OSC status feedback for Companion, QLab, or TouchDesigner.</p></details>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>PPTBridge SK for OBS — built by <a href="https://github.com/srdjankotarlic">Srdjan Kotarlic</a> for real live-production work.<br />
+    <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs">Source on GitHub</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest">Latest release</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/issues">Report an issue</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://srdjankotarlic.github.io/pptbridge-sk-obs/sitemap.xml
