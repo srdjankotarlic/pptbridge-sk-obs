@@ -10,7 +10,10 @@ Native macOS OBS plugin for PowerPoint/PDF slide and presenter sources.
 
 ## Description
 
-PPTBridge SK for OBS is a native macOS OBS plugin created by **Srdjan Kotarlic**.
+PPTBridge SK for OBS is a native macOS OBS plugin I built for my own live shows — conferences, church streams, and webinars where PowerPoint never behaved well inside OBS (full-screen takeover, fragile window capture, notes on the wrong screen, hotkeys moving slides by accident). So I made it a proper OBS source instead.
+
+Website / downloads: https://srdjankotarlic.github.io/pptbridge-sk-obs/
+Source + releases: https://github.com/srdjankotarlic/pptbridge-sk-obs
 
 It adds two real source types to OBS:
 
