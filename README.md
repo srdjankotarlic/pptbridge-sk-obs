@@ -1,8 +1,10 @@
 # PPTBridge SK for OBS
 
-PPTBridge separates a clean slide output from a presenter/confidence view inside OBS for PowerPoint and PDF decks.
+PPTBridge SK is a free, open-source **OBS Studio plugin** that adds **PowerPoint and PDF slides to OBS** as native sources — a clean audience output plus a separate presenter/confidence view with current slide, next slide, timer, and notes.
 
-Used in a live production workflow for slides, presenter notes, next-slide preview, and OBS/Companion control.
+Used in live production for slides, presenter notes, next-slide preview, and OBS hotkey / clicker / Companion / **OSC** control.
+
+**Website:** https://srdjankotarlic.github.io/pptbridge-sk-obs/
 
 **Download stable macOS Apple Silicon v0.5.7:** [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.7/pptbridge-obs-macos-apple-silicon.zip)
 
