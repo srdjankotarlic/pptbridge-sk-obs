@@ -2,7 +2,7 @@
 
 ## Which download should I use?
 
-Use the Apple Silicon ZIP for M1, M2, M3, and M4 Macs. Use the Intel ZIP only for older Macs where `About This Mac` says `Processor: Intel`.
+Use the Apple Silicon ZIP for M-series Macs. Use the Intel ZIP only for older Macs where `About This Mac` says `Processor: Intel`.
 
 ## Is Windows supported?
 
@@ -109,9 +109,15 @@ On Windows beta, PDF input is not enabled yet.
 
 ## Does PPTBridge capture PowerPoint audio?
 
-For live PowerPoint mode, PPTBridge includes an OBS-side audio capture path for slideshow media. Exact behavior depends on OS, OBS version, PowerPoint version, and the deck.
+Embedded presentation audio is verified on the Apple Silicon build. It is routed through the `PPTBridge SK Slide` source, so the source meter, mute control, gain setting, recording, and stream use the same OBS audio path. Only the Slide source produces presentation audio; Presenter is a confidence view.
+
+PPTBridge also includes an optional live PowerPoint app-audio capture path. That path depends on macOS Screen & System Audio Recording permission, OBS, PowerPoint, and the deck, so test it with the exact show computer and presentation before production. If the source status says it is still searching for PowerPoint app audio, verify the permission and restart OBS.
 
 For strict audio routing setups, see [native-plugin/PRO-AUDIO-MODE.md](native-plugin/PRO-AUDIO-MODE.md).
+
+## Why did PPTBridge reject my file?
+
+PPTBridge accepts readable `.pptx` and `.pdf` presentation files. A missing file, unsupported extension, corrupt PDF, or incomplete/corrupt PPTX is rejected before loading and the source status explains the problem. Re-export or download the original deck again instead of renaming another file type to `.pptx` or `.pdf`.
 
 ## What should I send with a bug report?
 

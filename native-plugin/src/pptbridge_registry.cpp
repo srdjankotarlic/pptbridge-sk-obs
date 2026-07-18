@@ -111,4 +111,20 @@ size_t Registry::CountSources(const std::string &pptx_path, RegisteredSourceKind
   return count;
 }
 
+std::vector<void *> Registry::SourceTokens(const std::string &pptx_path, RegisteredSourceKind kind) const
+{
+  std::vector<void *> tokens;
+  if (pptx_path.empty()) {
+    return tokens;
+  }
+
+  std::lock_guard<std::mutex> lock(mutex_);
+  for (const auto &[token, source] : sources_) {
+    if (source.kind == kind && source.path == pptx_path) {
+      tokens.push_back(token);
+    }
+  }
+  return tokens;
+}
+
 }  // namespace pptbridge

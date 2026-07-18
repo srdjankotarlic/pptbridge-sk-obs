@@ -6,7 +6,7 @@ This is the shortest path from download to a working OBS presentation scene.
 
 | Your Mac | Download |
 | --- | --- |
-| M1, M2, M3, or M4 | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip) |
+| Apple Silicon (M-series) | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip) |
 | Intel Mac | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip) |
 
 To check your Mac type, open `Apple menu > About This Mac`.
@@ -15,10 +15,11 @@ To check your Mac type, open `Apple menu > About This Mac`.
 
 1. Unzip the download.
 2. Open `START-HERE-macOS.txt`.
-3. Double-click `1-Install-PPTBridge-SK.command`.
-4. If macOS blocks it, right-click the command and choose `Open`.
-5. Let the installer copy the plugin and open OBS.
-6. If OBS asks about Safe Mode, choose normal launch so third-party plugins load.
+3. Quit OBS if it is open.
+4. Double-click `1-Install-PPTBridge-SK.command`.
+5. If macOS blocks it, right-click the command and choose `Open`.
+6. Let the installer copy the plugin and open OBS.
+7. If OBS asks about Safe Mode, choose normal launch so third-party plugins load.
 
 ## 3. Add The OBS Sources
 
@@ -49,7 +50,7 @@ For PowerPoint decks:
 3. Click `Start / Restart PowerPoint Live Mode`.
 
 By default, OBS opens quietly and does not start PowerPoint until you click `Start / Restart`.
-If you close the slideshow window by accident but leave PowerPoint open, click `Start / Restart PowerPoint Live Mode` again to recover the live session.
+Leave `Auto Recover Live PowerPoint Session` enabled for live shows. After a live capture has worked once, PPTBridge will restart a slideshow that closes unexpectedly. You can still click `Start / Restart PowerPoint Live Mode` to recover manually, or `Reattach Live PowerPoint Window` if PowerPoint is running but OBS lost only the video connection.
 
 Live builds, animations, and embedded video are handled by `PPTBridge SK Slide`. `PPTBridge SK Presenter` stays lightweight and static for notes, next slide, timer, and confidence-monitor layouts.
 
@@ -120,8 +121,11 @@ Hotkeys, OSC, and clicker capture follow the current OBS Program scene.
 | macOS blocks the installer | Right-click the command and choose `Open` |
 | Slides do not load | Check the file path and click `Reload Presentation` |
 | PowerPoint does not start | Confirm Microsoft PowerPoint is installed |
+| A live slideshow closed unexpectedly | Wait a few seconds for Auto Recover, then use `Start / Restart` if you intentionally disabled it |
+| PowerPoint is live but its OBS video is missing | Click `Reattach Live PowerPoint Window` in source properties |
 | Clicker does not work globally | Enable Spotlight/Clicker Capture and grant macOS permissions |
 | Notes are missing | Check whether the original `.pptx` actually contains presenter notes |
+| Deck is rejected immediately | Confirm it is an existing, readable `.pptx` or `.pdf`; corrupt and unsupported files are rejected with a clear status message |
 
 More help:
 

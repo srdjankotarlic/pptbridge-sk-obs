@@ -47,6 +47,8 @@ def main() -> int:
         raise AssertionError("PowerPoint live stop needs its own short timeout, not the default task timeout")
     if "kLiveStartTaskTimeoutSeconds" not in source:
         raise AssertionError("PowerPoint live start needs its own timeout so Start Live cannot hang indefinitely")
+    if "kLiveStartTaskTimeoutSeconds = 120.0" not in source:
+        raise AssertionError("Cold PowerPoint live start must allow Microsoft 365 initialization to finish")
     applescript_file_runner = extract_function(source, "bool RunAppleScriptFile(")
     if "set pptbridge_script_file to POSIX file " not in applescript_file_runner:
         raise AssertionError("AppleScript files must run through an -e wrapper so PowerPoint terminology resolves reliably")
@@ -80,6 +82,25 @@ def main() -> int:
         raise AssertionError("PowerPoint live start retry failures should preserve both attempts in the error")
     if "PowerPointAppleScriptLiveStartSource(powerpoint_bundle)" not in live_start_session:
         raise AssertionError("PowerPoint live start must target the validated PowerPoint application")
+    if '@"/usr/bin/open"' not in live_start_session or '@"-b", ToNSString(kPowerPointBundleIdentifier)' not in live_start_session:
+        raise AssertionError("PowerPoint live start must open decks through LaunchServices to avoid file-access dialogs")
+    if "PreparePowerPointWindowForCaptureAndRestoreFocus()" not in live_start_session:
+        raise AssertionError("PowerPoint live start must prepare the slideshow window for ScreenCaptureKit")
+    if "auto staged_input = copied_input;" not in live_start_session:
+        raise AssertionError("PowerPoint live fallback must track the staged path that was actually created")
+    if "staged_input = alternate_copied_input;" not in live_start_session:
+        raise AssertionError("PowerPoint live fallback must retain an alternate staged-copy path")
+    if 'start_with_retry(staged_input.string(), "staged deck copy", staged_error)' not in live_start_session:
+        raise AssertionError("PowerPoint live fallback must launch the staged path that was actually created")
+    if 'start_with_retry(copied_input.string(), "staged deck copy", staged_error)' in live_start_session:
+        raise AssertionError("PowerPoint live fallback must not always launch the primary staged path")
+    start_once = live_start_session[
+        live_start_session.find("auto start_once") : live_start_session.find("auto start_with_retry")
+    ]
+    if start_once.find("PreparePowerPointWindowForCaptureAndRestoreFocus()") < start_once.find(
+        "ParseLivePowerPointOutput(std_out, snapshot, attempt_error)"
+    ):
+        raise AssertionError("PowerPoint must only be activated after the exact requested slideshow is running")
     pdf_export = extract_function(source, "bool ConvertPptxToPdfWithPowerPoint(")
     if "kPowerPointExportTimeoutSeconds" not in pdf_export:
         raise AssertionError("PowerPoint Save As PDF export must use the export timeout, not the default task timeout")
@@ -102,6 +123,10 @@ def main() -> int:
         raise AssertionError("PowerPoint Save As PDF fallback must verify the staged deck became active before export")
     if "if my active_presentation_path() is expected_path then" not in save_as_source:
         raise AssertionError("PowerPoint Save As PDF fallback must match the active deck path before exporting")
+    if "save opened_presentation in (POSIX file output_path) as save as PDF" not in save_as_source:
+        raise AssertionError("PowerPoint Save As PDF fallback must export the verified deck")
+    if "save active presentation" in save_as_source:
+        raise AssertionError("PowerPoint Save As PDF fallback must not export an unrelated active deck")
     if "PowerPointTerminologyWrapped(source)" not in save_as_source:
         raise AssertionError("PowerPoint Save As PDF fallback must wrap generated AppleScript with PowerPoint terms")
     app_tell = extract_function(source, "std::string PowerPointApplicationTellLine(")
@@ -130,6 +155,17 @@ def main() -> int:
         live_source = extract_function(source, signature)
         if "PowerPointTerminologyWrapped(source)" not in live_source:
             raise AssertionError(f"{signature} must wrap generated AppleScript with PowerPoint terms")
+    live_start_source = extract_function(source, "std::string PowerPointAppleScriptLiveStartSource(")
+    if "on start_slide_show_for_path(target_path)" not in live_start_source:
+        raise AssertionError("PowerPoint live start must locate the requested deck by exact path")
+    if "if candidatePath is target_path then" not in live_start_source:
+        raise AssertionError("PowerPoint live start must compare each open deck to the requested path")
+    if "start_slide_show_for_path(input_path)" not in live_start_source:
+        raise AssertionError("PowerPoint live start must start the exact requested deck")
+    if "set targetPresentation to active presentation" in live_start_source:
+        raise AssertionError("PowerPoint live start must not route a second source to whichever deck is active")
+    if "open POSIX file input_path" in live_start_source:
+        raise AssertionError("PowerPoint live start must not trigger the modal AppleScript file-access path")
     if "std::string PowerPointAppleScriptLiveCommandSource(const std::string &command_line)" in source:
         raise AssertionError("PowerPoint live command AppleScript source must receive the app bundle path")
     if "dispatch_queue_create(\"com.srdjankotarlic.pptbridge.live\", DISPATCH_QUEUE_SERIAL)" not in source:
@@ -155,17 +191,26 @@ def main() -> int:
         raise AssertionError("START/RESTART must clear stale live-ready state before relaunching PowerPoint")
     if "impl_->live_window_title.clear()" not in start_live:
         raise AssertionError("START/RESTART must clear the stale slideshow window title before relaunching")
+    if "impl_->live_request_generation += 1" not in start_live:
+        raise AssertionError("START/RESTART must invalidate results from older live requests")
     stop_async = extract_function(source, "void PresentationDocument::StopLivePowerPointAsync(")
     if "std::thread" in stop_async or "detach(" in stop_async:
         raise AssertionError("Async live stop should use the FIFO live queue, not one detached thread per stop")
     if "dispatch_async(impl_->live_queue" not in stop_async:
         raise AssertionError("Async live stop must dispatch through the FIFO live queue")
+    if "request_generation = ++impl_->live_request_generation" not in stop_async:
+        raise AssertionError("Async live stop must invalidate an older in-flight start")
+    stop_on_queue = extract_function(source, "void PresentationDocument::StopLivePowerPointOnLiveQueue(")
+    if "impl_->live_request_generation != request_generation" not in stop_on_queue:
+        raise AssertionError("A completed old stop must not overwrite a newer live-start request")
 
     sync_live = extract_function(source, "void PresentationDocument::SyncLiveStateAsync(")
     if "std::thread" in sync_live or "detach(" in sync_live:
         raise AssertionError("Live state sync should use the FIFO live queue, not detached threads")
     if "dispatch_async(impl_->live_queue" not in sync_live:
         raise AssertionError("Live state sync must dispatch through the FIFO live queue")
+    if "self->impl_->live_request_generation != request_generation" not in sync_live:
+        raise AssertionError("Live sync must ignore results from an older start/stop generation")
 
     live_command = extract_function(source, "void PresentationDocument::RunLivePowerPointCommandAsync(")
     if "std::thread" in live_command or "detach(" in live_command:
@@ -176,6 +221,8 @@ def main() -> int:
         raise AssertionError("Live PowerPoint commands must dispatch through the FIFO live queue")
     if "self->impl_->live_ready = false" not in live_command:
         raise AssertionError("Failed live commands must mark the PowerPoint slideshow as not ready")
+    if "self->impl_->live_request_generation != request_generation" not in live_command:
+        raise AssertionError("Live commands must ignore results from an older start/stop generation")
 
     sync_live = extract_function(source, "void PresentationDocument::SyncLiveStateAsync(")
     if "self->impl_->live_ready = false" not in sync_live:
@@ -184,6 +231,12 @@ def main() -> int:
     load_worker = extract_function(source, "void PresentationDocument::LoadOnWorker(")
     if "live_started_now" not in load_worker:
         raise AssertionError("Live startup should track whether this worker just opened PowerPoint")
+    if "dispatch_sync(impl_->live_queue" not in load_worker:
+        raise AssertionError("Live startup must serialize with stop, sync, and navigation operations")
+    if "impl_->live_request_generation != live_request_generation" not in load_worker:
+        raise AssertionError("Live startup must reject a result from an older user request")
+    if "Discarded stale PowerPoint live-start result" not in load_worker:
+        raise AssertionError("A stale live-start result must be cleaned up instead of reopening PowerPoint")
     if "if (live_enabled && !presenter_assets_wanted)" in load_worker:
         raise AssertionError("Manual live mode must still prepare the static preview instead of returning blank")
     if "!live_enabled || live_auto_start || live_start_requested || already_live_ready || live_started_now" not in load_worker:
@@ -220,6 +273,61 @@ def main() -> int:
         raise AssertionError("PowerPoint live start must ignore non-PPTX/PDF decks instead of doing nothing silently")
     if "PowerPoint Live Mode is only available for .pptx decks" not in start_control:
         raise AssertionError("PDF/non-PPTX live start should leave a clear user-facing explanation")
+    if "enable_live_mode_for_matching_slide_sources(context)" not in start_control:
+        raise AssertionError("Start / Restart must enable live capture on matching Slide sources")
+    enable_matching_live = extract_function(
+        source_slide, "void enable_live_mode_for_matching_slide_sources("
+    )
+    matching_slide_dispatch = extract_function(
+        source_slide, "void for_each_matching_slide_source("
+    )
+    if "SourceTokens(" not in matching_slide_dispatch:
+        raise AssertionError("Live start must locate every matching Slide source")
+    if 'obs_data_set_bool(settings, "use_live_powerpoint", true)' not in enable_matching_live:
+        raise AssertionError("Live start must persist True Live PowerPoint Mode on matching Slide sources")
+    if "obs_source_update(slide_context->source, settings)" not in enable_matching_live:
+        raise AssertionError("Live start must immediately apply the updated Slide source settings")
+    if "reset_live_child_sources(context, false)" not in start_control:
+        raise AssertionError("Start / Restart must discard a stale macOS capture source before relaunching")
+    reset_live_children = extract_function(source_slide, "void reset_live_child_sources(")
+    for symbol in (
+        "release_live_capture_source(context)",
+        "clear_live_audio_source(context)",
+        "live_capture_suppressed_after_stop = suppress_auto_recovery",
+    ):
+        if symbol not in reset_live_children:
+            raise AssertionError(f"Live child reset must include {symbol}")
+    if "stop_live_mode_for_matching_slide_sources(context)" not in stop_control:
+        raise AssertionError("Stop from Presenter properties must suppress auto-recovery on matching Slide sources")
+    reattach_control = extract_function(source_slide, "bool control_reattach_live(")
+    if "reattach_live_mode_for_matching_slide_sources(context)" not in reattach_control:
+        raise AssertionError("Manual reattach from Presenter properties must reset matching Slide sources")
+    if "reset_live_child_sources(context, false)" not in reattach_control:
+        raise AssertionError("Manual reattach must recreate the macOS capture source, not reuse a stale stream")
+    if "return true;" not in reattach_control:
+        raise AssertionError("Manual reattach should refresh source properties immediately")
+    source_update = extract_function(source_slide, "void source_update(")
+    if "CountSources(context->pptx_path, RegisteredSourceKind::Slide) <= 1" not in source_update:
+        raise AssertionError("Changing one duplicated Slide source must not stop another source's live session")
+    texture_destroy_block = source_update[source_update.find("if (size_changed)") :]
+    if not texture_destroy_block.startswith("if (size_changed)"):
+        raise AssertionError("Only source dimension changes should destroy the OBS texture during source_update")
+    if "presenter_options_changed" in texture_destroy_block.split("context->rendered_state_version", 1)[0]:
+        raise AssertionError("Presenter property edits must refresh pixels without destroying the active OBS texture")
+    find_live_window = extract_function(source_slide, "CGWindowID find_powerpoint_window_id(")
+    if "kCGWindowListOptionAll" not in find_live_window:
+        raise AssertionError("macOS live capture must find slideshow windows outside the current Space")
+    source_tick = extract_function(source_slide, "void source_tick(")
+    for required in (
+        "live_capture_is_renderable(context)",
+        "live_capture_missing_since",
+        "release_live_capture_source(context)",
+        "live_watchdog_ready",
+        "StartLivePowerPointAsync()",
+        "Live slideshow session closed unexpectedly; restarting PowerPoint live mode",
+    ):
+        if required not in source_tick:
+            raise AssertionError(f"macOS live watchdog must recover zero-frame capture streams via {required}")
     presenter_props = extract_function(source_slide, "void add_presenter_customization_properties(")
     for key in (
         "presenter_background_color",
@@ -355,6 +463,8 @@ def main() -> int:
         "COMPANION-CONTROL.md",
         "PPTBridge-SK-Companion-OSC-Template.json",
         "scripts/send-osc.sh",
+        "export TZ=UTC",
+        'touch -h -t 202001010000',
     ):
         if symbol not in make_release:
             raise AssertionError(f"macOS release ZIP should include {symbol}")

@@ -170,7 +170,7 @@ Supported OSC addresses:
 The OSC listener routes commands to the PPTBridge source in the current OBS program scene.
 If no PPTBridge source is in Program, it falls back to the last active PPTBridge document.
 This matches the stage-friendly hotkey routing, but it does not require OBS to be the focused app.
-For multiple live PowerPoint decks, keep one deck per OBS scene. PPTBridge locks each open slideshow to its exact staged file, and OSC follows the current Program scene.
+For multiple live PowerPoint decks, keep one deck per OBS scene. PPTBridge locks each open slideshow to the exact selected deck path (or its fallback copy), and OSC follows the current Program scene.
 Spotlight/Clicker Capture uses the same current Program scene routing for physical presenter clickers.
 
 Example terminal test after enabling OSC in OBS:

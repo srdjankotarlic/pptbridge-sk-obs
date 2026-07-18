@@ -87,8 +87,8 @@ Recommended setup:
 
 Safe default mapping:
 
-- next = `2` or `Right Arrow`
-- previous = `1` or `Left Arrow`
+- next = `2`
+- previous = `1`
 
 PPTBridge only acts on those hotkeys while OBS is the active app. You can bind
 different keys or a clicker in OBS, but typing in another app will not move the
@@ -108,11 +108,11 @@ keys from the focused app. It works for PPTX live mode and PDF/cached decks. If
 macOS asks, allow OBS in `System Settings > Privacy & Security > Accessibility`
 and `Input Monitoring`, then restart OBS or toggle the feature again.
 
-Out of the box it captures `PageDown` or `Right` for next and `PageUp` or `Left`
-for previous. You can still bind custom PPTBridge hotkeys in
-OBS Settings if your clicker sends unusual keys. If you bind normal typing keys
-such as `1` and `2`, those keys will be swallowed while Spotlight/Clicker
-Capture is enabled.
+Out of the box it captures `PageDown` for next and `PageUp` for previous.
+You can still bind supported custom PPTBridge hotkeys in OBS Settings if your
+clicker sends unusual keys. Plain typing keys, Space, Return, Tab, Delete, and
+normal left/right arrows are deliberately excluded from global capture so the
+operator can continue typing and navigating while OBS is open.
 
 ## PowerPoint Startup And Shutdown
 
@@ -122,8 +122,10 @@ Capture is enabled.
 |---|---|
 | `Start / Restart PowerPoint Live Mode` | Opens PowerPoint if needed, starts the slideshow only when you click it, and recovers if the slideshow window was closed |
 | `Auto Start PowerPoint When OBS Opens` | Starts the slideshow automatically when OBS loads the source |
+| `Auto Recover Live PowerPoint Session` | Restarts a slideshow that closes unexpectedly after the live capture was working |
 | `Close PowerPoint Slideshow When OBS Closes` | Closes the live slideshow when OBS quits |
 | `Stop PowerPoint Live Mode` | Stops the live slideshow without quitting OBS from the highlighted `PowerPoint Live Start / Stop` group |
+| `Reattach Live PowerPoint Window` | Recreates the OBS video connection when PowerPoint is still live but the captured window is missing |
 | `PowerPoint Resize Behavior` | Keeps OBS locked to its canvas or lets OBS follow the PowerPoint window shape |
 | `Lock OBS Size Against PPT Resize` | Keeps the OBS output stable while you shrink the PowerPoint window on your desktop |
 | `Follow Current PPT Window Size` | Makes the OBS output intentionally follow the current PowerPoint window shape |
@@ -150,10 +152,10 @@ Use this setup when one show has several different presentations:
 5. Click `Start / Restart PowerPoint Live Mode` for each deck you want ready.
 6. Change OBS scenes during the show.
 
-PPTBridge identifies each live PowerPoint session by the exact staged deck file,
-not by whichever PowerPoint window is currently active. This lets several PPTX
-decks stay open at the same time while the current OBS program scene controls the
-right deck.
+PPTBridge identifies each live PowerPoint session by the exact selected deck path
+(or its fallback copy), not by whichever PowerPoint window is currently active.
+This lets several PPTX decks stay open at the same time while the current OBS
+program scene controls the right deck.
 
 ## Presenter Workflow
 

@@ -28,7 +28,7 @@ This native version is built around a practical conference workflow:
 - support true live PowerPoint playback on macOS when Microsoft PowerPoint is installed
 - let users choose manual or automatic PowerPoint slideshow startup
 - capture the live slideshow into `PPTBridge SK Slide` as a real OBS source
-- route slideshow audio into the OBS mixer through the slide source, with a built-in gain trim and dedicated PowerPoint app-audio capture in live mode
+- route verified embedded slideshow audio into the OBS mixer through the slide source, with a built-in gain trim and an optional permission-dependent PowerPoint app-audio path in live mode
 - expose a clean audience source and a presenter source
 - render presenter notes, next-slide preview, and timer in a dedicated PPTBridge presenter layout
 - customize the presenter layout, presenter split, preview scaling, preview position, notes font size, notes zoom, notes text position, and notes area
@@ -43,7 +43,9 @@ This native version is built around a practical conference workflow:
 
 ## Quick Platform Guide
 
-- `v0.5.6` = current Apple Silicon stable release with more reliable manual PowerPoint live start, clearer PDF controls, and PowerPoint-readable live staging
+- `v0.5.8` = current Apple Silicon release with reliable multi-deck live startup, Presenter property stability, live recovery, safer inputs, embedded-audio routing, and expanded release QA
+- `v0.5.7` = previous Apple Silicon stable release with more reliable PowerPoint automation and stronger Start Live regression coverage
+- `v0.5.6` = previous Apple Silicon stable release with more reliable manual PowerPoint live start, clearer PDF controls, and PowerPoint-readable live staging
 - `v0.5.5` = previous Apple Silicon stable release with faster first preview while notes/media finish preparing in the background
 - `v0.5.4` = previous Apple Silicon stable release with safer default hotkeys: `2`/`1`, while normal left/right arrows stay free
 - `v0.5.3` = previous Apple Silicon stable release with Companion OSC starter template, expanded OSC feedback, and packaging polish
@@ -129,9 +131,9 @@ The local install script copies the plugin into:
 
 `~/Library/Application Support/obs-studio/plugins/pptbridge-obs.plugin`
 
-## One-Click Installers
+## Installer And Release Packages
 
-Two installer options are included:
+Three installer/package options are included:
 
 1. `PPTBridge-Install.command`
    - easiest double-click installer for the current macOS user
@@ -143,7 +145,7 @@ Two installer options are included:
    - installs into `/Library/Application Support/obs-studio/plugins`
 3. `scripts/make-release.sh`
    - builds a shareable release folder and zip for other laptops
-   - includes only the user-facing install files: `START-HERE-macOS.txt`, `1-Install-PPTBridge-SK.command`, `README.md`, and the plugin bundle
+   - includes the install guide, double-click installer, plugin bundle, Companion/OSC guide and starter map, and local OSC tester
 
 Build the package:
 
@@ -204,7 +206,7 @@ That gives you a clean dual-output workflow:
 
 For multi-deck shows, put each `.pptx` in its own OBS scene with its own `PPTBridge SK Slide` source and optional matching `PPTBridge SK Presenter` source. Start live mode for each deck you want ready before the show.
 
-Each live PowerPoint session is matched by its exact staged file path, so multiple open PowerPoint slideshow windows can coexist without Deck 2 attaching to Deck 1. Hotkeys and local OSC still route to the PPTBridge source in the current OBS program scene.
+Each live PowerPoint session is matched by the exact selected deck path (or its fallback copy), so multiple open PowerPoint slideshow windows can coexist without Deck 2 attaching to Deck 1. Hotkeys and local OSC still route to the PPTBridge source in the current OBS program scene.
 
 ## Slide Control
 
@@ -249,13 +251,16 @@ In `PPTBridge SK Slide` properties for `.pptx` decks:
 
 - `Start / Restart PowerPoint Live Mode` opens PowerPoint if needed, starts the slideshow on demand, and recovers if the slideshow window was closed
 - `Auto Start PowerPoint When OBS Opens` restores automatic slideshow startup when OBS loads the source
+- `Auto Recover Live PowerPoint Session` restarts a slideshow that closes unexpectedly after the live capture was working
 - `Close PowerPoint Slideshow When OBS Closes` cleans up the running slideshow when OBS quits
 - `Stop PowerPoint Live Mode` stops the live slideshow without quitting OBS from the highlighted `PowerPoint Live Start / Stop` group
+- `Reattach Live PowerPoint Window` rebuilds the OBS video connection without restarting OBS or intentionally stopping the show
 - `PowerPoint Resize Behavior` controls whether OBS ignores or follows PowerPoint window resizing
 - `Lock OBS Size Against PPT Resize` keeps the OBS program output stable while the desktop PowerPoint window is made smaller
 - `Follow Current PPT Window Size` intentionally lets the PowerPoint window shape affect OBS
 
 Default behavior is manual startup, so OBS can open quietly before the operator starts PowerPoint.
+An intentional `Stop PowerPoint Live Mode` suppresses automatic recovery until live mode is started again.
 Default resize behavior is locked to the OBS canvas.
 For PDF decks, these PowerPoint-specific controls are hidden because PowerPoint is not used.
 

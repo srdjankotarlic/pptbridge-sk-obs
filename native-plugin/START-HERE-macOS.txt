@@ -7,7 +7,7 @@ FAST INSTALL
 
    Apple Silicon Macs:
    pptbridge-obs-macos-apple-silicon.zip
-   Use this for M1, M2, M3, and M4 Macs.
+   Use this for Apple Silicon M-series Macs.
 
    Intel Macs:
    pptbridge-obs-macos-intel.zip
@@ -82,8 +82,9 @@ This makes the clicker drive the PPTBridge deck in the current OBS Program scene
 and stops those captured key presses from affecting the focused app. It works for
 PPTX live mode and PDF/cached decks. You can still bind custom keys in OBS
 Settings > Hotkeys if your clicker sends unusual keys. Normal typing keys such
-as 1 and 2 are swallowed while this feature is enabled if you bind them as
-custom clicker keys.
+as 1 and 2, Space, Return, Tab, Delete, and normal left/right arrows are
+deliberately excluded from global capture so the operator can keep typing and
+navigating while this feature is enabled.
 
 POWERPOINT STARTUP
 
@@ -95,10 +96,15 @@ In the PPTBridge SK Slide source properties:
   If PowerPoint is not open yet, PPTBridge opens it for you.
 - If the slideshow window was closed but PowerPoint is still open, click
   Start / Restart PowerPoint Live Mode again to recover the live session.
+- Leave Auto Recover Live PowerPoint Session enabled to restart an unexpectedly
+  closed slideshow after live capture was already working.
+- Use Reattach Live PowerPoint Window when PowerPoint is still live but OBS lost
+  only the captured video connection.
 - Turn Auto Start PowerPoint When OBS Opens on if you want the slideshow to launch with OBS.
 - Leave Close PowerPoint Slideshow When OBS Closes on if OBS should clean up the slideshow on quit.
 - Use Stop PowerPoint Live Mode in the same highlighted group if you want
   to stop the slideshow without quitting OBS.
+- An intentional Stop does not trigger Auto Recover.
 - Leave PowerPoint Resize Behavior on Lock OBS Output Size if you want to shrink
   the PowerPoint window on your desktop without changing the OBS program output.
 - Use Follow Current PPT Window Size only when you intentionally want the resized
@@ -110,8 +116,9 @@ MULTIPLE PPTX DECKS
 - Add PPTBridge SK Slide and PPTBridge SK Presenter to each scene.
 - Select that scene's .pptx in both sources.
 - Click Start / Restart PowerPoint Live Mode once for each deck you want ready.
-- PPTBridge locks each PowerPoint live session to its exact staged deck file, so
-  several slideshow windows can stay open and scene changes control the right deck.
+- PPTBridge locks each PowerPoint live session to the exact selected deck path
+  (or its fallback copy), so several slideshow windows can stay open and scene
+  changes control the right deck.
 
 COMPANION / OSC
 

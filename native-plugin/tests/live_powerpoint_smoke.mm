@@ -8,6 +8,31 @@
 
 using pptbridge::PresentationDocument;
 
+namespace {
+
+bool WaitForLiveReady(
+  const std::shared_ptr<PresentationDocument> &document,
+  std::chrono::seconds timeout,
+  const char *label)
+{
+  const auto started = std::chrono::steady_clock::now();
+  while (!document->IsLivePowerPointReady()) {
+    const auto error = document->LastError();
+    if (!error.empty() && std::chrono::steady_clock::now() - started > std::chrono::seconds(2)) {
+      std::fprintf(stderr, "%s failed: %s\n", label, error.c_str());
+      return false;
+    }
+    if (std::chrono::steady_clock::now() - started > timeout) {
+      std::fprintf(stderr, "%s timed out\n", label);
+      return false;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+  return true;
+}
+
+} // namespace
+
 int main(int argc, char **argv)
 {
   @autoreleasepool {
@@ -40,19 +65,25 @@ int main(int argc, char **argv)
       document->SlideCount(),
       document->IsLivePowerPointReady() ? "yes" : "no");
 
+    // A stop issued while PowerPoint is still starting must win. The
+    // synchronous cleanup waits for the serial live queue to drain, making
+    // this a deterministic regression check for stale start completions.
     document->StartLivePowerPointAsync();
-    const auto live_start = std::chrono::steady_clock::now();
-    while (!document->IsLivePowerPointReady()) {
-      const auto error = document->LastError();
-      if (!error.empty() && std::chrono::steady_clock::now() - live_start > std::chrono::seconds(2)) {
-        std::fprintf(stderr, "live start failed: %s\n", error.c_str());
-        return 1;
-      }
-      if (std::chrono::steady_clock::now() - live_start > std::chrono::seconds(60)) {
-        std::fprintf(stderr, "live start timed out\n");
-        return 1;
-      }
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    document->StopLivePowerPointAsync();
+    document->StopLivePowerPoint();
+    if (document->IsLivePowerPointReady() || !document->LastError().empty()) {
+      std::fprintf(
+        stderr,
+        "rapid start/stop left a live session or error: %s\n",
+        document->LastError().c_str());
+      return 1;
+    }
+    std::printf("rapid start/stop ordering ok\n");
+
+    document->StartLivePowerPointAsync();
+    if (!WaitForLiveReady(document, std::chrono::seconds(60), "live start")) {
+      document->StopLivePowerPoint();
+      return 1;
     }
 
     std::printf(
@@ -60,8 +91,21 @@ int main(int argc, char **argv)
       document->LiveWindowTitle().c_str(),
       document->SlideCount());
 
+    // A newer start issued immediately after stop must survive the older stop
+    // completion and create a fresh, controllable live session.
+    document->StopLivePowerPointAsync();
+    document->StartLivePowerPointAsync();
+    if (!WaitForLiveReady(document, std::chrono::seconds(60), "rapid stop/start")) {
+      document->StopLivePowerPoint();
+      return 1;
+    }
+
+    std::printf("rapid stop/start ordering ok\n");
     document->StopLivePowerPoint();
-    std::printf("live stop ok: live_ready=%s\n", document->IsLivePowerPointReady() ? "yes" : "no");
+    if (document->IsLivePowerPointReady()) {
+      std::fprintf(stderr, "restarted live session still ready after final stop\n");
+      return 1;
+    }
   }
 
   return 0;

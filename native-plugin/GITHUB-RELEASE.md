@@ -1,4 +1,4 @@
-## PPTBridge SK for OBS v0.5.7
+## PPTBridge SK for OBS v0.5.8
 
 Created by **Srdjan Kotarlic**
 
@@ -24,23 +24,33 @@ https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptb
 
 | Your Mac | Download | Status |
 | --- | --- | --- |
-| M1, M2, M3, or M4 Mac | `pptbridge-obs-macos-apple-silicon.zip` | Stable |
+| Apple Silicon Mac | `pptbridge-obs-macos-apple-silicon.zip` | Stable |
 | Older Intel Mac | Use v0.4.4 `pptbridge-obs-macos-intel.zip` | Beta |
 
 Apple Silicon is the main stable build. Intel Mac and Windows remain separate beta paths while real-hardware feedback is collected.
 
-### What Is New In v0.5.7
+### What Is New In v0.5.8
+
+- Fixed multi-deck live startup on macOS: presentations now open through LaunchServices, avoiding PowerPoint's hidden `Grant File Access` dialog while another slideshow is running.
+- Fixed an OBS render-thread race that could freeze OBS when Presenter layout, background image, or other non-size properties were changed during preview.
+- Added `Auto Recover Live PowerPoint Session`. After live capture has worked, PPTBridge restarts a slideshow that closes unexpectedly; an intentional Stop remains stopped.
+- Added `Reattach Live PowerPoint Window` and hardened live-window discovery, capture recreation, and frame watchdog behavior.
+- Starting live mode from a matching Presenter source now enables and starts the corresponding Slide source, so the animated audience output is not left in static mode.
+- Missing, unsupported, corrupt, and incomplete `.pptx`/`.pdf` inputs are rejected early with a clear source status instead of entering a confusing loading state.
+- Fixed operator controls so both the Show Control status and lower Source Status refresh immediately after navigation, black-screen, reload, live, and cue-check actions.
+- Verified embedded WAV/MP3 audio routing through `PPTBridge SK Slide`: media populates the source meter and honors source gain/mute without double mixing. The optional live PowerPoint app-audio path remains permission- and deck-dependent and should be tested on the show computer.
+- Added dedicated lifecycle cleanup for private media and app-audio capture callbacks.
+- Expanded release QA coverage for invalid input, registry behavior, OSC control/feedback, multi-live workflows, 15-deck rendering, embedded audio, real OBS runtime, sanitizers, static analysis, cache behavior, packaging, and isolated installation.
+- Corrected clicker documentation: global capture uses PageDown/PageUp by default and deliberately leaves plain typing keys and normal left/right arrows available.
+
+### Also Included From v0.5.7
 
 - Hardened the PowerPoint AppleScript runner used by live mode and the PowerPoint Save As PDF fallback.
 - Fixed a non-ARC task-output lifetime bug that could crash PPTX loading while reading helper-process stdout/stderr.
 - Fixed idle PowerPoint retry detection so a stuck empty PowerPoint session can be restarted and retried instead of leaving Start Live looking idle.
 - If PPTBridge launches PowerPoint and that fresh launch becomes unresponsive during Start Live, it can now terminate that owned launch and retry without touching a PowerPoint session that was already open before the attempt.
-- Live mode now opens the original selected `.pptx` first and uses the staged deck copy only as a fallback, which makes Start Live faster and avoids PowerPoint getting stuck on hidden temporary paths.
-- PowerPoint helper scripts now run through a parameterized wrapper so PowerPoint terminology resolves more reliably on macOS.
-- Live PowerPoint handlers now resolve slideshow state by the exact deck path that was opened instead of carrying fragile PowerPoint presentation objects between AppleScript handlers.
-- PowerPoint Save As PDF fallback now has longer bounded AppleEvent timeouts and verifies that the expected staged deck became active before exporting.
-- Presenter view now gives a clearer manual-live-mode message instead of looking like a stalled conversion when live mode is enabled but not started.
-- Added regression coverage for immediate Start Live Mode, preview-first Start Live Mode, presenter cue-list rendering, current/next cue check state, and clearing cue checks.
+- Live mode opens the original selected `.pptx` first and uses the staged deck copy only as a fallback.
+- Presenter view gives a clearer manual-live-mode message instead of looking like a stalled conversion when live mode is enabled but not started.
 
 ### Also Included From v0.5.6
 
@@ -115,7 +125,7 @@ Apple Silicon is the main stable build. Intel Mac and Windows remain separate be
 - OBS can open quietly without immediately launching the PowerPoint slideshow
 - `Auto Start PowerPoint When OBS Opens` is available if you prefer automatic startup
 - `Close PowerPoint Slideshow When OBS Closes` can clean up the slideshow when OBS quits
-- multi-deck live sessions are matched by exact staged PowerPoint file so several PPTX decks can stay open across scenes
+- multi-deck live sessions are matched by the exact selected PowerPoint path (or its fallback copy) so several PPTX decks can stay open across scenes
 - Companion/OSC control, presenter customization, safer OBS-focused hotkeys, and confidence monitor polish remain included
 
 ### Basic Setup
@@ -180,8 +190,9 @@ The ZIP includes only the user-facing files needed to install and use the plugin
 ### Testing Notes
 
 - Apple Silicon was built and runtime-tested locally on OBS Studio 32.1.1 (M1 Pro).
-- Runtime testing covered plugin load with zero errors, default hotkey migration to `2` and `1`, multi-deck PPTX and PDF loading across scenes, instant cache reloads for unchanged decks, and live OSC verification of every documented path including reload-from-cache.
-- The export timeout fix and live-command safety rules are locked in by `tests/audit_guardrails.py`.
-- PowerPoint live-mode behavior (final-slide protection, presenter preload) carries over from the v0.4.7 validation.
+- Runtime testing covered plugin load, real PPTX/PDF rendering, Presenter layouts, multi-deck Program-scene routing, PowerPoint live start/stop/navigation/black/final-slide protection, OSC control/feedback, cue state, cache reuse/invalidation, and source-property status refresh.
+- Audio testing covered embedded WAV and MP3 media, OBS source meter output, recording, mute, exact gain adjustment, repeated source lifecycle, and shutdown/restart behavior.
+- Automated release gates covered 15 real/synthetic presentations, invalid files, two simultaneous live decks, AddressSanitizer/UndefinedBehaviorSanitizer, Clang static analysis, packaging contents, code architecture, and an isolated-home installer run.
+- `tests/audit_guardrails.py` locks in the process-timeout, live-command, hotkey, loading, and lifecycle safety rules.
 - Intel stays on the previous beta package until these Apple Silicon changes are separately validated there.
 - Windows is not part of this main macOS ZIP release; it remains a separate beta validation path.

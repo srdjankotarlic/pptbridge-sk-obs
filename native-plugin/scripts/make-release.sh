@@ -20,6 +20,7 @@ STABLE_ZIP_CHECKSUM_PATH="$PROJECT_DIR/release/$STABLE_ZIP_NAME.sha256"
 
 export COPYFILE_DISABLE=1
 export COPY_EXTENDED_ATTRIBUTES_DISABLE=1
+export TZ=UTC
 
 if [ ! -d "$BUNDLE_PATH" ]; then
   echo "Built plugin bundle not found:"
@@ -102,12 +103,18 @@ the slideshow stays open in OBS at the end of the deck. Presenter notes and
 thumbnails are prepared in the background after live mode starts, so the slide
 source can appear first while the confidence view catches up.
 
+Leave \`Auto Recover Live PowerPoint Session\` enabled to restart a slideshow
+that closes unexpectedly after capture was working. Use \`Reattach Live
+PowerPoint Window\` if PowerPoint is still live but OBS lost only its video
+connection. An intentional \`Stop PowerPoint Live Mode\` does not auto-restart.
+
 ## Slide Control
 
 - OBS hotkeys default to \`2\` for next slide and \`1\` for previous slide. Normal left/right arrows stay free.
 - For a Logitech Spotlight or similar presenter clicker, enable
   \`Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off\`.
 - Clicker capture supports PageDown for next and PageUp for previous by default.
+- Plain typing keys and normal left/right arrows are deliberately excluded from global capture.
 - If macOS asks, allow OBS in \`System Settings > Privacy & Security > Accessibility\`
   and \`Input Monitoring\`, then restart OBS.
 
@@ -115,7 +122,7 @@ source can appear first while the confidence view catches up.
 
 - Create one OBS scene per deck.
 - Select that scene's .pptx in its PPTBridge SK Slide and Presenter sources.
-- PPTBridge locks each live PowerPoint session to its exact staged deck file, so several slideshow windows can stay open and scene changes control the right deck.
+- PPTBridge locks each live PowerPoint session to the exact selected deck path (or its fallback copy), so several slideshow windows can stay open and scene changes control the right deck.
 
 ## Companion / OSC
 
@@ -155,6 +162,11 @@ EOF
 if command -v codesign >/dev/null 2>&1; then
   codesign --force --deep --sign - "$RELEASE_DIR/pptbridge-obs.plugin"
 fi
+
+# ZIP stores DOS timestamps in every local and central-directory entry. Give
+# every packaged path one fixed timestamp so rebuilding unchanged v0.5.8 input
+# produces the same archive and SHA-256 checksum.
+find "$RELEASE_DIR" -exec touch -h -t 202001010000 {} +
 
 (
   cd "$PROJECT_DIR/release"

@@ -6,7 +6,7 @@ PPTBridge SK ships as separate macOS downloads for Apple Silicon and Intel Macs.
 
 | Your Mac | Download |
 | --- | --- |
-| M1, M2, M3, or M4 Mac | `pptbridge-obs-macos-apple-silicon.zip` |
+| Apple Silicon M-series Mac | `pptbridge-obs-macos-apple-silicon.zip` |
 | Older Intel Mac | `pptbridge-obs-macos-intel.zip` |
 
 To check, open `Apple menu > About This Mac`. If it says `Chip: Apple M...`, use Apple Silicon. If it says `Processor: Intel`, use Intel.
@@ -98,8 +98,9 @@ This works in PPTX live mode and PDF/cached mode.
 
 If macOS asks, allow OBS in `System Settings > Privacy & Security >
 Accessibility` and `Input Monitoring`, then restart OBS or toggle the feature
-again. Normal typing keys such as `1` and `2` will be swallowed while this
-option is enabled if you bind them as custom clicker keys.
+again. Plain typing keys, Space, Return, Tab, Delete, and normal left/right
+arrows are deliberately excluded from global capture so the operator can keep
+typing and navigating while this option is enabled.
 
 ## PowerPoint Startup / Shutdown
 
@@ -107,10 +108,13 @@ In `PPTBridge SK Slide` source properties:
 
 - Keep `Auto Start PowerPoint When OBS Opens` off if OBS should open quietly.
 - Click `Start / Restart PowerPoint Live Mode` in the highlighted `PowerPoint Live Start / Stop` group when you are ready to launch the slideshow. If PowerPoint is not open yet, PPTBridge opens it for you.
-- If the slideshow window was closed but PowerPoint is still open, click `Start / Restart PowerPoint Live Mode` again to recover the live session.
+- Leave `Auto Recover Live PowerPoint Session` enabled to restart a slideshow that closes unexpectedly after live capture was working.
+- If the slideshow window was closed but PowerPoint is still open, wait a few seconds for Auto Recover or click `Start / Restart PowerPoint Live Mode` to recover immediately.
+- Use `Reattach Live PowerPoint Window` when PowerPoint is still showing the deck but OBS lost only the captured video connection.
 - Turn `Auto Start PowerPoint When OBS Opens` on if you prefer the slideshow to launch as soon as OBS loads the source.
 - Keep `Close PowerPoint Slideshow When OBS Closes` on if the slideshow should close when OBS quits.
 - Use `Stop PowerPoint Live Mode` in the same highlighted group if you want to end the running slideshow without quitting OBS.
+- An intentional Stop does not trigger Auto Recover.
 - Keep `PowerPoint Resize Behavior` on `Lock OBS Output Size` if you want to shrink the PowerPoint window on your desktop without changing its size in OBS.
 - Click `Follow Current PPT Window Size` only when you intentionally want OBS to reflect the current PowerPoint window shape.
 
@@ -120,7 +124,7 @@ Default behavior is manual: OBS opens without immediately popping up the PowerPo
 
 For several decks in one show, create one OBS scene per deck. Add `PPTBridge SK Slide` and, if needed, `PPTBridge SK Presenter` to each scene, then select that scene's `.pptx` in both sources.
 
-Click `Start / Restart PowerPoint Live Mode` on each deck you want ready. PPTBridge locks each live session to its exact staged PowerPoint file, so several slideshow windows can stay open and the current OBS program scene controls the right deck.
+Click `Start / Restart PowerPoint Live Mode` on each deck you want ready. PPTBridge locks each live session to the exact selected deck path (or its fallback copy), so several slideshow windows can stay open and the current OBS program scene controls the right deck.
 
 ## Companion / OSC Control
 

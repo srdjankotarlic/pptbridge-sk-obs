@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <memory>
@@ -34,6 +35,7 @@ struct SourceContext {
     float width = 0.0f;
     float height = 0.0f;
     obs_source_t *source = nullptr;
+    bool audio_capture_registered = false;
     bool showing_child = false;
     bool active_child = false;
     std::vector<float> wav_samples;
@@ -62,10 +64,11 @@ struct SourceContext {
   bool close_live_powerpoint_on_shutdown = true;
   bool started_live_powerpoint_from_this_source = false;
   LiveCaptureResizeMode live_capture_resize_mode = LiveCaptureResizeMode::LockCanvas;
-  bool audio_enabled = true;
+  std::atomic<bool> audio_enabled{true};
   bool use_live_app_audio = true;
   bool auto_recover_live = true;
-  double audio_gain_db = 0.0;
+  std::atomic<double> audio_gain_db{0.0};
+  mutable std::mutex live_sources_mutex;
   obs_source_t *live_capture_source = nullptr;
   uint64_t live_capture_window_id = 0;
   std::string live_capture_window_title;
@@ -74,6 +77,7 @@ struct SourceContext {
   bool live_capture_active = false;
   bool live_capture_suppressed_after_stop = false;
   obs_source_t *live_audio_source = nullptr;
+  bool live_audio_capture_registered = false;
   int live_audio_owner_pid = 0;
   std::string live_audio_application;
   std::string cue_export_status;
@@ -88,6 +92,7 @@ struct SourceContext {
   bool live_audio_active = false;
   std::chrono::steady_clock::time_point last_live_sync_request = std::chrono::steady_clock::time_point::min();
   std::chrono::steady_clock::time_point live_capture_last_seen = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point live_capture_missing_since = std::chrono::steady_clock::time_point::min();
   std::chrono::steady_clock::time_point live_audio_last_seen = std::chrono::steady_clock::now();
   std::chrono::steady_clock::time_point live_recover_last_attempt = std::chrono::steady_clock::time_point::min();
   std::chrono::steady_clock::time_point live_reload_last_attempt = std::chrono::steady_clock::time_point::min();

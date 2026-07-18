@@ -169,8 +169,14 @@ private:
 
   void StartLoadIfNeeded(bool force_reload);
   void LoadOnWorker();
-  void StopLivePowerPointOnLiveQueue();
-  void RunLivePowerPointCommandAsync(std::string command_line, bool clear_black);
+  void StopLivePowerPointOnLiveQueue(
+    uint64_t request_generation,
+    std::string cache_dir,
+    std::string presentation_path,
+    std::string window_title);
+  void RunLivePowerPointCommandAsync(
+    std::string command_line,
+    bool clear_black);
 };
 
 }  // namespace pptbridge

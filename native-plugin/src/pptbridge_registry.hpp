@@ -4,6 +4,7 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace pptbridge {
 
@@ -24,6 +25,7 @@ public:
   void AttachSource(void *token, const std::string &pptx_path, RegisteredSourceKind kind);
   void DetachSource(void *token);
   size_t CountSources(const std::string &pptx_path, RegisteredSourceKind kind) const;
+  std::vector<void *> SourceTokens(const std::string &pptx_path, RegisteredSourceKind kind) const;
 
 private:
   Registry() = default;

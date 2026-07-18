@@ -31,12 +31,18 @@ constexpr NSTimeInterval kDefaultTaskTimeoutSeconds = 300.0;
 constexpr NSTimeInterval kLibreOfficeExportTimeoutSeconds = 90.0;
 constexpr NSTimeInterval kPowerPointExportTimeoutSeconds = 180.0;
 constexpr int kPowerPointAppleEventTimeoutSeconds = 165;
-constexpr NSTimeInterval kLiveStartTaskTimeoutSeconds = 30.0;
+// A cold Microsoft 365 launch can spend well over 30 seconds initializing
+// before PowerPoint accepts the first Apple event. Live start already runs on
+// the document worker queue, so allow the real open to finish instead of
+// killing it and stacking retry requests while PowerPoint is still starting.
+constexpr NSTimeInterval kLiveStartTaskTimeoutSeconds = 120.0;
 constexpr NSTimeInterval kLiveTaskTimeoutSeconds = 12.0;
 constexpr NSTimeInterval kStopTaskTimeoutSeconds = 8.0;
 constexpr NSTimeInterval kTerminateGraceSeconds = 2.0;
 constexpr NSTimeInterval kPipeDrainGraceSeconds = 2.0;
 constexpr const char *kPowerPointBundleIdentifier = "com.microsoft.Powerpoint";
+constexpr auto kLiveCaptureActivationSettleTime = std::chrono::milliseconds(300);
+constexpr auto kLiveCaptureFocusRestoreSettleTime = std::chrono::milliseconds(150);
 
 NSString *ToNSString(const std::string &value)
 {
@@ -409,6 +415,73 @@ bool IsPowerPointRunning()
   return apps.count > 0;
 }
 
+bool PreparePowerPointWindowForCaptureAndRestoreFocus()
+{
+  @autoreleasepool {
+    NSRunningApplication *previous_application = NSWorkspace.sharedWorkspace.frontmostApplication;
+    NSRunningApplication *powerpoint_application = nil;
+    for (int attempt = 0; attempt < 10 && !powerpoint_application; ++attempt) {
+      NSArray<NSRunningApplication *> *powerpoint_apps =
+        [NSRunningApplication runningApplicationsWithBundleIdentifier:@(kPowerPointBundleIdentifier)];
+      powerpoint_application = powerpoint_apps.firstObject;
+      if (!powerpoint_application) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+    }
+    if (!powerpoint_application) {
+      return false;
+    }
+
+    if (previous_application.processIdentifier == powerpoint_application.processIdentifier) {
+      return true;
+    }
+
+    BOOL powerpoint_activated =
+      [powerpoint_application activateWithOptions:NSApplicationActivateAllWindows];
+    if (!powerpoint_activated) {
+      std::string std_out;
+      std::string std_err;
+      int exit_code = 0;
+      const auto activate_line = PowerPointApplicationTellLine({}) + " to activate";
+      powerpoint_activated = RunTask(
+        @"/usr/bin/osascript",
+        @[ @"-e", ToNSString(activate_line) ],
+        std_out,
+        std_err,
+        exit_code,
+        kLiveTaskTimeoutSeconds) && exit_code == 0;
+      if (!powerpoint_activated) {
+        blog(
+          LOG_WARNING,
+          "[PPTBridge] Could not activate PowerPoint for capture: %s",
+          BuildTaskErrorMessage(std_out, std_err, exit_code).c_str());
+        return false;
+      }
+    }
+
+    // ScreenCaptureKit can return permanently black frames when a newly opened
+    // slideshow is still assigned to PowerPoint's other macOS Space. Briefly
+    // activating PowerPoint after the exact deck is running moves that window
+    // onto the current Space. Restore the user's app before OBS creates its
+    // child capture source so normal typing and show control keep their focus.
+    std::this_thread::sleep_for(kLiveCaptureActivationSettleTime);
+    if (!previous_application || previous_application.terminated) {
+      return true;
+    }
+
+    const BOOL focus_restored =
+      [previous_application activateWithOptions:NSApplicationActivateAllWindows];
+    if (focus_restored) {
+      std::this_thread::sleep_for(kLiveCaptureFocusRestoreSettleTime);
+    } else {
+      blog(
+        LOG_WARNING,
+        "[PPTBridge] PowerPoint slideshow was prepared for capture, but the previous app could not regain focus");
+    }
+    return true;
+  }
+}
+
 bool WaitForPowerPointExit(NSTimeInterval timeout_seconds)
 {
   const auto deadline = Clock::now() +
@@ -657,6 +730,71 @@ std::string ToLowerCopy(std::string value)
 bool StringContainsCaseInsensitive(const std::string &value, const std::string &needle)
 {
   return ToLowerCopy(value).find(ToLowerCopy(needle)) != std::string::npos;
+}
+
+bool ValidatePresentationInput(const std::string &path, std::string &out_error)
+{
+  out_error.clear();
+  if (path.empty()) {
+    out_error = "Choose a .pptx or .pdf file in source properties.";
+    return false;
+  }
+
+  const auto extension = ToLowerCopy(fs::path(path).extension().string());
+  if (extension != ".pptx" && extension != ".pdf") {
+    out_error = "PPTBridge supports only .pptx and .pdf presentation files.";
+    return false;
+  }
+
+  std::error_code file_error;
+  if (!fs::is_regular_file(path, file_error) || file_error) {
+    out_error = extension == ".pdf"
+      ? "The selected .pdf file could not be found."
+      : "The selected .pptx file could not be found.";
+    return false;
+  }
+
+  if (extension == ".pdf") {
+    return true;
+  }
+
+  std::string std_out;
+  std::string std_err;
+  int exit_code = 0;
+  if (!RunTask(
+        @"/usr/bin/unzip",
+        @[ @"-Z1", ToNSString(path) ],
+        std_out,
+        std_err,
+        exit_code) ||
+      exit_code != 0) {
+    out_error = "The selected .pptx file is not a valid PowerPoint presentation.";
+    return false;
+  }
+
+  bool has_content_types = false;
+  bool has_presentation = false;
+  bool has_slide = false;
+  NSArray<NSString *> *entries =
+    [ToNSString(std_out) componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]];
+  for (NSString *entry in entries) {
+    if ([entry isEqualToString:@"[Content_Types].xml"]) {
+      has_content_types = true;
+    } else if ([entry isEqualToString:@"ppt/presentation.xml"]) {
+      has_presentation = true;
+    } else if ([entry hasPrefix:@"ppt/slides/slide"] &&
+               [entry hasSuffix:@".xml"] &&
+               ![entry containsString:@"/_rels/"]) {
+      has_slide = true;
+    }
+  }
+
+  if (!has_content_types || !has_presentation || !has_slide) {
+    out_error = "The selected .pptx file is not a valid PowerPoint presentation.";
+    return false;
+  }
+
+  return true;
 }
 
 bool IsImageExtension(const std::string &extension)
@@ -966,7 +1104,7 @@ on run argv
 		set opened_presentation to my wait_for_active_presentation(input_path, 20)
 )APPLESCRIPT" + "\t\twith timeout of " + apple_event_timeout + R"APPLESCRIPT( seconds
 )APPLESCRIPT" + "\t\t\t" + tell_powerpoint + R"APPLESCRIPT(
-				save active presentation in (POSIX file output_path) as save as PDF
+				save opened_presentation in (POSIX file output_path) as save as PDF
 		end tell
 		end timeout
 	on error err_message number err_number
@@ -1166,6 +1304,34 @@ std::string PowerPointAppleScriptLiveStartSource(const std::string &powerpoint_b
 {
   const auto tell_powerpoint = PowerPointApplicationTellLine(powerpoint_bundle);
   const std::string source = PowerPointAppleScriptLiveHandlers(powerpoint_bundle) + R"APPLESCRIPT(
+on start_slide_show_for_path(target_path)
+)APPLESCRIPT" + "\t" + tell_powerpoint + R"APPLESCRIPT(
+		repeat with i from 1 to count of presentations
+			set candidatePresentation to presentation i
+			set candidatePath to ""
+			try
+				set candidatePath to my normalize_posix_path((full name of candidatePresentation) as text)
+			end try
+			if candidatePath is "" then
+				try
+					set candidatePath to my normalize_posix_path((path of candidatePresentation) as text)
+				end try
+			end if
+			if candidatePath is target_path then
+				tell slide show settings of candidatePresentation
+					-- Keep the slideshow in a normal resizable window so OBS and
+					-- the rest of the desktop remain usable during a live show.
+					set show type to slide show type window
+					set show with presenter to false
+					run slide show
+				end tell
+				return true
+			end if
+		end repeat
+	end tell
+	return false
+end start_slide_show_for_path
+
 on wait_for_slide_show_window(target_path, max_wait_seconds)
 	repeat (max_wait_seconds * 10) times
 		try
@@ -1180,22 +1346,15 @@ on run argv
 	if (count of argv) is not 1 then error "Expected PowerPoint input path."
 	set input_path to my normalize_posix_path(item 1 of argv)
 
-)APPLESCRIPT" + "\t" + tell_powerpoint + R"APPLESCRIPT(
-		activate
-		open POSIX file input_path
-		set targetPresentation to active presentation
-		tell slide show settings of targetPresentation
-			-- Windowed slide show keeps PowerPoint in a normal resizable
-			-- window so the presenter can still use OBS (and the rest of the
-			-- desktop) while the deck is running. OBS still captures the
-			-- slide show window through the screen_capture source. Users who
-			-- want full-screen kiosk can change `slide show type window` to
-			-- `slide show type kiosk` here.
-			set show type to slide show type window
-			set show with presenter to false
-			run slide show
-		end tell
-	end tell
+	set slide_show_started to false
+	repeat 200 times
+		if my start_slide_show_for_path(input_path) then
+			set slide_show_started to true
+			exit repeat
+		end if
+		delay 0.1
+	end repeat
+	if slide_show_started is false then error "PowerPoint opened the file, but the requested presentation was not found."
 
 	return my wait_for_slide_show_window(input_path, 20)
 end run
@@ -1219,12 +1378,38 @@ std::string PowerPointAppleScriptLiveStopSource(const std::string &powerpoint_bu
 {
   const auto tell_powerpoint = PowerPointApplicationTellLine(powerpoint_bundle);
   const std::string source = PowerPointAppleScriptLiveHandlers(powerpoint_bundle) + R"APPLESCRIPT(
+on target_is_open(target_path, target_title)
+)APPLESCRIPT" + "\t" + tell_powerpoint + R"APPLESCRIPT(
+		if target_path is not "" then
+			repeat with i from 1 to count of presentations
+				set candidatePresentation to presentation i
+				set candidatePath to ""
+				try
+					set candidatePath to my normalize_posix_path((full name of candidatePresentation) as text)
+				end try
+				if candidatePath is "" then
+					try
+						set candidatePath to my normalize_posix_path((path of candidatePresentation) as text)
+					end try
+				end if
+				if candidatePath is target_path then return true
+			end repeat
+		end if
+		if target_title is not "" then
+			repeat with i from 1 to count of slide show windows
+				if ((name of slide show window i) as text) is target_title then return true
+			end repeat
+		end if
+	end tell
+	return false
+end target_is_open
+
 on run argv
 	if (count of argv) is less than 1 then error "Expected PowerPoint input path."
 	set input_path to my normalize_posix_path(item 1 of argv)
 	set target_title to ""
 	if (count of argv) is greater than 1 then set target_title to item 2 of argv
-	set did_close to false
+	set found_target to false
 
 )APPLESCRIPT" + "\t" + tell_powerpoint + R"APPLESCRIPT(
 		set targetPresentation to missing value
@@ -1245,35 +1430,67 @@ on run argv
 			end if
 		end repeat
 		if targetPresentation is not missing value then
+			set found_target to true
 			try
 				tell slideshow view of slide show window of targetPresentation to exit slide show
-				set did_close to true
 			end try
 		else if target_title is not "" then
 			try
-				repeat with targetWindow in slide show windows
+				repeat with i from 1 to count of slide show windows
+					set targetWindow to slide show window i
 					if ((name of targetWindow) as text) is target_title then
+						set found_target to true
 						tell slideshow view of targetWindow to exit slide show
-						set did_close to true
 						exit repeat
 					end if
 				end repeat
 			end try
 		end if
+	end tell
 
-		if did_close then
-			delay 0.2
+	if found_target is false then return "not running"
+
+	-- PowerPoint can remain busy briefly after exit slide show. Closing the
+	-- presentation in the same tell block can hang even though both commands
+	-- succeed when issued separately.
+	delay 0.75
+
+	if input_path is not "" then
+)APPLESCRIPT" + "\t\t" + tell_powerpoint + R"APPLESCRIPT(
+			set targetPresentation to missing value
+			repeat with i from 1 to count of presentations
+				set candidatePresentation to presentation i
+				set candidatePath to ""
+				try
+					set candidatePath to my normalize_posix_path((full name of candidatePresentation) as text)
+				end try
+				if candidatePath is "" then
+					try
+						set candidatePath to my normalize_posix_path((path of candidatePresentation) as text)
+					end try
+				end if
+				if candidatePath is input_path then
+					set targetPresentation to candidatePresentation
+					exit repeat
+				end if
+			end repeat
+			if targetPresentation is not missing value then close targetPresentation saving no
+		end tell
+	end if
+
+	repeat 20 times
+		if my target_is_open(input_path, target_title) is false then
 			try
-				if targetPresentation is not missing value then close targetPresentation saving no
-			end try
-			try
-				if (count of presentations) is 0 then quit
+)APPLESCRIPT" + "\t\t\t\t" + tell_powerpoint + R"APPLESCRIPT(
+					if (count of presentations) is 0 then quit saving no
+				end tell
 			end try
 			return "closed"
 		end if
-	end tell
+		delay 0.1
+	end repeat
 
-	return "not running"
+	error "PowerPoint did not close the targeted live presentation."
 end run
 	)APPLESCRIPT";
   return PowerPointTerminologyWrapped(source);
@@ -1335,8 +1552,10 @@ bool StartPowerPointLiveSession(
   const bool can_stage_copy = !error;
   const auto original_input = fs::path(pptx_path);
   const auto copied_input = StagedPowerPointLivePath(pptx_path, work_dir);
+  const auto alternate_copied_input =
+    work_dir / ("pptbridge_stage_" + copied_input.filename().string());
 
-  // Fast path: if PowerPoint already has this exact staged deck running
+  // Fast path: if PowerPoint already has this exact deck running
   // (for example OBS was restarted while PowerPoint stayed open), reattach
   // to that session. Do not use PowerPoint's active presentation here:
   // multi-deck shows often have a different slideshow active.
@@ -1346,6 +1565,11 @@ bool StartPowerPointLiveSession(
     if (QueryPowerPointLiveState(cache_dir, original_input.string(), existing, query_error) &&
         !existing.window_title.empty()) {
       snapshot = existing;
+      if (!PreparePowerPointWindowForCaptureAndRestoreFocus()) {
+        blog(
+          LOG_WARNING,
+          "[PPTBridge] Reattached PowerPoint slideshow but could not prepare its window for capture");
+      }
       return true;
     }
 
@@ -1354,11 +1578,46 @@ bool StartPowerPointLiveSession(
       if (QueryPowerPointLiveState(cache_dir, copied_input.string(), existing, query_error) &&
           !existing.window_title.empty()) {
         snapshot = existing;
+        if (!PreparePowerPointWindowForCaptureAndRestoreFocus()) {
+          blog(
+            LOG_WARNING,
+            "[PPTBridge] Reattached staged PowerPoint slideshow but could not prepare its window for capture");
+        }
+        return true;
+      }
+    }
+
+    exists_error.clear();
+    if (fs::exists(alternate_copied_input, exists_error)) {
+      if (QueryPowerPointLiveState(
+            cache_dir,
+            alternate_copied_input.string(),
+            existing,
+            query_error) &&
+          !existing.window_title.empty()) {
+        snapshot = existing;
+        if (!PreparePowerPointWindowForCaptureAndRestoreFocus()) {
+          blog(
+            LOG_WARNING,
+            "[PPTBridge] Reattached alternate staged PowerPoint slideshow but could not prepare its window for capture");
+        }
         return true;
       }
     }
   }
 
+  // A completed PDF export can leave PowerPoint running with no documents,
+  // but temporarily unable to open the next slideshow. Restart that empty
+  // process before the first live-start attempt instead of waiting for the
+  // full task timeout. Never touch PowerPoint when any presentation is open.
+  if (powerpoint_was_running_before_start && RestartPowerPointIfIdleForLiveRetry(false)) {
+    blog(
+      LOG_INFO,
+      "[PPTBridge] Restarted idle PowerPoint before starting live mode for '%s'",
+      pptx_path.c_str());
+  }
+
+  auto staged_input = copied_input;
   bool staged_copy_available = false;
   if (can_stage_copy) {
     error.clear();
@@ -1374,10 +1633,16 @@ bool StartPowerPointLiveSession(
       if (fs::exists(copied_input, exists_error)) {
         staged_copy_available = true;
       } else {
-        auto tmp_staged = work_dir / ("pptbridge_stage_" + copied_input.filename().string());
         error.clear();
-        fs::copy_file(pptx_path, tmp_staged, fs::copy_options::overwrite_existing, error);
+        fs::copy_file(
+          pptx_path,
+          alternate_copied_input,
+          fs::copy_options::overwrite_existing,
+          error);
         staged_copy_available = !error;
+        if (staged_copy_available) {
+          staged_input = alternate_copied_input;
+        }
       }
     }
   }
@@ -1386,6 +1651,27 @@ bool StartPowerPointLiveSession(
     std::string std_out;
     std::string std_err;
     int exit_code = 0;
+
+    // Opening through LaunchServices gives sandboxed PowerPoint access to the
+    // selected file without its modal "Grant File Access" dialog. AppleScript's
+    // `open POSIX file` can block on that dialog, especially when another deck
+    // already has a windowed slideshow running.
+    const bool opened = RunTask(
+      @"/usr/bin/open",
+      @[ @"-g", @"-b", ToNSString(kPowerPointBundleIdentifier), ToNSString(input_path) ],
+      std_out,
+      std_err,
+      exit_code,
+      kLiveTaskTimeoutSeconds);
+    if (!opened || exit_code != 0) {
+      attempt_error = "PowerPoint could not open the selected presentation: " +
+        BuildTaskErrorMessage(std_out, std_err, exit_code);
+      return false;
+    }
+
+    std_out.clear();
+    std_err.clear();
+    exit_code = 0;
     const bool launched = RunAppleScriptFile(
       cache_dir,
       "pptbridge_powerpoint_live_start.applescript",
@@ -1401,7 +1687,16 @@ bool StartPowerPointLiveSession(
       return false;
     }
 
-    return ParseLivePowerPointOutput(std_out, snapshot, attempt_error);
+    if (!ParseLivePowerPointOutput(std_out, snapshot, attempt_error)) {
+      return false;
+    }
+
+    if (!PreparePowerPointWindowForCaptureAndRestoreFocus()) {
+      blog(
+        LOG_WARNING,
+        "[PPTBridge] PowerPoint live mode started but its window could not be prepared for capture");
+    }
+    return true;
   };
 
   auto start_with_retry = [&](const std::string &input_path, const char *label, std::string &attempt_error) -> bool {
@@ -1431,7 +1726,7 @@ bool StartPowerPointLiveSession(
 
   if (staged_copy_available) {
     std::string staged_error;
-    if (start_with_retry(copied_input.string(), "staged deck copy", staged_error)) {
+    if (start_with_retry(staged_input.string(), "staged deck copy", staged_error)) {
       return true;
     }
     out_error = first_error + " Staged fallback also failed: " + staged_error;
@@ -1476,6 +1771,13 @@ bool StopPowerPointLiveSession(
 
   if (!stopped || exit_code != 0) {
     out_error = "PowerPoint live mode failed to stop: " + BuildTaskErrorMessage(std_out, std_err, exit_code);
+    return false;
+  }
+
+  const std::string stop_status = ToLowerCopy(TrimWhitespace(std_out));
+  if (stop_status != "closed" && stop_status != "not running") {
+    out_error = "PowerPoint live mode returned an unexpected stop result: " +
+      (stop_status.empty() ? std::string("<empty>") : stop_status);
     return false;
   }
 
@@ -2183,6 +2485,16 @@ NSBitmapImageRep *CreateBitmap(uint32_t width, uint32_t height)
                  bitsPerPixel:32];
 }
 
+bool ValidRenderDimensions(uint32_t width, uint32_t height)
+{
+  if (width == 0 || height == 0 || width > UINT32_MAX / 4) {
+    return false;
+  }
+
+  const auto stride = static_cast<std::size_t>(width) * 4;
+  return static_cast<std::size_t>(height) <= SIZE_MAX / stride;
+}
+
 // Copies the drawn bitmap into `out_pixels` in GS_BGRA byte order (B,G,R,A).
 // Empirically, the NSBitmapImageRep produced by CreateBitmap stores bytes in
 // A,R,G,B order on macOS despite the AlphaFirst|LittleEndian flags, which
@@ -2533,6 +2845,7 @@ struct PresentationDocument::Impl {
   bool live_powerpoint_enabled = false;
   bool live_powerpoint_auto_start = false;
   bool live_start_requested = false;
+  uint64_t live_request_generation = 0;
   bool live_ready = false;
   bool live_sync_in_flight = false;
   bool black = false;
@@ -2582,6 +2895,7 @@ void PresentationDocument::SetLivePowerPointEnabled(bool enabled)
   }
 
   impl_->live_powerpoint_enabled = enabled;
+  impl_->live_request_generation += 1;
   impl_->live_error.clear();
   if (enabled && impl_->live_powerpoint_auto_start && !impl_->live_ready) {
     impl_->live_start_requested = true;
@@ -2614,9 +2928,11 @@ void PresentationDocument::SetLivePowerPointAutoStart(bool enabled)
     if (enabled && impl_->live_powerpoint_enabled && !impl_->live_ready) {
       impl_->live_start_requested = true;
       impl_->load_requested = true;
+      impl_->live_request_generation += 1;
       should_start = true;
     } else if (!enabled && !impl_->live_ready) {
       impl_->live_start_requested = false;
+      impl_->live_request_generation += 1;
     }
     impl_->version += 1;
   }
@@ -2656,6 +2972,7 @@ void PresentationDocument::StartLivePowerPointAsync()
     }
     impl_->live_powerpoint_enabled = true;
     impl_->live_start_requested = true;
+    impl_->live_request_generation += 1;
     impl_->live_ready = false;
     impl_->live_sync_in_flight = false;
     impl_->live_window_title.clear();
@@ -2674,28 +2991,46 @@ void PresentationDocument::StartLivePowerPointAsync()
 
 void PresentationDocument::StopLivePowerPoint()
 {
+  uint64_t request_generation = 0;
+  std::string cache_dir;
+  std::string presentation_path;
+  std::string window_title;
+  {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    impl_->live_start_requested = false;
+    impl_->live_ready = false;
+    impl_->live_sync_in_flight = false;
+    request_generation = ++impl_->live_request_generation;
+    cache_dir = impl_->cache_dir;
+    presentation_path = impl_->live_presentation_path;
+    window_title = impl_->live_window_title;
+    impl_->version += 1;
+  }
+
   if (dispatch_get_specific(LiveQueueSpecificKey()) == (__bridge void *)impl_->live_queue) {
-    StopLivePowerPointOnLiveQueue();
+    StopLivePowerPointOnLiveQueue(
+      request_generation,
+      std::move(cache_dir),
+      std::move(presentation_path),
+      std::move(window_title));
     return;
   }
 
   dispatch_sync(impl_->live_queue, ^{
-    StopLivePowerPointOnLiveQueue();
+    StopLivePowerPointOnLiveQueue(
+      request_generation,
+      cache_dir,
+      presentation_path,
+      window_title);
   });
 }
 
-void PresentationDocument::StopLivePowerPointOnLiveQueue()
+void PresentationDocument::StopLivePowerPointOnLiveQueue(
+  uint64_t request_generation,
+  std::string cache_dir,
+  std::string presentation_path,
+  std::string window_title)
 {
-  std::string cache_dir;
-  std::string window_title;
-  std::string presentation_path;
-  {
-    std::lock_guard<std::mutex> lock(impl_->mutex);
-    cache_dir = impl_->cache_dir;
-    window_title = impl_->live_window_title;
-    presentation_path = impl_->live_presentation_path;
-  }
-
   std::string stop_error;
   const bool stopped = StopPowerPointLiveSession(cache_dir, presentation_path, window_title, stop_error);
   if (!window_title.empty() || !presentation_path.empty()) {
@@ -2712,6 +3047,9 @@ void PresentationDocument::StopLivePowerPointOnLiveQueue()
   }
 
   std::lock_guard<std::mutex> lock(impl_->mutex);
+  if (impl_->live_request_generation != request_generation || impl_->live_start_requested) {
+    return;
+  }
   impl_->live_start_requested = false;
   impl_->live_ready = false;
   impl_->live_sync_in_flight = false;
@@ -2724,9 +3062,29 @@ void PresentationDocument::StopLivePowerPointOnLiveQueue()
 
 void PresentationDocument::StopLivePowerPointAsync()
 {
+  uint64_t request_generation = 0;
+  std::string cache_dir;
+  std::string presentation_path;
+  std::string window_title;
+  {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    impl_->live_start_requested = false;
+    impl_->live_ready = false;
+    impl_->live_sync_in_flight = false;
+    request_generation = ++impl_->live_request_generation;
+    cache_dir = impl_->cache_dir;
+    presentation_path = impl_->live_presentation_path;
+    window_title = impl_->live_window_title;
+    impl_->version += 1;
+  }
+
   auto self = shared_from_this();
   dispatch_async(impl_->live_queue, ^{
-    self->StopLivePowerPointOnLiveQueue();
+    self->StopLivePowerPointOnLiveQueue(
+      request_generation,
+      cache_dir,
+      presentation_path,
+      window_title);
   });
 }
 
@@ -2742,7 +3100,10 @@ void PresentationDocument::SetPresenterAssetsWanted(bool wanted)
   }
 
   impl_->presenter_assets_wanted = true;
-  if (!impl_->loaded) {
+  // The in-flight load always prepares notes and media before it completes.
+  // A Presenter source can attach while the Slide source is still opening the
+  // deck; do not queue a redundant second load in that case.
+  if (!impl_->loaded && !impl_->loading) {
     impl_->load_requested = true;
   }
   impl_->version += 1;
@@ -2762,6 +3123,7 @@ void PresentationDocument::SyncLiveStateAsync()
 {
   std::string cache_dir;
   std::string presentation_path;
+  uint64_t request_generation = 0;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     if (!impl_->live_powerpoint_enabled || !impl_->live_ready || impl_->live_sync_in_flight) {
@@ -2776,6 +3138,7 @@ void PresentationDocument::SyncLiveStateAsync()
 
     cache_dir = impl_->cache_dir;
     presentation_path = impl_->live_presentation_path;
+    request_generation = impl_->live_request_generation;
     impl_->live_sync_in_flight = true;
   }
 
@@ -2788,7 +3151,9 @@ void PresentationDocument::SyncLiveStateAsync()
     std::lock_guard<std::mutex> lock(self->impl_->mutex);
     self->impl_->live_sync_in_flight = false;
     self->impl_->live_last_sync = Clock::now();
-    if (!self->impl_->live_powerpoint_enabled) {
+    if (!self->impl_->live_powerpoint_enabled ||
+        !self->impl_->live_start_requested ||
+        self->impl_->live_request_generation != request_generation) {
       return;
     }
 
@@ -2822,10 +3187,13 @@ void PresentationDocument::SyncLiveStateAsync()
   });
 }
 
-void PresentationDocument::RunLivePowerPointCommandAsync(std::string command_line, bool clear_black)
+void PresentationDocument::RunLivePowerPointCommandAsync(
+  std::string command_line,
+  bool clear_black)
 {
   std::string cache_dir;
   std::string presentation_path;
+  uint64_t request_generation = 0;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     if (!impl_->live_powerpoint_enabled || !impl_->live_ready) {
@@ -2833,6 +3201,18 @@ void PresentationDocument::RunLivePowerPointCommandAsync(std::string command_lin
     }
     cache_dir = impl_->cache_dir;
     presentation_path = impl_->live_presentation_path;
+    request_generation = impl_->live_request_generation;
+    // Navigation should reveal the slide immediately. Do this before the
+    // asynchronous PowerPoint round-trip so its completion cannot overwrite a
+    // newer Black command that the operator sends while navigation is running.
+    if (clear_black && impl_->black) {
+      impl_->black = false;
+      impl_->version += 1;
+    }
+
+    // PowerPoint's Next/Previous commands may advance an animation build while
+    // remaining on the same slide. Keep its returned snapshot authoritative so
+    // presenter view and OSC feedback never flash an incorrect slide number.
   }
 
   auto self = shared_from_this();
@@ -2842,7 +3222,9 @@ void PresentationDocument::RunLivePowerPointCommandAsync(std::string command_lin
     const bool ok = RunPowerPointLiveCommand(cache_dir, presentation_path, command_line, snapshot, error);
 
     std::lock_guard<std::mutex> lock(self->impl_->mutex);
-    if (!self->impl_->live_powerpoint_enabled) {
+    if (!self->impl_->live_powerpoint_enabled ||
+        !self->impl_->live_start_requested ||
+        self->impl_->live_request_generation != request_generation) {
       return;
     }
 
@@ -2854,9 +3236,6 @@ void PresentationDocument::RunLivePowerPointCommandAsync(std::string command_lin
         self->impl_->live_presentation_path = snapshot.presentation_path;
       }
       self->impl_->live_error.clear();
-      if (clear_black) {
-        self->impl_->black = false;
-      }
     } else {
       self->impl_->live_ready = false;
       self->impl_->live_sync_in_flight = false;
@@ -2864,9 +3243,6 @@ void PresentationDocument::RunLivePowerPointCommandAsync(std::string command_lin
       self->impl_->live_presentation_path.clear();
       self->impl_->live_slide_count = 0;
       self->impl_->live_error = LiveRecoveryErrorMessage(error);
-      if (clear_black) {
-        self->impl_->black = false;
-      }
     }
     self->impl_->version += 1;
   });
@@ -2902,6 +3278,21 @@ void PresentationDocument::LoadOnWorker()
     std::string error;
     auto cache_dir = CacheDirectoryForDeck(impl_->path);
 
+    if (!ValidatePresentationInput(impl_->path, error)) {
+      std::lock_guard<std::mutex> lock(impl_->mutex);
+      impl_->loading = false;
+      impl_->loaded = false;
+      impl_->live_ready = false;
+      impl_->live_window_title.clear();
+      impl_->live_presentation_path.clear();
+      impl_->live_slide_count = 0;
+      impl_->live_sync_in_flight = false;
+      impl_->error = error;
+      impl_->version += 1;
+      blog(LOG_WARNING, "[PPTBridge] Rejected presentation '%s': %s", impl_->path.c_str(), error.c_str());
+      return;
+    }
+
     // Native PDF path: if the user points a source directly at a .pdf file
     // (i.e. someone brought a PDF presentation, no PowerPoint involved) we
     // skip PowerPoint/LibreOffice conversion and the live slideshow session
@@ -2926,54 +3317,90 @@ void PresentationDocument::LoadOnWorker()
     bool live_auto_start = false;
     bool live_start_requested = false;
     bool already_live_ready = false;
+    uint64_t live_request_generation = 0;
     {
       std::lock_guard<std::mutex> lock(impl_->mutex);
       live_enabled = impl_->live_powerpoint_enabled;
       live_auto_start = impl_->live_powerpoint_auto_start;
       live_start_requested = impl_->live_start_requested;
       already_live_ready = impl_->live_ready;
+      live_request_generation = impl_->live_request_generation;
     }
 
-    bool live_started_now = false;
+    __block bool live_started_now = false;
     if (live_enabled && live_start_requested && !already_live_ready) {
-      LivePowerPointSnapshot live_snapshot;
-      std::string live_error;
-      const auto live_start_started = Clock::now();
-      if (StartPowerPointLiveSession(impl_->path, cache_dir, live_snapshot, live_error)) {
-        live_started_now = true;
-        std::lock_guard<std::mutex> lock(impl_->mutex);
-        impl_->cache_dir = cache_dir;
-        impl_->live_ready = true;
-        impl_->live_error.clear();
-        impl_->live_window_title = live_snapshot.window_title;
-        impl_->live_presentation_path = !live_snapshot.presentation_path.empty()
-          ? live_snapshot.presentation_path
-          : StagedPowerPointLivePath(impl_->path, fs::path(cache_dir) / "powerpoint-live").string();
-        impl_->live_slide_count = live_snapshot.slide_count;
-        impl_->current = live_snapshot.current_index;
-        impl_->black = false;
-        impl_->current_media_triggered = false;
-        impl_->started_at = Clock::now();
-        impl_->version += 1;
-        blog(LOG_INFO,
-          "[PPTBridge] PowerPoint live mode started for '%s' (%s) in %lld ms",
-          impl_->path.c_str(),
-          live_snapshot.window_title.c_str(),
-          ElapsedMs(live_start_started));
-      } else {
-        std::lock_guard<std::mutex> lock(impl_->mutex);
-        impl_->live_ready = false;
-        impl_->live_error = live_error;
-        impl_->live_window_title.clear();
-        impl_->live_presentation_path.clear();
-        impl_->live_slide_count = 0;
-        impl_->version += 1;
-        blog(LOG_WARNING,
-          "[PPTBridge] Live mode failed for '%s' after %lld ms: %s",
-          impl_->path.c_str(),
-          ElapsedMs(live_start_started),
-          live_error.c_str());
-      }
+      dispatch_sync(impl_->live_queue, ^{
+        {
+          std::lock_guard<std::mutex> lock(impl_->mutex);
+          if (!impl_->live_powerpoint_enabled ||
+              !impl_->live_start_requested ||
+              impl_->live_ready ||
+              impl_->live_request_generation != live_request_generation) {
+            return;
+          }
+        }
+
+        LivePowerPointSnapshot live_snapshot;
+        std::string live_error;
+        const auto live_start_started = Clock::now();
+        const bool started = StartPowerPointLiveSession(impl_->path, cache_dir, live_snapshot, live_error);
+        bool keep_started_session = false;
+        {
+          std::lock_guard<std::mutex> lock(impl_->mutex);
+          keep_started_session =
+            started &&
+            impl_->live_powerpoint_enabled &&
+            impl_->live_start_requested &&
+            impl_->live_request_generation == live_request_generation;
+          if (keep_started_session) {
+            live_started_now = true;
+            impl_->cache_dir = cache_dir;
+            impl_->live_ready = true;
+            impl_->live_error.clear();
+            impl_->live_window_title = live_snapshot.window_title;
+            impl_->live_presentation_path = !live_snapshot.presentation_path.empty()
+              ? live_snapshot.presentation_path
+              : StagedPowerPointLivePath(impl_->path, fs::path(cache_dir) / "powerpoint-live").string();
+            impl_->live_slide_count = live_snapshot.slide_count;
+            impl_->current = live_snapshot.current_index;
+            impl_->black = false;
+            impl_->current_media_triggered = false;
+            impl_->started_at = Clock::now();
+            impl_->version += 1;
+          } else if (!started && impl_->live_request_generation == live_request_generation) {
+            impl_->live_ready = false;
+            impl_->live_error = live_error;
+            impl_->live_window_title.clear();
+            impl_->live_presentation_path.clear();
+            impl_->live_slide_count = 0;
+            impl_->version += 1;
+          }
+        }
+
+        if (keep_started_session) {
+          blog(LOG_INFO,
+            "[PPTBridge] PowerPoint live mode started for '%s' (%s) in %lld ms",
+            impl_->path.c_str(),
+            live_snapshot.window_title.c_str(),
+            ElapsedMs(live_start_started));
+        } else if (started) {
+          std::string cleanup_error;
+          StopPowerPointLiveSession(
+            cache_dir,
+            live_snapshot.presentation_path,
+            live_snapshot.window_title,
+            cleanup_error);
+          blog(LOG_INFO,
+            "[PPTBridge] Discarded stale PowerPoint live-start result for '%s'",
+            impl_->path.c_str());
+        } else {
+          blog(LOG_WARNING,
+            "[PPTBridge] Live mode failed for '%s' after %lld ms: %s",
+            impl_->path.c_str(),
+            ElapsedMs(live_start_started),
+            live_error.c_str());
+        }
+      });
     }
 
     if (is_pdf_source) {
@@ -3018,9 +3445,15 @@ void PresentationDocument::LoadOnWorker()
       std::lock_guard<std::mutex> lock(impl_->mutex);
       impl_->loading = false;
       impl_->loaded = false;
-      impl_->error = "The generated PDF could not be opened by PDFKit.";
+      impl_->error = is_pdf_source
+        ? "The selected .pdf file could not be opened by PDFKit."
+        : "The generated PDF could not be opened by PDFKit.";
       impl_->version += 1;
-      blog(LOG_WARNING, "[PPTBridge] PDFKit could not open generated PDF for '%s'", impl_->path.c_str());
+      blog(
+        LOG_WARNING,
+        "[PPTBridge] PDFKit could not open %s PDF for '%s'",
+        is_pdf_source ? "selected" : "generated",
+        impl_->path.c_str());
       return;
     }
 
@@ -3177,7 +3610,7 @@ void PresentationDocument::Next()
 		set targetSlideCount to count of slides of targetPresentation
 		if currentLiveSlide < targetSlideCount then
 			go to next slide (slideshow view of targetWindow)
-		end if)",
+      end if)",
       true);
     return;
   }
@@ -3495,6 +3928,12 @@ bool PresentationDocument::RenderSlideBGRA(
   uint32_t &out_stride) const
 {
   @autoreleasepool {
+    if (!ValidRenderDimensions(width, height)) {
+      out_pixels.clear();
+      out_stride = 0;
+      return false;
+    }
+
     std::lock_guard<std::mutex> render_lock(impl_->render_mutex);
     PDFDocument *document = nil;
     bool loading = false;
@@ -3527,16 +3966,29 @@ bool PresentationDocument::RenderSlideBGRA(
     }
 
     NSBitmapImageRep *bitmap = CreateBitmap(width, height);
+    if (!bitmap) {
+      out_pixels.clear();
+      out_stride = 0;
+      return false;
+    }
     NSGraphicsContext *context = [NSGraphicsContext graphicsContextWithBitmapImageRep:bitmap];
+    if (!context) {
+      out_pixels.clear();
+      out_stride = 0;
+      return false;
+    }
     [NSGraphicsContext saveGraphicsState];
     [NSGraphicsContext setCurrentContext:context];
 
     NSRect canvas = NSMakeRect(0, 0, width, height);
     FillRect(canvas, [NSColor blackColor]);
 
-    if (live_enabled && live_ready && !black) {
+    if (black) {
+      // Black screen is a deliberate program-output state. Keep the canvas
+      // completely black instead of falling through to a status placeholder.
+    } else if (live_enabled && live_ready) {
       DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode active…", canvas);
-    } else if (loaded && !black) {
+    } else if (loaded) {
       DrawPageThumbnail(document, current, canvas);
     } else if (live_waiting_for_manual_start) {
       DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode is manual. Click Start / Restart PowerPoint Live Mode in the highlighted source-property group.", canvas);
@@ -3549,7 +4001,7 @@ bool PresentationDocument::RenderSlideBGRA(
     } else if (!error.empty()) {
       DrawCenteredMessage(@"PPTBridge SK", ToNSString(error), canvas);
     } else {
-      DrawCenteredMessage(@"PPTBridge SK", @"Choose a .pptx in source properties", canvas);
+      DrawCenteredMessage(@"PPTBridge SK", @"Choose a .pptx or .pdf in source properties", canvas);
     }
 
     [NSGraphicsContext restoreGraphicsState];
@@ -3568,6 +4020,12 @@ bool PresentationDocument::RenderPresenterBGRA(
   const PresenterRenderOptions &options) const
 {
   @autoreleasepool {
+    if (!ValidRenderDimensions(width, height)) {
+      out_pixels.clear();
+      out_stride = 0;
+      return false;
+    }
+
     std::lock_guard<std::mutex> render_lock(impl_->render_mutex);
     PDFDocument *document = nil;
     std::vector<SlideMetadata> slides;
@@ -3613,7 +4071,17 @@ bool PresentationDocument::RenderPresenterBGRA(
     }
 
     NSBitmapImageRep *bitmap = CreateBitmap(width, height);
+    if (!bitmap) {
+      out_pixels.clear();
+      out_stride = 0;
+      return false;
+    }
     NSGraphicsContext *context = [NSGraphicsContext graphicsContextWithBitmapImageRep:bitmap];
+    if (!context) {
+      out_pixels.clear();
+      out_stride = 0;
+      return false;
+    }
     [NSGraphicsContext saveGraphicsState];
     [NSGraphicsContext setCurrentContext:context];
 
@@ -3667,7 +4135,7 @@ bool PresentationDocument::RenderPresenterBGRA(
       } else if (loading) {
         subtitle = @"Loading presentation…";
       } else {
-        subtitle = error.empty() ? @"Choose a .pptx in source properties" : ToNSString(error);
+        subtitle = error.empty() ? @"Choose a .pptx or .pdf in source properties" : ToNSString(error);
       }
       DrawCenteredMessage(@"PPTBridge SK", subtitle, NSMakeRect(0, 0, width, height - top_bar_height));
       [NSGraphicsContext restoreGraphicsState];
