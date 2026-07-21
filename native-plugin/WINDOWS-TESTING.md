@@ -1,6 +1,6 @@
-# PPTBridge SK Windows Beta Testing
+# PPTBridge SK Windows Release Testing
 
-This checklist is for the first real Windows runtime validation of the native PPTBridge SK beta backend.
+This checklist is the release gate for the native PPTBridge SK Windows backend.
 
 ## Goal
 
@@ -151,12 +151,12 @@ Use at least these decks:
 
 ## Known Current Limits
 
-- PDF input is not enabled in the Windows beta.
+- PDF input is not enabled on Windows.
 - Desktop Microsoft PowerPoint is required.
 - PowerPoint process audio is owned by the current Program scene; when several PPTBridge Slide sources are visible in one Program scene, enable app audio on only one source.
 - The beta DLL and installer are not code-signed yet.
 
-The `v0.5.8-windows-beta.1` candidate is runtime-tested on Windows 11 x64 with OBS Studio 32.1.2 and PowerPoint 2010. A public release still requires two complete passing runtime runs: one from the build output and one from a freshly extracted release ZIP.
+The Windows `v0.5.8` build is runtime-tested on Windows 11 x64 with OBS Studio 32.1.2 and PowerPoint 2010. A public asset requires two complete passing runtime runs: one from the build output and one from a freshly extracted release ZIP. The final installer must also pass a real administrator-permission install into the standard OBS `Program Files` directory.
 
 ## What Feedback To Send Back
 

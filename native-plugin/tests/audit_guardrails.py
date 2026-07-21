@@ -568,6 +568,23 @@ def main() -> int:
     if 'apply_default_bindings_if_empty(\n    g_previous_hotkey,\n    { OBS_KEY_1 }' not in win_defaults:
         raise AssertionError("Windows default Previous Slide hotkey should be 1 only")
 
+    windows_installer = (ROOT / "windows-package" / "INSTALL.cmd").read_text(encoding="utf-8")
+    if 'Start-Process -FilePath "cmd.exe"' in windows_installer:
+        raise AssertionError("Windows installer elevation must not use Start-Process, which can fail with duplicate PATH keys")
+    for symbol in (
+        "$startInfo = [Diagnostics.ProcessStartInfo]::new()",
+        "$startInfo.FileName = $env:ComSpec",
+        '$startInfo.Arguments = \'/d /s /c ""\'',
+        '$startInfo.Verb = "runas"',
+        "$startInfo.UseShellExecute = $true",
+        "$adminProcess.WaitForExit()",
+        "Administrator permission was cancelled",
+    ):
+        if symbol not in windows_installer:
+            raise AssertionError(f"Windows installer elevation must include {symbol}")
+    if windows_installer.count('if not "%PPTBRIDGE_INSTALLER_NO_PAUSE%"=="1" pause') != 2:
+        raise AssertionError("Windows installer automation must skip both success and failure pauses")
+
     return 0
 
 

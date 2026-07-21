@@ -1,6 +1,16 @@
 # Changelog
 
-PPTBridge SK follows separate release tracks for the primary Apple Silicon build and the Intel Mac / Windows beta builds. Download the current packages from the [README](README.md#download-and-install) or [GitHub Releases](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases).
+PPTBridge SK v0.5.8 provides stable Windows x64 and Apple Silicon builds, with Intel Mac on a separate beta track. Download the current packages from the [README](README.md#download-and-install) or [GitHub Releases](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases).
+
+## Windows v0.5.8 - Stable
+
+- Promoted the runtime-tested Windows PowerPoint plugin to the stable v0.5.8 release alongside Apple Silicon.
+- Added the minimal five-file Windows ZIP with a double-click installer, plugin DLL, short user guide, and two required locale files.
+- Fixed the administrator-permission launcher used by `INSTALL.cmd` for normal OBS installations under `Program Files`.
+- Replaced the fragile PowerShell `Start-Process` elevation path with Windows ShellExecute `runas`, including a clear message when UAC permission is cancelled.
+- Validated Slide, Presenter, animations, audio/video, resize, final-slide protection, Program-scene clicker routing, multiple decks, OSC, recovery, legacy `.ppt`, invalid input safety, and repeated Start/Stop stress in real OBS.
+
+[Windows stable release notes and download](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8)
 
 ## v0.5.8-windows-beta.1 - Windows x64 Beta
 
@@ -18,7 +28,7 @@ PPTBridge SK follows separate release tracks for the primary Apple Silicon build
 
 [Windows beta release notes and download](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8-windows-beta.1)
 
-## v0.5.8 - Apple Silicon Stable
+## macOS v0.5.8 - Apple Silicon Stable
 
 - Fixed multi-deck live startup when another PowerPoint slideshow is already running.
 - Fixed a render-thread race when changing Presenter layout and background properties.
@@ -35,6 +45,7 @@ PPTBridge SK follows separate release tracks for the primary Apple Silicon build
 
 | Release | Track | Main focus |
 | --- | --- | --- |
+| [v0.5.8](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8) | Windows x64 and Apple Silicon stable | Live PowerPoint/PDF platform workflows, Presenter, clicker/OSC, audio, recovery, and easy installers |
 | [v0.5.8-windows-beta.1](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8-windows-beta.1) | Windows beta | Live capture, Presenter parity, Program-scene clicker/audio routing, multi-deck stability, and easy installer |
 | [v0.5.7](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.7) | Previous Apple Silicon stable | PowerPoint automation, Start Live regression tests, and cue-list smoke coverage |
 | [v0.5.6](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.6) | Previous Apple Silicon stable | Start Live reliability, PDF control clarity, and readable live staging |

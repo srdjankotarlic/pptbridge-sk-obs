@@ -32,7 +32,7 @@ It is developed and runtime-tested on Apple Silicon (M1 Pro, OBS Studio 32.x) ag
 
 # Outcome
 
-- **v0.4.7** is the current stable Apple Silicon release, with an Intel Mac beta and a Windows beta installer published alongside it.
+- **v0.5.8** is the current stable Windows x64 and Apple Silicon release, with a separate Intel Mac beta.
 - The live command pipeline survived an external code audit: synchronous UI-thread calls, pipe-drain deadlocks, and unbounded process timeouts were found and fixed, and `tests/audit_guardrails.py` now locks those fixes in so regressions fail fast.
 - Runtime verification on a real OBS install covers plugin load, multi-deck loading, cache hits, OSC control of every documented path, and clean logs with zero plugin errors.
 - The result is a deck workflow that behaves like any other OBS source: add it to a scene, pick a file, and the show runs — no window-capture hacks, no focus accidents, no PowerPoint takeover.

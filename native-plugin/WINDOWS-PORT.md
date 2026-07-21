@@ -6,7 +6,7 @@ This document captures the current engineering status and next practical path fo
 
 ## Honest Status
 
-The public stable release is still **macOS-first**, but the repo now contains a Windows beta implementation layer prepared for real Windows OBS validation.
+Windows x64 and macOS Apple Silicon are stable `v0.5.8` release platforms. This document keeps the Windows engineering architecture and remaining limits explicit.
 
 What is already in the Windows code now:
 
@@ -34,12 +34,12 @@ What is already in the Windows code now:
 - optional Windows Spotlight/Clicker Capture using the same OBS hotkey bindings
 - local OSC / Companion control through the shared OSC server path
 
-What is **not** claimed as done yet:
+What is **not** included yet:
 
 - PDF input support on Windows
-- a code-signed stable Windows installer release
+- a code-signed Windows installer
 
-The `v0.5.8-windows-beta.1` candidate has real Windows OBS runtime coverage for the PowerPoint workflow, including live video/audio, Presenter, multi-deck routing, clicker/OSC, recovery, legacy `.ppt`, repeated lifecycle stress, and the five-file installer ZIP. It remains a prerelease until broader production feedback is collected.
+The Windows `v0.5.8` release has real OBS runtime coverage for the PowerPoint workflow, including live video/audio, Presenter, multi-deck routing, clicker/OSC, recovery, legacy `.ppt`, repeated lifecycle stress, and the five-file installer ZIP. It also includes a verified `Program Files` administrator-permission installation path.
 
 ## What Was Reused
 
@@ -148,10 +148,4 @@ Official OBS starting point:
 
 ## Next Practical Step
 
-The next best engineering task is no longer architecture split. That part is started.
-
-The next best task is:
-
-**move this Windows backend onto a real Windows OBS machine and validate live capture, live audio, and PowerPoint parity against real decks**
-
-That is the point where the Windows code becomes either a releasable alpha or gets another hardening pass.
+Continue expanding the real-hardware matrix across Windows 10/11, current Microsoft 365 PowerPoint, additional OBS 30+ releases, and physical presenter remotes while keeping the full Windows release checklist green.

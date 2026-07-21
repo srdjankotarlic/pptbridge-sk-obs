@@ -3323,13 +3323,13 @@ void PresentationDocument::LoadOnWorker()
 
   if (IsPdfExtension(impl_->path)) {
     fail_load(
-      "PDF input is not supported by this Windows beta. Choose a PowerPoint file such as .pptx; PDF support remains a macOS-only feature for now.");
+      "PDF input is not supported on Windows. Choose a PowerPoint file such as .pptx; PDF support remains a macOS-only feature for now.");
     return;
   }
 
   if (!IsSupportedPowerPointExtension(impl_->path)) {
     fail_load(
-      "Unsupported presentation type. This Windows beta accepts .ppt, .pptx, .pptm, .ppsx, .potx, and .potm PowerPoint files.");
+      "Unsupported presentation type. Windows accepts .ppt, .pptx, .pptm, .ppsx, .potx, and .potm PowerPoint files.");
     return;
   }
 

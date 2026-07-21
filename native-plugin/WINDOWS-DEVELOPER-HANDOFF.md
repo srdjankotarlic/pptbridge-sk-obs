@@ -1,22 +1,22 @@
 # Windows Developer Handoff
 
-Use this note when continuing Windows validation on a Windows laptop.
+Use this note when maintaining the stable Windows release on a Windows computer.
 
 ```text
-We are validating PPTBridge SK for OBS Windows beta.
+We are maintaining PPTBridge SK for OBS on Windows.
 
 Workspace:
 <choose the local checkout of srdjankotarlic/pptbridge-sk-obs>
 
 First read:
-native-plugin/WINDOWS-BETA-RELEASE.md
-native-plugin/WINDOWS-ALPHA-TESTING.md
+native-plugin/WINDOWS-RELEASE.md
+native-plugin/WINDOWS-TESTING.md
 native-plugin/WINDOWS-PORT.md
 
 Important context:
-- This is Windows beta source validation, not a final installer.
+- Windows x64 is a stable v0.5.8 release platform. Do not publish a replacement asset until the full release checklist passes.
 - Do not change the macOS stable release files unless a Windows compile fix truly requires a shared file change.
-- The Windows beta code is meant to match the macOS v0.4.x workflow where possible:
+- The Windows code matches the macOS v0.5.8 production workflow where possible:
   - PPTBridge SK Slide and PPTBridge SK Presenter OBS sources
   - manual START and STOP PowerPoint live controls
   - optional Auto Start PowerPoint When OBS Opens
@@ -27,7 +27,7 @@ Important context:
   - OBS-focused hotkeys
   - optional Spotlight/Clicker Capture
   - local OSC/Companion control on 127.0.0.1:57130
-- PDF input is not expected to work on Windows beta yet. Test PowerPoint decks first.
+- PDF input is not enabled on Windows. Test PowerPoint decks first.
 
 Start by running:
 git status
@@ -48,7 +48,7 @@ After build:
 2. Open OBS and confirm these sources appear:
    PPTBridge SK Slide
    PPTBridge SK Presenter
-3. Test a .pptx deck using native-plugin/WINDOWS-ALPHA-TESTING.md.
+3. Test a .pptx deck using native-plugin/WINDOWS-TESTING.md.
 
 Must verify:
 - OBS does not auto-start PowerPoint unless Auto Start is enabled.
@@ -61,21 +61,22 @@ Must verify:
 - Spotlight/Clicker Capture works while another app is focused and suppresses the clicker key from the focused app.
 - Local OSC /pptbridge/next reaches the current Program scene deck.
 
-If everything passes, create a Windows beta zip containing:
+If everything passes, create the minimal Windows zip containing:
 - obs-plugins/64bit/pptbridge-obs.dll
-- data/obs-plugins/pptbridge-obs/
-- START-HERE-Windows-Beta.txt
-- native-plugin/WINDOWS-ALPHA-TESTING.md
+- data/obs-plugins/pptbridge-obs/locale/en-US.ini
+- data/obs-plugins/pptbridge-obs/locale/en-GB.ini
+- INSTALL.cmd
+- README.txt
 
 Name it:
-pptbridge-obs-windows-x64-v0.5.8-windows-beta.1.zip
+pptbridge-obs-windows-x64-v0.5.8.zip
 
 Also create:
-pptbridge-obs-windows-x64-v0.5.8-windows-beta.1.zip.sha256
+pptbridge-obs-windows-x64-v0.5.8.zip.sha256
 
-Do not claim stable. Mark it Windows beta. Report exactly what passed, what failed, and include OBS log paths.
+Report exactly what passed, what failed, and include OBS log paths. Keep known limits visible: desktop PowerPoint is required, PDF is not enabled on Windows, and the installer is not code-signed yet.
 ```
 
 ## Notes For The Mac Development Machine
 
-The Mac development machine prepared the Windows source beta and documentation, but cannot runtime-test Windows OBS. A real Windows laptop must compile and validate before publishing a Windows binary asset.
+Windows assets must be compiled and runtime-tested in real Windows OBS before publishing. A macOS-only build or source inspection is not enough.

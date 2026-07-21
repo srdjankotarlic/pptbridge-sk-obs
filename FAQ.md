@@ -2,16 +2,16 @@
 
 ## Which download should I use?
 
-Use the Apple Silicon ZIP for M-series Macs. Use the Intel ZIP only for older Macs where `About This Mac` says `Processor: Intel`.
+Use the Windows x64 ZIP for Windows 10/11. Use the Apple Silicon ZIP for M-series Macs. Use the Intel ZIP only for older Macs where `About This Mac` says `Processor: Intel`.
 
 ## Is Windows supported?
 
-Windows is currently a beta source validation track. The Windows package is for building and testing on a real Windows OBS machine. It is not a one-click Windows installer yet.
+Yes. Windows 10/11 x64 is a stable v0.5.8 release platform with a small ZIP and a double-click `INSTALL.cmd` installer. Desktop Microsoft PowerPoint is required.
 
 Start here:
 
-- [native-plugin/WINDOWS-BETA-RELEASE.md](native-plugin/WINDOWS-BETA-RELEASE.md)
-- [native-plugin/WINDOWS-ALPHA-TESTING.md](native-plugin/WINDOWS-ALPHA-TESTING.md)
+- [native-plugin/WINDOWS-RELEASE.md](native-plugin/WINDOWS-RELEASE.md)
+- [native-plugin/WINDOWS-TESTING.md](native-plugin/WINDOWS-TESTING.md)
 
 ## Do I need PowerPoint?
 
@@ -105,7 +105,7 @@ Yes. Create one OBS scene per deck and put each deck's PPTBridge sources in its 
 
 On macOS, yes. PDF decks work without PowerPoint, but they do not contain PowerPoint animations, click-builds, or embedded media playback.
 
-On Windows beta, PDF input is not enabled yet.
+On Windows, PDF input is not enabled yet.
 
 ## Does PPTBridge capture PowerPoint audio?
 

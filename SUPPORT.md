@@ -52,7 +52,7 @@ OBS log:
 
 - Bugs: [open a bug report](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/new?template=bug_report.md)
 - Feature ideas: [open a feature request](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/new?template=feature_request.md)
-- Windows beta results: include the checklist from [native-plugin/WINDOWS-ALPHA-TESTING.md](native-plugin/WINDOWS-ALPHA-TESTING.md)
+- Windows results: include the checklist from [native-plugin/WINDOWS-TESTING.md](native-plugin/WINDOWS-TESTING.md)
 
 ## Security
 

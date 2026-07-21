@@ -4,16 +4,17 @@
 
 This folder contains the native OBS plugin version of PPTBridge SK.
 
-The main public release path today is the macOS ZIP for the user's Mac:
+The main public release paths are the Windows x64 and Apple Silicon ZIPs:
 
+- [Download stable Windows x64 build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-windows-x64-v0.5.8.zip)
 - [Download stable Apple Silicon build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
 - [Download Intel Mac beta build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip)
-- [Open the latest stable macOS release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest)
+- [Open the v0.5.8 stable release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8)
 
-The Windows beta path is a binary plugin ZIP with a double-click installer:
+The Windows release is a minimal binary plugin ZIP with a double-click installer:
 
-- [Download Windows beta plugin ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8-windows-beta.1/pptbridge-obs-windows-x64-v0.5.8-windows-beta.1.zip)
-- [Open the Windows beta prerelease page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8-windows-beta.1)
+- [Download Windows plugin ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-windows-x64-v0.5.8.zip)
+- [Open the shared stable release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8)
 
 It is designed to show up inside OBS as real source types:
 
@@ -39,11 +40,11 @@ This native version is built around a practical conference workflow:
 
 - macOS Apple Silicon: stable public release path, tested and packaged
 - macOS Intel: v0.4.4 beta download, awaiting more real Intel Mac feedback
-- Windows: runtime-tested beta binary package with `INSTALL.cmd` for OBS 30+ on Windows 10/11 x64
+- Windows: stable runtime-tested binary package with `INSTALL.cmd` for OBS 30+ on Windows 10/11 x64
 
 ## Quick Platform Guide
 
-- `v0.5.8` = current Apple Silicon release with reliable multi-deck live startup, Presenter property stability, live recovery, safer inputs, embedded-audio routing, and expanded release QA
+- `v0.5.8` = current Windows x64 and Apple Silicon stable release with reliable multi-deck live startup, Presenter, live recovery, safe Program-scene clicker routing, embedded audio, and expanded release QA
 - `v0.5.7` = previous Apple Silicon stable release with more reliable PowerPoint automation and stronger Start Live regression coverage
 - `v0.5.6` = previous Apple Silicon stable release with more reliable manual PowerPoint live start, clearer PDF controls, and PowerPoint-readable live staging
 - `v0.5.5` = previous Apple Silicon stable release with faster first preview while notes/media finish preparing in the background
@@ -52,7 +53,7 @@ This native version is built around a practical conference workflow:
 - `v0.5.2` = previous Apple Silicon stable release with Operator Mode controls, interactive cue checks, OSC status feedback, and clearer menu labels
 - `v0.5.1` = previous Apple Silicon stable release with live-mode restart recovery, arrow-key defaults, presenter background customization, and cue-list display/export
 - `v0.5.0` = previous Apple Silicon stable release with modification-time cache validation and bounded timeouts on PowerPoint helper calls
-- `v0.5.8-windows-beta.1` = current Windows beta with live PowerPoint, Presenter, media/audio, Program-scene clicker routing, multi-deck support, resize-safe capture, and a double-click installer
+- `v0.5.8-windows-beta.1` = previous Windows beta plugin ZIP
 - `v0.5.0-beta.1` = previous Windows beta plugin ZIP
 - `v0.4.7` = Apple Silicon stable release with faster presenter preparation after live start and final-slide live-mode protection
 - `v0.4.6` = previous Apple Silicon stable release with live PowerPoint control stability, timeout-safe process handling, and cleaner release packaging
@@ -64,7 +65,7 @@ This native version is built around a practical conference workflow:
 - `v0.4.0` = previous macOS stable release with Companion/OSC control
 - `v0.3.0` = previous macOS stable release with presenter customization
 - `v0.2.2` = previous macOS stable release
-- If someone asks "which one should I install?", the safe answer today is: M-series Mac users install the Apple Silicon ZIP; older Intel Mac users can test the Intel beta ZIP; Windows users who want PowerPoint live mode can test the Windows beta plugin ZIP and send feedback.
+- If someone asks "which one should I install?", the answer is: Windows 10/11 x64 users install the Windows v0.5.8 ZIP; M-series Mac users install the Apple Silicon v0.5.8 ZIP; older Intel Mac users can test the Intel beta ZIP.
 
 ## What Problem It Solves
 
@@ -171,8 +172,8 @@ If you want to publish this properly, these files are prepared for you:
 - `PUBLISHING.md`
 - `PRO-AUDIO-MODE.md`
 - `GITHUB-RELEASE.md`
-- `WINDOWS-BETA-RELEASE.md`
-- `WINDOWS-ALPHA-TESTING.md`
+- `WINDOWS-RELEASE.md`
+- `WINDOWS-TESTING.md`
 - `WINDOWS-DEVELOPER-HANDOFF.md`
 - `COMPANION-CONTROL.md`
 - `OBS-FORUM-POST.md`

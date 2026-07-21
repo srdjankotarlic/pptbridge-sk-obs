@@ -10,7 +10,7 @@ if not "%exitCode%"=="0" (
   echo.
   echo Installation failed with exit code %exitCode%.
   echo If you need help, send the OBS log and a screenshot of this window.
-  pause
+  if not "%PPTBRIDGE_INSTALLER_NO_PAUSE%"=="1" pause
   exit /b %exitCode%
 )
 if not "%PPTBRIDGE_INSTALLER_NO_PAUSE%"=="1" pause
@@ -191,8 +191,23 @@ Write-Host "OBS folder: $obsRoot"
 
 if ((Test-RequiresAdministrator $obsRoot) -and -not (Test-IsAdministrator)) {
   Write-Host "Administrator permission is needed to install into this OBS folder."
-  $argList = "/c ""$env:PPTBRIDGE_INSTALLER"" ""$obsRoot"""
-  $adminProcess = Start-Process -FilePath "cmd.exe" -ArgumentList $argList -Verb RunAs -Wait -PassThru
+  $startInfo = [Diagnostics.ProcessStartInfo]::new()
+  $startInfo.FileName = $env:ComSpec
+  $startInfo.Arguments = '/d /s /c ""' + $env:PPTBRIDGE_INSTALLER + '" "' + $obsRoot + '""'
+  $startInfo.Verb = "runas"
+  $startInfo.UseShellExecute = $true
+  try {
+    $adminProcess = [Diagnostics.Process]::Start($startInfo)
+  } catch [ComponentModel.Win32Exception] {
+    if ($_.Exception.NativeErrorCode -eq 1223) {
+      throw "Administrator permission was cancelled. Run INSTALL.cmd again and choose Yes when Windows asks."
+    }
+    throw
+  }
+  if (-not $adminProcess) {
+    throw "Windows could not start the installer with administrator permission."
+  }
+  $adminProcess.WaitForExit()
   exit $adminProcess.ExitCode
 }
 
