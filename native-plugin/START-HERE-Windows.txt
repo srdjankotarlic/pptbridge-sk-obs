@@ -4,7 +4,7 @@ PPTBridge SK for OBS - Windows
 Use this file only if you are looking at the source tree.
 Normal Windows users should download:
 
-  pptbridge-obs-windows-x64-v0.5.8.zip
+  pptbridge-obs-windows-x64-v0.5.9.zip
 
 Then:
 
@@ -21,10 +21,11 @@ What the installer copies:
 
 Windows release scope:
 
+- PDF decks render directly in OBS without PowerPoint or a separate PDF app.
 - PowerPoint decks are supported in live mode.
 - .pptx is the best-tested format.
 - Legacy .ppt decks can be selected and opened through Microsoft PowerPoint.
-- PDF input is not enabled on Windows yet.
+- Password-protected PDFs are not supported.
 
 Production check before a show:
 
@@ -41,7 +42,7 @@ Production check before a show:
 
 Known limits:
 
-- PDF input is not enabled on Windows.
+- Desktop PowerPoint is required only for PowerPoint files, not PDFs.
 - The DLL and installer are not code-signed yet, so Windows may ask for confirmation.
 - Test every event deck on the target OBS/PowerPoint computer before a live show.
-- Windows x64 and macOS Apple Silicon are both stable v0.5.8 release platforms.
+- Windows x64 v0.5.9 and macOS Apple Silicon v0.5.8 are stable release platforms.

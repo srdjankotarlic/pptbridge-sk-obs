@@ -5,7 +5,7 @@ if(APPLE)
   list(APPEND PPTBRIDGE_LANGUAGES OBJCXX)
 endif()
 
-project(pptbridge-obs-native VERSION 0.5.8 LANGUAGES ${PPTBRIDGE_LANGUAGES})
+project(pptbridge-obs-native VERSION 0.5.9 LANGUAGES ${PPTBRIDGE_LANGUAGES})
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,6 +17,7 @@ set(PPTBRIDGE_BRAND_NAME "PPTBridge SK for OBS")
 set(PPTBRIDGE_AUTHOR_NAME "Srđan Kotarlić")
 
 option(PPTBRIDGE_INSTALL_TO_USER_OBS "Install to the current user's OBS plugin folder" OFF)
+option(PPTBRIDGE_BUILD_WINDOWS_PDF_SMOKE "Build the standalone Windows PDF renderer smoke test" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -62,6 +63,7 @@ elseif(WIN32)
   list(APPEND PPTBRIDGE_SOURCES
     src/plugin-main.cpp
     src/presentation_document_win.cpp
+    src/windows_pdf_renderer.cpp
     src/source_slide_win.cpp
     src/source_presenter.cpp
   )
@@ -151,6 +153,7 @@ elseif(WIN32)
     gdiplus
     ole32
     shell32
+    windowsapp
   )
 
   set_target_properties(pptbridge-obs PROPERTIES
@@ -173,4 +176,22 @@ elseif(WIN32)
     LIBRARY DESTINATION "obs-plugins/64bit"
   )
   install(DIRECTORY data/ DESTINATION "data/obs-plugins/pptbridge-obs")
+
+  if(PPTBRIDGE_BUILD_WINDOWS_PDF_SMOKE)
+    add_executable(pptbridge-windows-pdf-smoke
+      tests/windows_pdf_smoke.cpp
+      src/windows_pdf_renderer.cpp
+    )
+    target_include_directories(pptbridge-windows-pdf-smoke PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_compile_definitions(pptbridge-windows-pdf-smoke PRIVATE
+      WIN32_LEAN_AND_MEAN
+      NOMINMAX
+      UNICODE
+      _UNICODE
+      _CRT_SECURE_NO_WARNINGS
+    )
+    target_link_libraries(pptbridge-windows-pdf-smoke PRIVATE windowsapp)
+  endif()
 endif()

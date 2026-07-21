@@ -4,11 +4,11 @@
 
 Download and extract only:
 
-`pptbridge-obs-windows-x64-v0.5.8.zip`
+`pptbridge-obs-windows-x64-v0.5.9.zip`
 
 Optional integrity file:
 
-`pptbridge-obs-windows-x64-v0.5.8.zip.sha256`
+`pptbridge-obs-windows-x64-v0.5.9.zip.sha256`
 
 ## Easy Install
 
@@ -17,7 +17,7 @@ Optional integrity file:
 3. Open the extracted folder and double-click `INSTALL.cmd`.
 4. Allow administrator permission if Windows asks.
 5. Start OBS and add `PPTBridge SK Slide` from **Sources > +**.
-6. Select a PowerPoint file and click **Start / Restart PowerPoint Live Mode**.
+6. Select a PDF or PowerPoint file. PDFs load directly; for PowerPoint, click **Start / Restart PowerPoint Live Mode**.
 
 The installer detects a normal OBS installation automatically. For portable OBS or a custom folder, run:
 
@@ -44,9 +44,9 @@ Extra Next presses on the final slide are ignored, so the presentation remains v
 
 - Windows 10/11 x64
 - OBS Studio 30 or newer, 64-bit
-- Desktop Microsoft PowerPoint
+- Desktop Microsoft PowerPoint only for PowerPoint files
 
-Windows supports modern PowerPoint formats and legacy `.ppt`. PDF input is not enabled on Windows.
+Windows supports PDF, modern PowerPoint formats, and legacy `.ppt`. PDFs use the built-in Windows PDF engine and need no separate PDF application. Password-protected PDFs are not supported.
 
 ## Troubleshooting
 
@@ -57,9 +57,9 @@ If the plugin is missing after installation, close OBS and run `INSTALL.cmd` aga
 After a clean Release build:
 
 ```powershell
-cmake --build native-plugin/build-win-v058-clean-release --config Release
+cmake --build native-plugin/build-win-v059-clean-release --config Release
 powershell -ExecutionPolicy Bypass -File native-plugin/scripts/make-windows-release.ps1 `
-  -BuildDir native-plugin/build-win-v058-clean-release
+  -BuildDir native-plugin/build-win-v059-clean-release
 ```
 
 The script creates the ZIP and matching `.sha256` file under `native-plugin/release`. The public ZIP intentionally contains only `INSTALL.cmd`, `README.txt`, the DLL, and two required locale files.
