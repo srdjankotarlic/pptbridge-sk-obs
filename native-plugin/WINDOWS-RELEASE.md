@@ -1,12 +1,12 @@
-# PPTBridge SK Windows x64 Beta
+# PPTBridge SK Windows x64 Stable Release
 
-**Release:** `v0.5.8-windows-beta.1`
+**Release:** `v0.5.8`
 
-This prerelease brings the Windows PowerPoint workflow close to the macOS v0.5.8 feature set while keeping installation to one small ZIP and a double-click `INSTALL.cmd`.
+This stable release brings the Windows PowerPoint workflow alongside the macOS v0.5.8 release while keeping installation to one small ZIP and a double-click `INSTALL.cmd`.
 
 ## Download
 
-Download `pptbridge-obs-windows-x64-v0.5.8-windows-beta.1.zip`, extract it, close OBS, and double-click `INSTALL.cmd`.
+Download `pptbridge-obs-windows-x64-v0.5.8.zip`, extract it, close OBS, and double-click `INSTALL.cmd`.
 
 The ZIP contains only:
 
@@ -36,7 +36,9 @@ The ZIP contains only:
 
 The release candidate was built in both `RelWithDebInfo` and clean `Release` configurations, then tested in real OBS Studio 32.1.2 on Windows 11 x64 with desktop PowerPoint 2010. Validation covered fresh and cached loads, animations, notes, video/audio, final-slide navigation, resize, Presenter layouts, cue export, all six OSC controls, all 16 OSC feedback addresses, Program/Preview clicker isolation, three simultaneous live decks, ten rapid Start/Stop cycles, legacy `.ppt`, six real event decks, and an 8.6 GB media-heavy deck.
 
-The final public ZIP must pass the same runtime suite after a fresh extraction and installation before the GitHub prerelease is published.
+The installer was additionally tested through a real Windows administrator-permission elevation into the standard OBS `Program Files` directory, including reinstall and post-install DLL/locale verification.
+
+The final public ZIP must pass the same runtime suite after a fresh extraction and installation before the GitHub asset is published.
 
 ## Important Audio Note
 
@@ -44,9 +46,9 @@ PowerPoint runs all open decks in one application process. PPTBridge routes proc
 
 ## Known Limits
 
-- This remains a beta and should be rehearsed on the exact production computer before a paid or critical show.
+- Rehearse every event deck on the exact production computer before a paid or critical show.
 - PDF input is not enabled on Windows.
 - The plugin and installer are not code-signed yet, so Windows may show a security confirmation.
 - Desktop Microsoft PowerPoint is required; PowerPoint for the web is not supported.
 
-The macOS `v0.5.8` release remains the separate stable macOS download. This Windows release must be marked **Prerelease**, not Latest stable.
+The Windows x64 and macOS Apple Silicon ZIPs are published together in the stable `v0.5.8` GitHub release.

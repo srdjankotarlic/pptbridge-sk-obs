@@ -1,5 +1,5 @@
-PPTBridge SK for OBS - Windows x64 beta
-Version: v0.5.8-windows-beta.1
+PPTBridge SK for OBS - Windows x64
+Version: v0.5.8
 
 INSTALL IN A FEW CLICKS
 
@@ -70,9 +70,10 @@ REQUIREMENTS AND LIMITS
 - Windows 10 or 11, 64-bit.
 - OBS Studio 30 or newer, 64-bit.
 - Desktop Microsoft PowerPoint is required.
-- PDF input is not enabled in this Windows beta.
-- This is an unsigned beta. Windows may ask for confirmation before running the
-  installer. Test every event deck on the production computer before show day.
+- PDF input is not enabled on Windows.
+- The DLL and installer are not code-signed yet. Windows may ask for
+  confirmation before running the installer. Test every event deck on the
+  production computer before show day.
 
 IF THE PLUGIN DOES NOT APPEAR
 

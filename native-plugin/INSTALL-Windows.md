@@ -4,11 +4,11 @@
 
 Download and extract only:
 
-`pptbridge-obs-windows-x64-v0.5.8-windows-beta.1.zip`
+`pptbridge-obs-windows-x64-v0.5.8.zip`
 
 Optional integrity file:
 
-`pptbridge-obs-windows-x64-v0.5.8-windows-beta.1.zip.sha256`
+`pptbridge-obs-windows-x64-v0.5.8.zip.sha256`
 
 ## Easy Install
 
@@ -46,7 +46,7 @@ Extra Next presses on the final slide are ignored, so the presentation remains v
 - OBS Studio 30 or newer, 64-bit
 - Desktop Microsoft PowerPoint
 
-Windows supports modern PowerPoint formats and legacy `.ppt`. PDF input is not enabled in this beta.
+Windows supports modern PowerPoint formats and legacy `.ppt`. PDF input is not enabled on Windows.
 
 ## Troubleshooting
 

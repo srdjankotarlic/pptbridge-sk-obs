@@ -1,5 +1,5 @@
 param(
-  [string]$Version = "0.5.8-windows-beta.1",
+  [string]$Version = "0.5.8",
   [string]$Configuration = "Release",
   [string]$BuildDir = "",
   [string]$OutputDir = "",
@@ -67,7 +67,7 @@ if ($files.Count -ne 5) {
   throw "Unexpected Windows package file count: $($files.Count). Files:`n$list"
 }
 
-$forbiddenPattern = "codex|openai|ai assistant|source zip|handoff"
+$forbiddenPattern = "codex|openai|ai assistant|source zip|handoff|beta|prerelease"
 $badMatches = @(Select-String -LiteralPath ($files | Select-Object -ExpandProperty FullName) -Pattern $forbiddenPattern -CaseSensitive:$false -ErrorAction SilentlyContinue)
 if ($badMatches.Count -gt 0) {
   $details = ($badMatches | ForEach-Object { "$($_.Path):$($_.LineNumber): $($_.Line)" }) -join "`n"

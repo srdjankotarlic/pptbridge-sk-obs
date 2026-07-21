@@ -5,7 +5,7 @@ PPTBridge SK is a live-production OBS plugin, so changes should favor reliabilit
 ## Current Release Tracks
 
 - macOS stable: public user releases and ZIP installers
-- Windows beta: source validation and runtime testing
+- Windows stable: public user releases, installer hardening, and runtime testing
 
 Please keep these tracks separate when possible. A Windows compile fix should not change macOS behavior unless the shared code truly requires it.
 
@@ -14,7 +14,7 @@ Please keep these tracks separate when possible. A Windows compile fix should no
 1. Read [README.md](README.md).
 2. Read [BUILDING.md](BUILDING.md) for local build commands.
 3. For user-facing behavior, read [SETUP-GUIDE.md](SETUP-GUIDE.md).
-4. For Windows work, read [native-plugin/WINDOWS-BETA-RELEASE.md](native-plugin/WINDOWS-BETA-RELEASE.md).
+4. For Windows work, read [native-plugin/WINDOWS-RELEASE.md](native-plugin/WINDOWS-RELEASE.md).
 
 ## What Makes A Good Pull Request
 
@@ -35,7 +35,7 @@ For macOS runtime work:
 - deck type, `.pptx` or `.pdf`
 - whether live mode, cached mode, clicker capture, OSC, or Companion was tested
 
-For Windows beta work:
+For Windows work:
 
 - Windows version
 - OBS version
