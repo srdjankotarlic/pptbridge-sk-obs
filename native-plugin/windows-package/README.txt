@@ -1,72 +1,85 @@
-PPTBridge SK for OBS - Windows
+PPTBridge SK for OBS - Windows x64 beta
+Version: v0.5.8-windows-beta.1
 
-Download only this file for Windows:
-pptbridge-obs-windows-x64-v0.5.0-beta.1.zip
+INSTALL IN A FEW CLICKS
 
-Install
 1. Close OBS Studio.
-2. Right-click the zip and choose Extract All.
+2. Right-click the downloaded ZIP and choose Extract All.
 3. Open the extracted folder.
 4. Double-click INSTALL.cmd.
 5. Allow administrator permission if Windows asks.
 6. Start OBS Studio.
-7. Add Source -> PPTBridge SK Slide.
-8. Choose your PowerPoint file.
 
-If OBS is portable or installed in a custom folder, run:
+The installer finds a normal OBS installation automatically. For portable OBS
+or a custom installation, run:
+
 INSTALL.cmd "D:\Path\To\obs-studio"
 
-How to use
-- PPTBridge SK Slide shows and controls a PowerPoint deck inside OBS.
-- Use START in the source properties to open PowerPoint live mode.
-- Use STOP to close PowerPoint live mode.
-- Live Mode keeps PowerPoint running and lets OBS capture the PowerPoint slideshow window.
-- If OBS is still attaching to PowerPoint, PPTBridge keeps the last rendered slide visible instead of closing and reopening PowerPoint.
-- PowerPoint files can be local files or network share files, for example \\server\share\show.pptx.
-- Modern `.pptx` decks are best, but legacy `.ppt` decks can also open through PowerPoint live/export mode.
-- Default beta hotkeys are:
-  Next Slide: 2
-  Previous Slide: 1
-- For a stage clicker while using the rest of the computer, enable:
-  Tools -> PPTBridge SK: Spotlight/Clicker Capture On/Off
-- Default clicker capture uses PageDown for next and PageUp for previous; normal left/right arrows stay free.
-- Plain typing keys such as letters, numbers, Space, Enter, Tab, and Backspace are never captured globally.
-- Normal typing still works while the operator uses the computer.
-- The clicker controls only visible PPTBridge sources in the current OBS Program scene.
-- Decks that are not in Program do not advance.
-- Hidden PPTBridge sources do not advance.
+FIRST PRESENTATION
 
-For multi-deck shows
+1. In OBS Sources, click + and choose PPTBridge SK Slide.
+2. Browse to a .pptx, .pptm, .ppsx, .potx, .potm, or legacy .ppt file.
+3. Open source Properties and click Start / Restart PowerPoint Live Mode.
+4. Add PPTBridge SK Presenter to a separate confidence-monitor scene if you
+   want current slide, next slide, notes, timer, and cue list.
+5. Click Stop PowerPoint Live Mode when the live session is no longer needed.
+
+STAGE CLICKER WHILE THE OPERATOR USES THE COMPUTER
+
+Enable Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off.
+
+- PageDown moves to the next slide and PageUp moves to the previous slide.
+- The clicker follows the PPTBridge deck in the current OBS Program scene.
+- A deck that is only in Studio Preview does not receive the click.
+- The clicker keys are swallowed, so they do not affect the operator's app.
+- Letters, numbers, Space, Enter, Tab, Backspace, and normal Left/Right arrows
+  remain available to the operator.
+
+MULTIPLE PRESENTATIONS
+
 - Put each deck in its own OBS scene.
-- Put the scene you want the presenter to control into Program.
-- The clicker, OBS hotkeys, and local OSC control the Program scene deck only.
+- Start every deck that must be ready.
+- Put the required scene in Program.
+- Clicker, OBS controls, and local OSC follow the Program scene deck.
+- Several PowerPoint live sessions can stay open at the same time.
 
-Local OSC / Companion
-- Local OSC listens on 127.0.0.1:57130 when enabled.
-- Example: /pptbridge/next
+LIVE PRODUCTION BEHAVIOR
 
-Requirements
-- Windows 10/11 64-bit.
-- OBS Studio 64-bit.
-- Microsoft PowerPoint installed for live PowerPoint mode.
+- Resizing or moving the PowerPoint window does not change the OBS source size
+  when Lock OBS Output Size is selected.
+- PowerPoint menus, desktop, window borders, and scrollbars are removed from the
+  OBS audience output.
+- Extra Next presses on the final slide do not close the slideshow. Previous can
+  return to earlier slides.
+- Live animations, click builds, embedded video, and PowerPoint audio are kept.
+- PowerPoint audio is routed only for the current Program source. If several
+  PPTBridge Slide sources are intentionally visible in one Program scene, leave
+  Route PowerPoint App Audio enabled on only one of them.
+- The last good slide remains visible while a live window reattaches.
+- Network paths such as \\server\share\show.pptx are supported when PowerPoint
+  can open the file for the same Windows user.
 
-If the plugin does not appear in OBS
-1. Make sure OBS was closed during install.
-2. Run INSTALL.cmd again.
-3. Start OBS and check Sources -> + -> PPTBridge SK Slide.
-4. If it still does not appear, open OBS Help -> Log Files -> View Current Log and send the log.
+CONTROLS
 
-If a network PowerPoint file does not render
-1. Make sure the Windows user can open the file in PowerPoint.
-2. Use the normal Windows path if possible, for example \\server\share\show.pptx.
-3. Click Reload in the source properties after changing the file.
-4. Send the OBS log if OBS still shows a PPTBridge SK render message.
+- Default OBS-focused hotkeys: 2 = Next, 1 = Previous.
+- Local OSC can be enabled from Tools and listens on 127.0.0.1:57130.
+- OSC commands: /pptbridge/next, /previous, /first, /last, /black, /reload.
 
-Note for non-English PowerPoint
-- Some PowerPoint versions export slide images with localized names, for example Folie1.PNG.
-- This Windows package detects those localized image names automatically.
+REQUIREMENTS AND LIMITS
 
-Fixed in this Windows package
-- Live Mode no longer closes and reopens PowerPoint when OBS capture needs a moment to attach.
-- OBS capture uses the correct Windows PowerPoint window descriptor.
-- The loading screen text now displays normal dots instead of broken characters.
+- Windows 10 or 11, 64-bit.
+- OBS Studio 30 or newer, 64-bit.
+- Desktop Microsoft PowerPoint is required.
+- PDF input is not enabled in this Windows beta.
+- This is an unsigned beta. Windows may ask for confirmation before running the
+  installer. Test every event deck on the production computer before show day.
+
+IF THE PLUGIN DOES NOT APPEAR
+
+1. Close OBS and run INSTALL.cmd again.
+2. Confirm that you installed into the same OBS copy you normally start.
+3. In OBS, open Help > Log Files > View Current Log.
+4. Search for PPTBridge SK and include that log when reporting a problem.
+
+The Windows download contains only this guide, INSTALL.cmd, the plugin DLL, and
+the two small OBS locale files required by the plugin.

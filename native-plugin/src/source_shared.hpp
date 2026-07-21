@@ -54,10 +54,13 @@ struct SourceContext {
   uint32_t width = 1920;
   uint32_t height = 1080;
   gs_texture_t *texture = nullptr;
+  uint32_t texture_width = 0;
+  uint32_t texture_height = 0;
   std::vector<uint8_t> pixels;
   uint32_t stride = 0;
   uint64_t rendered_state_version = 0;
   uint64_t rendered_timer_second = 0;
+  mutable std::mutex render_state_mutex;
   PresenterRenderOptions presenter_options;
   bool use_live_powerpoint = true;
   bool auto_start_live_powerpoint = false;
@@ -72,6 +75,10 @@ struct SourceContext {
   obs_source_t *live_capture_source = nullptr;
   uint64_t live_capture_window_id = 0;
   std::string live_capture_window_title;
+  int live_capture_crop_left = 0;
+  int live_capture_crop_top = 0;
+  int live_capture_crop_right = 0;
+  int live_capture_crop_bottom = 0;
   bool live_capture_hooked = false;
   bool live_capture_showing = false;
   bool live_capture_active = false;

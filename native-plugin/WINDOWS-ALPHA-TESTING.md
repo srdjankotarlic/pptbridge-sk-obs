@@ -151,10 +151,12 @@ Use at least these decks:
 
 ## Known Current Limits
 
-- This Windows backend has not yet been runtime-proven on a real Windows OBS machine
-- PDF input is not enabled yet in this Windows beta
-- local audio ownership may vary depending on OBS version and Windows capture support
-- no one-click Windows installer is included yet
+- PDF input is not enabled in the Windows beta.
+- Desktop Microsoft PowerPoint is required.
+- PowerPoint process audio is owned by the current Program scene; when several PPTBridge Slide sources are visible in one Program scene, enable app audio on only one source.
+- The beta DLL and installer are not code-signed yet.
+
+The `v0.5.8-windows-beta.1` candidate is runtime-tested on Windows 11 x64 with OBS Studio 32.1.2 and PowerPoint 2010. A public release still requires two complete passing runtime runs: one from the build output and one from a freshly extracted release ZIP.
 
 ## What Feedback To Send Back
 

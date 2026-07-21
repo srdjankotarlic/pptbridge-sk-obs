@@ -2,9 +2,54 @@
 
 #include "presentation_document.hpp"
 
+#ifdef _WIN32
+#include <algorithm>
+#include <cwctype>
+#include <filesystem>
+#endif
+
 namespace pptbridge {
 
 namespace {
+
+std::string CanonicalRegistryPath(const std::string &path)
+{
+#ifdef _WIN32
+  if (path.empty()) {
+    return {};
+  }
+
+  namespace fs = std::filesystem;
+  std::error_code ec;
+  fs::path normalized = fs::absolute(fs::u8path(path), ec);
+  if (ec) {
+    normalized = fs::u8path(path);
+    ec.clear();
+  }
+  normalized = normalized.lexically_normal();
+
+  const fs::path canonical = fs::weakly_canonical(normalized, ec);
+  if (!ec && !canonical.empty()) {
+    normalized = canonical;
+  }
+  return normalized.u8string();
+#else
+  return path;
+#endif
+}
+
+std::string RegistryPathKey(const std::string &path)
+{
+  std::string canonical = CanonicalRegistryPath(path);
+#ifdef _WIN32
+  std::wstring wide = std::filesystem::u8path(canonical).wstring();
+  std::transform(wide.begin(), wide.end(), wide.begin(), [](wchar_t ch) {
+    return static_cast<wchar_t>(std::towlower(ch));
+  });
+  canonical = std::filesystem::path(wide).u8string();
+#endif
+  return canonical;
+}
 
 void RemoveExpiredDocuments(std::unordered_map<std::string, std::weak_ptr<PresentationDocument>> &documents)
 {
@@ -31,10 +76,13 @@ std::shared_ptr<PresentationDocument> Registry::Acquire(const std::string &pptx_
     return nullptr;
   }
 
+  const std::string canonical_path = CanonicalRegistryPath(pptx_path);
+  const std::string registry_key = RegistryPathKey(canonical_path);
+
   {
     std::lock_guard<std::mutex> lock(mutex_);
     RemoveExpiredDocuments(documents_);
-    auto found = documents_.find(pptx_path);
+    auto found = documents_.find(registry_key);
     if (found != documents_.end()) {
       if (auto existing = found->second.lock()) {
         return existing;
@@ -43,17 +91,17 @@ std::shared_ptr<PresentationDocument> Registry::Acquire(const std::string &pptx_
     }
   }
 
-  auto created = std::make_shared<PresentationDocument>(pptx_path);
+  auto created = std::make_shared<PresentationDocument>(canonical_path);
   std::lock_guard<std::mutex> lock(mutex_);
   RemoveExpiredDocuments(documents_);
-  auto found = documents_.find(pptx_path);
+  auto found = documents_.find(registry_key);
   if (found != documents_.end()) {
     if (auto existing = found->second.lock()) {
       return existing;
     }
   }
 
-  documents_[pptx_path] = created;
+  documents_[registry_key] = created;
   return created;
 }
 
@@ -81,7 +129,7 @@ void Registry::AttachSource(void *token, const std::string &pptx_path, Registere
     return;
   }
 
-  sources_[token] = RegisteredSource{ pptx_path, kind };
+  sources_[token] = RegisteredSource{ RegistryPathKey(pptx_path), kind };
 }
 
 void Registry::DetachSource(void *token)
@@ -100,11 +148,13 @@ size_t Registry::CountSources(const std::string &pptx_path, RegisteredSourceKind
     return 0;
   }
 
+  const std::string registry_key = RegistryPathKey(pptx_path);
+
   std::lock_guard<std::mutex> lock(mutex_);
   size_t count = 0;
   for (const auto &[token, source] : sources_) {
     (void)token;
-    if (source.kind == kind && source.path == pptx_path) {
+    if (source.kind == kind && source.path == registry_key) {
       count += 1;
     }
   }
@@ -118,9 +168,11 @@ std::vector<void *> Registry::SourceTokens(const std::string &pptx_path, Registe
     return tokens;
   }
 
+  const std::string registry_key = RegistryPathKey(pptx_path);
+
   std::lock_guard<std::mutex> lock(mutex_);
   for (const auto &[token, source] : sources_) {
-    if (source.kind == kind && source.path == pptx_path) {
+    if (source.kind == kind && source.path == registry_key) {
       tokens.push_back(token);
     }
   }
