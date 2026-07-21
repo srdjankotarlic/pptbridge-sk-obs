@@ -6,7 +6,7 @@ Use the Windows x64 ZIP for Windows 10/11. Use the Apple Silicon ZIP for M-serie
 
 ## Is Windows supported?
 
-Yes. Windows 10/11 x64 is a stable v0.5.8 release platform with a small ZIP and a double-click `INSTALL.cmd` installer. Desktop Microsoft PowerPoint is required.
+Yes. Windows 10/11 x64 is a stable v0.5.9 release platform with a small ZIP and a double-click `INSTALL.cmd` installer. PDF decks work without PowerPoint; desktop Microsoft PowerPoint is required only for PowerPoint files.
 
 Start here:
 
@@ -103,9 +103,7 @@ Yes. Create one OBS scene per deck and put each deck's PPTBridge sources in its 
 
 ## Can I use PDF files?
 
-On macOS, yes. PDF decks work without PowerPoint, but they do not contain PowerPoint animations, click-builds, or embedded media playback.
-
-On Windows, PDF input is not enabled yet.
+Yes, on Windows and macOS. PDF decks render directly without PowerPoint, but PDF pages do not contain PowerPoint animations, click-builds, presenter notes, or embedded PowerPoint media playback.
 
 ## Does PPTBridge capture PowerPoint audio?
 

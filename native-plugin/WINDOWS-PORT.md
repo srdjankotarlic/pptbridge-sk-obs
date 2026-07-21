@@ -6,13 +6,14 @@ This document captures the current engineering status and next practical path fo
 
 ## Honest Status
 
-Windows x64 and macOS Apple Silicon are stable `v0.5.8` release platforms. This document keeps the Windows engineering architecture and remaining limits explicit.
+Windows x64 `v0.5.9` and macOS Apple Silicon `v0.5.8` are stable release platforms. This document keeps the Windows engineering architecture and remaining limits explicit.
 
 What is already in the Windows code now:
 
 - platform-specific CMake split for macOS vs Windows builds
 - Windows `plugin-main.cpp` and `source_presenter.cpp`
 - Windows `PresentationDocument` backend in `src/presentation_document_win.cpp`
+- native Windows PDF renderer in `src/windows_pdf_renderer.cpp` using `Windows.Data.Pdf`
 - PowerPoint-driven slide export on Windows through PowerShell + COM automation
 - presenter notes extraction through PowerPoint notes pages
 - embedded media extraction from the `.pptx` package for fallback OBS-side playback
@@ -36,10 +37,10 @@ What is already in the Windows code now:
 
 What is **not** included yet:
 
-- PDF input support on Windows
+- password-protected PDF support
 - a code-signed Windows installer
 
-The Windows `v0.5.8` release has real OBS runtime coverage for the PowerPoint workflow, including live video/audio, Presenter, multi-deck routing, clicker/OSC, recovery, legacy `.ppt`, repeated lifecycle stress, and the five-file installer ZIP. It also includes a verified `Program Files` administrator-permission installation path.
+The Windows `v0.5.9` release has real OBS runtime coverage for native PDF and PowerPoint workflows, including Presenter, multi-deck routing, clicker/OSC, recovery, live video/audio, legacy `.ppt`, repeated lifecycle stress, and the five-file installer ZIP. It also includes a verified `Program Files` administrator-permission installation path.
 
 ## What Was Reused
 
@@ -86,7 +87,7 @@ That led to the following Windows backend shape:
 - inspect the PPTX package for embedded media placement and media files
 - save compact slide metadata for the plugin to reload quickly
 
-That avoids bringing a PDF rendering dependency to Windows while still giving the fallback path more than just flat images.
+PDF files use the built-in Windows `Windows.Data.Pdf` API and are cached as PNG pages, so no third-party PDF runtime or separate PDF application is shipped.
 
 ## Recommended Rendering Path On Windows
 
@@ -108,11 +109,7 @@ These pieces are now in place:
 - macOS frameworks are not linked on Windows
 - Windows build output is prepared as a DLL-style OBS plugin build path
 
-Still left for Windows packaging:
-
-- final install layout validation against a real Windows OBS install
-- release zip script
-- optional installer
+Windows packaging now includes a five-file release ZIP, automatic install-location detection, administrator elevation for normal OBS installations, SHA256 generation, and public-package wording checks. Code signing remains future work.
 
 Official OBS starting point:
 

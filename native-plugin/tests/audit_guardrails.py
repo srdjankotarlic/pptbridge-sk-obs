@@ -487,6 +487,35 @@ def main() -> int:
         raise AssertionError("macOS default Previous Slide hotkey should be 1 only")
 
     win_source = (ROOT / "src" / "presentation_document_win.cpp").read_text(encoding="utf-8")
+    win_cmake = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
+    win_pdf_renderer = (ROOT / "src" / "windows_pdf_renderer.cpp").read_text(encoding="utf-8")
+    for symbol in (
+        "src/windows_pdf_renderer.cpp",
+        "windowsapp",
+        "PPTBRIDGE_BUILD_WINDOWS_PDF_SMOKE",
+    ):
+        if symbol not in win_cmake:
+            raise AssertionError(f"Windows PDF build integration must include {symbol}")
+    for symbol in (
+        "PdfDocument::LoadFromFileAsync",
+        "RenderToStreamAsync",
+        "BitmapEncoder::PngEncoderId",
+        "BackgroundColor(winrt::Windows::UI::Colors::White())",
+        "WriteBytesAtomically",
+    ):
+        if symbol not in win_pdf_renderer:
+            raise AssertionError(f"Native Windows PDF renderer must use {symbol}")
+    win_load_worker = extract_function(win_source, "void PresentationDocument::LoadOnWorker(")
+    for symbol in (
+        "const bool is_pdf_source = IsPdfExtension(impl_->path)",
+        "RenderPdfDeckData(source_path, impl_->cache_root, deck_data, load_error)",
+        "Reused cached Windows PDF pages",
+        "fresh native PDF render",
+    ):
+        if symbol not in win_load_worker:
+            raise AssertionError(f"Windows document loading must preserve native PDF behavior via {symbol}")
+    if "PDF input is not supported on Windows" in win_source:
+        raise AssertionError("Windows must not reject valid PDF input after native PDF support ships")
     win_runner = extract_function(win_source, "bool RunProcessCapture(")
     if "WaitForSingleObject(process.hProcess, INFINITE)" in win_runner:
         raise AssertionError("Windows RunProcessCapture needs timeout-backed waiting")
@@ -500,6 +529,20 @@ def main() -> int:
         raise AssertionError("Windows UI controls need async PowerPoint live stop support")
 
     win_source_slide = (ROOT / "src" / "source_slide_win.cpp").read_text(encoding="utf-8")
+    for symbol in (
+        "*.potm *.pdf",
+        "selected_deck_is_pdf(context)",
+        "should_show_powerpoint_live_controls(context)",
+        "pptbridge_pdf_mode_note",
+        "native Windows PDF render",
+        'obs_data_set_bool(settings, "use_live_powerpoint", false)',
+        'obs_data_set_bool(settings, "auto_start_live_powerpoint", false)',
+        'obs_data_set_bool(settings, "close_live_powerpoint_on_shutdown", false)',
+        'obs_data_set_bool(settings, "audio_enabled", false)',
+        'obs_data_set_bool(settings, "use_live_app_audio", false)',
+    ):
+        if symbol not in win_source_slide:
+            raise AssertionError(f"Windows PDF source UI/settings must include {symbol}")
     win_stop_control = extract_function(win_source_slide, "bool control_stop_live(")
     if "StopLivePowerPointAsync(" not in win_stop_control:
         raise AssertionError("The Windows stop button must not block the OBS UI thread")

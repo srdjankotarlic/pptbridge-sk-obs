@@ -6,15 +6,15 @@ This folder contains the native OBS plugin version of PPTBridge SK.
 
 The main public release paths are the Windows x64 and Apple Silicon ZIPs:
 
-- [Download stable Windows x64 build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-windows-x64-v0.5.8.zip)
-- [Download stable Apple Silicon build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip)
+- [Download stable Windows x64 build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.9/pptbridge-obs-windows-x64-v0.5.9.zip)
+- [Download stable Apple Silicon v0.5.8 build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-macos-apple-silicon.zip)
 - [Download Intel Mac beta build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip)
-- [Open the v0.5.8 stable release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8)
+- [Open the Windows v0.5.9 stable release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.9)
 
 The Windows release is a minimal binary plugin ZIP with a double-click installer:
 
-- [Download Windows plugin ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-windows-x64-v0.5.8.zip)
-- [Open the shared stable release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8)
+- [Download Windows plugin ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.9/pptbridge-obs-windows-x64-v0.5.9.zip)
+- [Open the Windows stable release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.9)
 
 It is designed to show up inside OBS as real source types:
 
@@ -44,7 +44,8 @@ This native version is built around a practical conference workflow:
 
 ## Quick Platform Guide
 
-- `v0.5.8` = current Windows x64 and Apple Silicon stable release with reliable multi-deck live startup, Presenter, live recovery, safe Program-scene clicker routing, embedded audio, and expanded release QA
+- `v0.5.9` = current Windows x64 stable release with native PDF support plus live PowerPoint, Presenter, Program-scene clicker routing, OSC, audio, recovery, and the five-file installer
+- `v0.5.8` = current Apple Silicon stable release and previous Windows stable release
 - `v0.5.7` = previous Apple Silicon stable release with more reliable PowerPoint automation and stronger Start Live regression coverage
 - `v0.5.6` = previous Apple Silicon stable release with more reliable manual PowerPoint live start, clearer PDF controls, and PowerPoint-readable live staging
 - `v0.5.5` = previous Apple Silicon stable release with faster first preview while notes/media finish preparing in the background
@@ -65,7 +66,7 @@ This native version is built around a practical conference workflow:
 - `v0.4.0` = previous macOS stable release with Companion/OSC control
 - `v0.3.0` = previous macOS stable release with presenter customization
 - `v0.2.2` = previous macOS stable release
-- If someone asks "which one should I install?", the answer is: Windows 10/11 x64 users install the Windows v0.5.8 ZIP; M-series Mac users install the Apple Silicon v0.5.8 ZIP; older Intel Mac users can test the Intel beta ZIP.
+- If someone asks "which one should I install?", the answer is: Windows 10/11 x64 users install the Windows v0.5.9 ZIP; M-series Mac users install the Apple Silicon v0.5.8 ZIP; older Intel Mac users can test the Intel beta ZIP.
 
 ## What Problem It Solves
 

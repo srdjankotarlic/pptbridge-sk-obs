@@ -14,7 +14,7 @@ native-plugin/WINDOWS-TESTING.md
 native-plugin/WINDOWS-PORT.md
 
 Important context:
-- Windows x64 is a stable v0.5.8 release platform. Do not publish a replacement asset until the full release checklist passes.
+- Windows x64 is a stable v0.5.9 release platform. Do not publish a replacement asset until the full release checklist passes.
 - Do not change the macOS stable release files unless a Windows compile fix truly requires a shared file change.
 - The Windows code matches the macOS v0.5.8 production workflow where possible:
   - PPTBridge SK Slide and PPTBridge SK Presenter OBS sources
@@ -27,7 +27,7 @@ Important context:
   - OBS-focused hotkeys
   - optional Spotlight/Clicker Capture
   - local OSC/Companion control on 127.0.0.1:57130
-- PDF input is not enabled on Windows. Test PowerPoint decks first.
+- PDF input uses the built-in Windows PDF engine. Test both PDF and PowerPoint decks.
 
 Start by running:
 git status
@@ -48,7 +48,7 @@ After build:
 2. Open OBS and confirm these sources appear:
    PPTBridge SK Slide
    PPTBridge SK Presenter
-3. Test a .pptx deck using native-plugin/WINDOWS-TESTING.md.
+3. Test real PDF and PowerPoint decks using native-plugin/WINDOWS-TESTING.md.
 
 Must verify:
 - OBS does not auto-start PowerPoint unless Auto Start is enabled.
@@ -60,6 +60,8 @@ Must verify:
 - OBS hotkeys only work while OBS is focused.
 - Spotlight/Clicker Capture works while another app is focused and suppresses the clicker key from the focused app.
 - Local OSC /pptbridge/next reaches the current Program scene deck.
+- PDFs load without launching PowerPoint and support navigation, Presenter, final-page protection, clicker, and OSC.
+- Multiple PDFs and PowerPoint decks can coexist in separate OBS scenes.
 
 If everything passes, create the minimal Windows zip containing:
 - obs-plugins/64bit/pptbridge-obs.dll
@@ -69,12 +71,12 @@ If everything passes, create the minimal Windows zip containing:
 - README.txt
 
 Name it:
-pptbridge-obs-windows-x64-v0.5.8.zip
+pptbridge-obs-windows-x64-v0.5.9.zip
 
 Also create:
-pptbridge-obs-windows-x64-v0.5.8.zip.sha256
+pptbridge-obs-windows-x64-v0.5.9.zip.sha256
 
-Report exactly what passed, what failed, and include OBS log paths. Keep known limits visible: desktop PowerPoint is required, PDF is not enabled on Windows, and the installer is not code-signed yet.
+Report exactly what passed, what failed, and include OBS log paths. Keep known limits visible: desktop PowerPoint is required for PowerPoint files, password-protected PDFs are unsupported, and the installer is not code-signed yet.
 ```
 
 ## Notes For The Mac Development Machine

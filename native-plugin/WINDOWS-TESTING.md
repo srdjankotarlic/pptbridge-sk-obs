@@ -151,12 +151,12 @@ Use at least these decks:
 
 ## Known Current Limits
 
-- PDF input is not enabled on Windows.
-- Desktop Microsoft PowerPoint is required.
+- Password-protected PDFs are not supported.
+- Desktop Microsoft PowerPoint is required for PowerPoint files, not PDFs.
 - PowerPoint process audio is owned by the current Program scene; when several PPTBridge Slide sources are visible in one Program scene, enable app audio on only one source.
-- The beta DLL and installer are not code-signed yet.
+- The DLL and installer are not code-signed yet.
 
-The Windows `v0.5.8` build is runtime-tested on Windows 11 x64 with OBS Studio 32.1.2 and PowerPoint 2010. A public asset requires two complete passing runtime runs: one from the build output and one from a freshly extracted release ZIP. The final installer must also pass a real administrator-permission install into the standard OBS `Program Files` directory.
+The Windows `v0.5.9` build is runtime-tested on Windows 11 x64 with OBS Studio 32.1.2 and PowerPoint 2010. PDF tests additionally use real multi-page documents and the built-in Windows PDF renderer. A public asset requires complete passing runtime runs from the build output and from a freshly extracted release ZIP. The final installer must also pass a real administrator-permission install into the standard OBS `Program Files` directory.
 
 ## What Feedback To Send Back
 

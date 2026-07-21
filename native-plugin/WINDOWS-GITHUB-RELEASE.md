@@ -1,17 +1,19 @@
-# PPTBridge SK for OBS v0.5.8 - Windows x64
+# PPTBridge SK for OBS v0.5.9 - Windows x64
 
 **Stable Windows 10/11 x64 release**
 
-The v0.5.8 release now includes the stable easy-install Windows PowerPoint plugin alongside Apple Silicon. Download the Windows ZIP, extract it, close OBS, and double-click `INSTALL.cmd`. The ZIP contains only the installer, a short user guide, the plugin DLL, and two required OBS locale files.
+The v0.5.9 Windows release adds native PDF support to the stable live PowerPoint plugin. Download the Windows ZIP, extract it, close OBS, and double-click `INSTALL.cmd`. The ZIP contains only the installer, a short user guide, the plugin DLL, and two required OBS locale files.
 
 ## Downloads
 
-- `pptbridge-obs-windows-x64-v0.5.8.zip`
-- `pptbridge-obs-windows-x64-v0.5.8.zip.sha256`
+- `pptbridge-obs-windows-x64-v0.5.9.zip`
+- `pptbridge-obs-windows-x64-v0.5.9.zip.sha256`
 
 ## Highlights
 
 - clean audience output without desktop, PowerPoint menus, borders, or scrollbars
+- native PDF pages without PowerPoint or a separate PDF application
+- PDF navigation, Presenter, final-page protection, black screen, clicker, and OSC controls
 - live animations, click builds, embedded video, and PowerPoint audio in OBS
 - Presenter source with notes, next slide, timer, cue list, layouts, and backgrounds
 - PowerPoint window resize does not change the configured OBS output size
@@ -26,14 +28,14 @@ The v0.5.8 release now includes the stable easy-install Windows PowerPoint plugi
 
 ## Tested
 
-The Windows release was validated in real OBS Studio 32.1.2 on Windows 11 x64 with desktop PowerPoint 2010. Testing covered both source types, uncached/cached loading, notes, five Presenter layouts, animations, embedded video/audio, Program/Preview routing, simulated PageDown/PageUp clicker input, all OSC controls and feedback addresses, resize, final-slide protection, invalid files, three simultaneous live decks, ten rapid Start/Stop cycles, legacy `.ppt`, six real event presentations, an 8.6 GB media-heavy deck, and a real administrator-permission install into standard OBS.
+The Windows release was validated in real OBS Studio 32.1.2 on Windows 11 x64. PDF testing covered two real multi-page decks, cold and cached loading, exact page counts, navigation, Presenter, black screen, final-page protection, multiple simultaneous PDFs, PDF/PowerPoint coexistence, clicker-style PageDown/PageUp input, OSC, and corrupt-file rejection. PowerPoint 2010 regression testing covered both source types, notes, five Presenter layouts, animations, embedded video/audio, Program/Preview routing, resize, invalid files, simultaneous live decks, repeated Start/Stop cycles, legacy `.ppt`, real event presentations, and a media-heavy deck. The installer was also tested with administrator permission in standard OBS.
 
 ## Requirements
 
 - Windows 10/11 x64
 - OBS Studio 30 or newer, 64-bit
-- Desktop Microsoft PowerPoint
+- Desktop Microsoft PowerPoint for PowerPoint files; not required for PDFs
 
-PDF input is not enabled on Windows. The DLL and installer are not code-signed yet, so Windows may ask for confirmation. Rehearse every production deck on the exact show computer before the event.
+PDF pages use the built-in Windows PDF engine. Password-protected PDFs are not supported. The DLL and installer are not code-signed yet, so Windows may ask for confirmation. Rehearse every production deck on the exact show computer before the event.
 
-Windows x64 and macOS Apple Silicon are both stable platforms in the same `v0.5.8` release.
+Windows x64 is stable on `v0.5.9`. macOS Apple Silicon remains stable on `v0.5.8` and uses its separate download.

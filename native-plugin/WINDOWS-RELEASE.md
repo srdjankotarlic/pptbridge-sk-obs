@@ -1,12 +1,12 @@
 # PPTBridge SK Windows x64 Stable Release
 
-**Release:** `v0.5.8`
+**Release:** `v0.5.9`
 
-This stable release brings the Windows PowerPoint workflow alongside the macOS v0.5.8 release while keeping installation to one small ZIP and a double-click `INSTALL.cmd`.
+This stable Windows release adds native PDF decks to the existing live PowerPoint workflow while keeping installation to one small ZIP and a double-click `INSTALL.cmd`.
 
 ## Download
 
-Download `pptbridge-obs-windows-x64-v0.5.8.zip`, extract it, close OBS, and double-click `INSTALL.cmd`.
+Download `pptbridge-obs-windows-x64-v0.5.9.zip`, extract it, close OBS, and double-click `INSTALL.cmd`.
 
 The ZIP contains only:
 
@@ -19,6 +19,7 @@ The ZIP contains only:
 ## What Works
 
 - clean PowerPoint audience output without desktop, PowerPoint chrome, scrollbars, or Presenter View artifacts
+- native PDF rendering through Windows with no PowerPoint or separate PDF program required
 - `PPTBridge SK Slide` and `PPTBridge SK Presenter` sources
 - live animations, click builds, embedded video, and PowerPoint process audio
 - presenter notes, next-slide preview, timer, cue list, five layouts, preview scaling, and custom backgrounds
@@ -30,11 +31,11 @@ The ZIP contains only:
 - Studio Preview isolation so Preview does not steal clicker control or PowerPoint audio
 - legacy binary `.ppt` files as well as modern PowerPoint formats
 - fast live startup for very large media decks without copying embedded video into the slide cache
-- clear, safe errors for missing, empty, corrupt, unsupported, and PDF inputs
+- clear, safe errors for missing, empty, corrupt, unsupported, and password-protected inputs
 
 ## Validation
 
-The release candidate was built in both `RelWithDebInfo` and clean `Release` configurations, then tested in real OBS Studio 32.1.2 on Windows 11 x64 with desktop PowerPoint 2010. Validation covered fresh and cached loads, animations, notes, video/audio, final-slide navigation, resize, Presenter layouts, cue export, all six OSC controls, all 16 OSC feedback addresses, Program/Preview clicker isolation, three simultaneous live decks, ten rapid Start/Stop cycles, legacy `.ppt`, six real event decks, and an 8.6 GB media-heavy deck.
+The release candidate was built in both `RelWithDebInfo` and clean `Release` configurations, then tested in real OBS Studio 32.1.2 on Windows 11 x64. Native PDF validation covered fresh and cached loads, two real multi-page decks, exact page counts, navigation, Presenter, black screen, final-page protection, multiple PDFs, PDF/PowerPoint coexistence, clicker-style input, OSC, and corrupt PDF rejection. Desktop PowerPoint 2010 regression validation covered animations, notes, video/audio, final-slide navigation, resize, Presenter layouts, cue export, OSC, Program/Preview clicker isolation, simultaneous live decks, repeated Start/Stop cycles, legacy `.ppt`, real event decks, and a media-heavy deck.
 
 The installer was additionally tested through a real Windows administrator-permission elevation into the standard OBS `Program Files` directory, including reinstall and post-install DLL/locale verification.
 
@@ -47,8 +48,8 @@ PowerPoint runs all open decks in one application process. PPTBridge routes proc
 ## Known Limits
 
 - Rehearse every event deck on the exact production computer before a paid or critical show.
-- PDF input is not enabled on Windows.
+- Password-protected PDFs are not supported.
 - The plugin and installer are not code-signed yet, so Windows may show a security confirmation.
-- Desktop Microsoft PowerPoint is required; PowerPoint for the web is not supported.
+- Desktop Microsoft PowerPoint is required only for PowerPoint files; PowerPoint for the web is not supported.
 
-The Windows x64 and macOS Apple Silicon ZIPs are published together in the stable `v0.5.8` GitHub release.
+Windows x64 is published as stable `v0.5.9`; macOS Apple Silicon remains stable on `v0.5.8`.

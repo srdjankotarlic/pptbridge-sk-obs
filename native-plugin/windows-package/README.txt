@@ -1,5 +1,5 @@
 PPTBridge SK for OBS - Windows x64
-Version: v0.5.8
+Version: v0.5.9
 
 INSTALL IN A FEW CLICKS
 
@@ -18,8 +18,9 @@ INSTALL.cmd "D:\Path\To\obs-studio"
 FIRST PRESENTATION
 
 1. In OBS Sources, click + and choose PPTBridge SK Slide.
-2. Browse to a .pptx, .pptm, .ppsx, .potx, .potm, or legacy .ppt file.
-3. Open source Properties and click Start / Restart PowerPoint Live Mode.
+2. Browse to a PDF, .pptx, .pptm, .ppsx, .potx, .potm, or legacy .ppt file.
+3. PDF pages load directly. For a PowerPoint file, open source Properties and
+   click Start / Restart PowerPoint Live Mode.
 4. Add PPTBridge SK Presenter to a separate confidence-monitor scene if you
    want current slide, next slide, notes, timer, and cue list.
 5. Click Stop PowerPoint Live Mode when the live session is no longer needed.
@@ -69,8 +70,10 @@ REQUIREMENTS AND LIMITS
 
 - Windows 10 or 11, 64-bit.
 - OBS Studio 30 or newer, 64-bit.
-- Desktop Microsoft PowerPoint is required.
-- PDF input is not enabled on Windows.
+- Desktop Microsoft PowerPoint is required for PowerPoint files and their live
+  animations, video, and audio. It is not required for PDF files.
+- PDF pages use the built-in Windows PDF engine; no separate PDF program is
+  required. Password-protected PDFs are not supported.
 - The DLL and installer are not code-signed yet. Windows may ask for
   confirmation before running the installer. Test every event deck on the
   production computer before show day.

@@ -41,7 +41,7 @@
   "description": "Free, open-source OBS Studio plugin that adds PowerPoint and PDF slides to OBS as native sources, with a presenter/confidence view (current slide, next slide, timer, notes) and slide control over OBS hotkeys, a presenter clicker, Bitfocus Companion / Stream Deck, or local OSC.",
   "url": "https://srdjankotarlic.github.io/pptbridge-sk-obs/",
   "downloadUrl": "https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest",
-  "softwareVersion": "0.5.8",
+  "softwareVersion": "0.5.9",
   "license": "https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/LICENSE",
   "image": "https://srdjankotarlic.github.io/pptbridge-sk-obs/assets/og-image.png",
   "screenshot": "https://srdjankotarlic.github.io/pptbridge-sk-obs/assets/workflow-overview.png",
@@ -82,12 +82,12 @@
     {
       "@type": "Question",
       "name": "Does PPTBridge SK work on Windows?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Windows 10/11 x64 is a stable v0.5.8 platform with a small ZIP and double-click INSTALL.cmd installer. Desktop Microsoft PowerPoint and OBS Studio 30+ are required." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Windows 10/11 x64 is a stable v0.5.9 platform with a small ZIP and double-click INSTALL.cmd installer. OBS Studio 30+ is required; PowerPoint is needed only for PowerPoint files, not PDFs." }
     },
     {
       "@type": "Question",
       "name": "Do I need PowerPoint installed?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Only for live .pptx mode. PDF decks work without PowerPoint on macOS — PPTBridge renders and controls them directly." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Only for PowerPoint files and live PowerPoint features. PDF decks work without PowerPoint on Windows and macOS because PPTBridge renders and controls them directly." }
     },
     {
       "@type": "Question",
@@ -202,8 +202,8 @@
       <span class="badge">OBS Studio 30+</span>
     </div>
     <div class="cta">
-      <a class="btn primary" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-windows-x64-v0.5.8.zip">Download for Windows<small>Windows 10/11 x64 · stable</small></a>
-      <a class="btn ghost" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip">Download for macOS<small>Apple Silicon · stable</small></a>
+      <a class="btn primary" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.9/pptbridge-obs-windows-x64-v0.5.9.zip">Download for Windows<small>Windows 10/11 x64 · stable</small></a>
+      <a class="btn ghost" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-macos-apple-silicon.zip">Download for macOS<small>Apple Silicon · stable v0.5.8</small></a>
     </div>
     <div class="shot">
       <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov" aria-label="Watch the PPTBridge SK demo video">
@@ -222,7 +222,7 @@
       <div class="card"><h3>Clean slide output</h3><p>The <code>PPTBridge SK Slide</code> source is a clean audience feed for projector, stream, recording, or your switcher — no desktop, no taskbar.</p></div>
       <div class="card"><h3>Presenter / confidence view</h3><p><code>PPTBridge SK Presenter</code> shows the current slide, next slide, a timer, and speaker notes. Rendered in OBS, so you can resize, crop, and lay it out for any stage monitor.</p></div>
       <div class="card"><h3>PowerPoint live mode</h3><p>Drive the real PowerPoint slideshow with builds, animations, and embedded video, captured cleanly into OBS on Windows or macOS.</p></div>
-      <div class="card"><h3>PDF decks on macOS</h3><p>On macOS, open a <code>.pdf</code> deck directly — PPTBridge renders and controls it natively, with no PowerPoint required.</p></div>
+      <div class="card"><h3>PDF decks on Windows and macOS</h3><p>Open a <code>.pdf</code> deck directly. PPTBridge renders and controls it natively, with no PowerPoint or separate PDF application required.</p></div>
       <div class="card"><h3>Show control built in</h3><p>Hotkeys, presenter clicker, Bitfocus Companion / Stream Deck, and local <strong>OSC</strong> with status feedback for QLab or TouchDesigner.</p></div>
       <div class="card"><h3>Multi-deck routing</h3><p>One scene per deck. Hotkeys, OSC, and the clicker follow the deck in the current OBS Program scene, so several presentations stay open without crossing wires.</p></div>
     </div>
@@ -238,7 +238,7 @@
       <div class="card">
         <h3>macOS <span class="pill stable">Apple Silicon · stable</span></h3>
         <ol>
-          <li>Download the <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip">Apple Silicon ZIP</a> and unzip it.</li>
+          <li>Download the <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-macos-apple-silicon.zip">Apple Silicon v0.5.8 ZIP</a> and unzip it.</li>
           <li>Open <code>START-HERE-macOS.txt</code>.</li>
           <li>Double-click <code>1-Install-PPTBridge-SK.command</code> (if blocked, right-click → Open).</li>
           <li>Let it copy the plugin and open OBS.</li>
@@ -248,10 +248,10 @@
       <div class="card">
         <h3>Windows <span class="pill stable">x64 · stable</span></h3>
         <ol>
-          <li>Download the <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-windows-x64-v0.5.8.zip">Windows x64 v0.5.8 ZIP</a>.</li>
+          <li>Download the <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.9/pptbridge-obs-windows-x64-v0.5.9.zip">Windows x64 v0.5.9 ZIP</a>.</li>
           <li>Extract it.</li>
           <li>Double-click <code>INSTALL.cmd</code>.</li>
-          <li>Open OBS Studio (30+) with PowerPoint installed.</li>
+          <li>Open OBS Studio (30+). PowerPoint is needed only for PowerPoint files.</li>
           <li>Add <code>PPTBridge SK Slide</code> for the audience output.</li>
         </ol>
       </div>
@@ -279,8 +279,8 @@
     <details open><summary>Is PPTBridge SK free?</summary><p>Yes — free and open source. The native plugin is GPL-2.0-or-later because it links against OBS Studio. No paywall, no trial.</p></details>
     <details><summary>How do I add PowerPoint to OBS?</summary><p>Install the plugin, add a <code>PPTBridge SK Slide</code> source, and pick your <code>.pptx</code>. For live mode with animations and video, open the source properties and click <em>START - Open PowerPoint / Start Live Mode</em>. PDF decks render directly without PowerPoint.</p></details>
     <details><summary>How do I install an OBS plugin on macOS?</summary><p>Download the Apple Silicon ZIP, unzip, and double-click <code>1-Install-PPTBridge-SK.command</code>. If macOS blocks it, right-click → Open. Then launch OBS in normal mode so third-party plugins load.</p></details>
-    <details><summary>Does it work on Windows?</summary><p>Yes. Windows 10/11 x64 is a stable v0.5.8 platform with a small ZIP and double-click <code>INSTALL.cmd</code> installer. Desktop Microsoft PowerPoint and OBS Studio 30+ are required.</p></details>
-    <details><summary>Do I need PowerPoint installed?</summary><p>Only for live <code>.pptx</code> mode. PDF decks work without PowerPoint on macOS.</p></details>
+    <details><summary>Does it work on Windows?</summary><p>Yes. Windows 10/11 x64 is a stable v0.5.9 platform with a small ZIP and double-click <code>INSTALL.cmd</code> installer. OBS Studio 30+ is required; PowerPoint is needed only for PowerPoint files.</p></details>
+    <details><summary>Do I need PowerPoint installed?</summary><p>Only for PowerPoint files and live PowerPoint features. PDF decks work without PowerPoint on Windows and macOS.</p></details>
     <details><summary>Does it support OSC and Companion?</summary><p>Yes. Enable <em>Tools &gt; PPTBridge SK: Toggle Local OSC Control</em>. It listens on <code>127.0.0.1:57130</code> and accepts next/previous/first/last/black/reload, with OSC status feedback for Companion, QLab, or TouchDesigner.</p></details>
   </div>
 </section>

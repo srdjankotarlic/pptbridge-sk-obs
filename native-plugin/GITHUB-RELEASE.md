@@ -9,7 +9,7 @@ PPTBridge SK is a free, independent OBS Studio plugin for live PowerPoint and PD
 
 Use **`pptbridge-obs-macos-apple-silicon.zip`** for M1/M2/M3/M4 Macs.
 
-Windows x64 and Apple Silicon are stable v0.5.8 platforms. Intel Mac remains a separate beta track. See the [download table](https://github.com/srdjankotarlic/pptbridge-sk-obs#download-and-install) before choosing a package.
+Windows x64 v0.5.9 and Apple Silicon v0.5.8 are stable platforms. Intel Mac remains a separate beta track. See the [download table](https://github.com/srdjankotarlic/pptbridge-sk-obs#download-and-install) before choosing a package.
 
 ### Install
 

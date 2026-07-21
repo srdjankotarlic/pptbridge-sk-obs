@@ -1,4 +1,5 @@
 #include "presentation_document.hpp"
+#include "windows_pdf_renderer.hpp"
 
 #ifdef _WIN32
 
@@ -701,6 +702,37 @@ bool LoadCachedSlides(
   out_deck.media_by_slide = std::move(media_by_slide);
   out_deck.slide_aspect_ratio = slide_aspect_ratio;
   out_deck.media_scan_complete = media_scan_complete;
+  return true;
+}
+
+bool RenderPdfDeckData(
+  const fs::path &source_path,
+  const fs::path &cache_root,
+  ParsedDeckData &out_deck,
+  std::string &out_error)
+{
+  WindowsPdfRenderResult render_result;
+  if (!RenderWindowsPdfPages(
+        source_path.wstring(),
+        (cache_root / L"pdf-pages").wstring(),
+        kExportWidth,
+        kExportHeight,
+        render_result,
+        out_error)) {
+    return false;
+  }
+
+  out_deck = {};
+  out_deck.slide_aspect_ratio = render_result.first_page_aspect_ratio;
+  out_deck.media_scan_complete = true;
+  out_deck.slides.reserve(render_result.image_paths.size());
+  out_deck.media_by_slide.resize(render_result.image_paths.size());
+  for (size_t index = 0; index < render_result.image_paths.size(); ++index) {
+    CachedSlide slide;
+    slide.image_path = render_result.image_paths[index];
+    slide.meta.title = "Page " + std::to_string(index + 1);
+    out_deck.slides.push_back(std::move(slide));
+  }
   return true;
 }
 
@@ -2135,6 +2167,9 @@ std::string PresentationDocument::Name() const
 
 void PresentationDocument::SetLivePowerPointEnabled(bool enabled)
 {
+  if (IsPdfExtension(impl_->path)) {
+    enabled = false;
+  }
   bool should_start = false;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
@@ -2166,6 +2201,9 @@ void PresentationDocument::SetLivePowerPointEnabled(bool enabled)
 
 void PresentationDocument::SetLivePowerPointAutoStart(bool enabled)
 {
+  if (IsPdfExtension(impl_->path)) {
+    enabled = false;
+  }
   bool should_start = false;
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
@@ -2213,6 +2251,16 @@ void PresentationDocument::StartLivePowerPointAsync()
 {
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
+    if (IsPdfExtension(impl_->path)) {
+      impl_->live_enabled = false;
+      impl_->live_auto_start = false;
+      impl_->live_start_requested = false;
+      impl_->live_ready = false;
+      impl_->live_window_title.clear();
+      impl_->last_error.clear();
+      impl_->state_version += 1;
+      return;
+    }
     if (!IsSupportedPowerPointExtension(impl_->path)) {
       impl_->live_enabled = false;
       impl_->live_start_requested = false;
@@ -2936,22 +2984,28 @@ bool PresentationDocument::RenderSlideBGRA(
   std::wstring message_title;
   std::wstring message_subtitle;
   bool black = false;
+  bool is_pdf_source = false;
 
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
+    is_pdf_source = IsPdfExtension(impl_->path);
     if (impl_->black_screen) {
       black = true;
     } else if (impl_->loading) {
       message_title = L"PPTBridge SK";
-      message_subtitle = L"Loading Windows PowerPoint deck...";
+      message_subtitle = is_pdf_source
+        ? L"Loading Windows PDF pages..."
+        : L"Loading Windows PowerPoint deck...";
     } else if (!impl_->loaded) {
       message_title = L"PPTBridge SK";
       message_subtitle = impl_->last_error.empty()
-        ? L"Select a PowerPoint file to begin."
+        ? L"Select a PowerPoint or PDF file to begin."
         : Utf8ToWide(impl_->last_error);
     } else if (impl_->slides.empty()) {
       message_title = L"PPTBridge SK";
-      message_subtitle = L"No exported slides were found for this PowerPoint file.";
+      message_subtitle = is_pdf_source
+        ? L"No rendered pages were found for this PDF file."
+        : L"No exported slides were found for this PowerPoint file.";
     } else {
       image_path = impl_->slides[std::min(impl_->current_index, impl_->slides.size() - 1)].image_path;
     }
@@ -2972,7 +3026,12 @@ bool PresentationDocument::RenderSlideBGRA(
   graphics.FillRectangle(&background, 0, 0, width, height);
 
   if (!DrawImageFile(graphics, image_path, RectF(0.0f, 0.0f, static_cast<REAL>(width), static_cast<REAL>(height)))) {
-    DrawCenteredMessage(graphics, width, height, L"PPTBridge SK", L"Could not render the exported slide image.");
+    DrawCenteredMessage(
+      graphics,
+      width,
+      height,
+      L"PPTBridge SK",
+      is_pdf_source ? L"Could not render the selected PDF page." : L"Could not render the exported slide image.");
   }
 
   return CopyBitmapToBGRA(canvas, out_pixels, out_stride);
@@ -3015,11 +3074,19 @@ bool PresentationDocument::RenderPresenterBGRA(
   bool current_has_media = false;
   std::vector<CachedSlide> slide_snapshot;
   std::set<std::size_t> checked_cues;
+  bool is_pdf_source = false;
 
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     if (impl_->loading) {
-      DrawCenteredMessage(graphics, width, height, L"PPTBridge SK", L"Loading presenter view for Windows...");
+      DrawCenteredMessage(
+        graphics,
+        width,
+        height,
+        L"PPTBridge SK",
+        IsPdfExtension(impl_->path)
+          ? L"Loading PDF pages for Presenter..."
+          : L"Loading PowerPoint Presenter view...");
       return CopyBitmapToBGRA(canvas, out_pixels, out_stride);
     }
 
@@ -3037,6 +3104,7 @@ bool PresentationDocument::RenderPresenterBGRA(
     slide_count = impl_->slides.size();
     slide_snapshot = impl_->slides;
     checked_cues = impl_->checked_cues;
+    is_pdf_source = IsPdfExtension(impl_->path);
     deck_name = Utf8ToWide(impl_->name);
     current_image = impl_->slides[current_index].image_path;
     notes = Utf8ToWide(impl_->slides[current_index].meta.notes);
@@ -3046,13 +3114,19 @@ bool PresentationDocument::RenderPresenterBGRA(
     if (current_index + 1 < impl_->slides.size()) {
       next_image = impl_->slides[current_index + 1].image_path;
     }
-    mode_label = impl_->live_enabled ? L"TRUE LIVE" : L"LEGACY";
-    status_label = impl_->live_enabled
-      ? (impl_->live_ready ? L"PowerPoint slideshow attached" : L"Preparing PowerPoint live session")
-      : (current_has_media ? L"Legacy media-ready slide" : L"Legacy cached-render mode");
-    footer_hint = current_has_media
-      ? L"Media on this slide can be armed before advancing."
-      : L"Use OBS hotkeys or clicker buttons to move through the deck.";
+    if (is_pdf_source) {
+      mode_label = L"PDF";
+      status_label = L"Native Windows PDF pages";
+      footer_hint = L"Use OBS hotkeys or clicker buttons to move through PDF pages.";
+    } else {
+      mode_label = impl_->live_enabled ? L"TRUE LIVE" : L"LEGACY";
+      status_label = impl_->live_enabled
+        ? (impl_->live_ready ? L"PowerPoint slideshow attached" : L"Preparing PowerPoint live session")
+        : (current_has_media ? L"Legacy media-ready slide" : L"Legacy cached-render mode");
+      footer_hint = current_has_media
+        ? L"Media on this slide can be armed before advancing."
+        : L"Use OBS hotkeys or clicker buttons to move through the deck.";
+    }
     if (!impl_->last_error.empty()) {
       last_issue = Utf8ToWide(impl_->last_error);
     }
@@ -3190,13 +3264,13 @@ bool PresentationDocument::RenderPresenterBGRA(
 
   const auto timer = FormatDuration(seconds);
   std::wstringstream slide_counter;
-  slide_counter << L"Slide " << (current_index + 1) << L" / " << slide_count;
+  slide_counter << (is_pdf_source ? L"Page " : L"Slide ") << (current_index + 1) << L" / " << slide_count;
   graphics.DrawString(slide_counter.str().c_str(), -1, &label_font, PointF(label_x, height - 34.0f), &title_brush);
   graphics.DrawString(timer.c_str(), -1, &small_font, PointF(width - 120.0f, height - 32.0f), &accent);
 
   if (!confidence_layout) {
     const RectF mode_badge(label_x, compact_layout ? 50.0f : 124.0f, 120.0f, 30.0f);
-    SolidBrush &mode_brush = (mode_label == L"TRUE LIVE") ? success_fill : badge_fill;
+    SolidBrush &mode_brush = (mode_label == L"TRUE LIVE" || mode_label == L"PDF") ? success_fill : badge_fill;
     graphics.FillRectangle(&mode_brush, mode_badge);
     graphics.DrawString(mode_label.c_str(), -1, &tiny_font, RectF(mode_badge.X + 10.0f, mode_badge.Y + 6.0f, mode_badge.Width - 20.0f, 20.0f), nullptr, &title_brush);
 
@@ -3209,12 +3283,12 @@ bool PresentationDocument::RenderPresenterBGRA(
   graphics.DrawString(L"Next", -1, &label_font, PointF(next_rect.X + 10.0f, next_rect.Y + 8.0f), &muted_brush);
   graphics.DrawString(L"Notes", -1, &label_font, PointF(notes_rect.X + 10.0f, notes_rect.Y + 8.0f), &muted_brush);
 
-  std::wstring header_title = title.empty() ? L"Current slide" : title;
+  std::wstring header_title = title.empty() ? (is_pdf_source ? L"Current page" : L"Current slide") : title;
   const float current_title_y = current_rect.Y >= 32.0f ? current_rect.Y - 28.0f : current_rect.Y + 8.0f;
   graphics.DrawString(header_title.c_str(), -1, &small_font, PointF(current_rect.X + 8.0f, current_title_y), &muted_brush);
 
   if (notes.empty()) {
-    notes = L"No presenter notes on this slide.";
+    notes = is_pdf_source ? L"PDF pages do not contain PowerPoint presenter notes." : L"No presenter notes on this slide.";
   }
 
   StringFormat notes_format;
@@ -3321,15 +3395,10 @@ void PresentationDocument::LoadOnWorker()
     return;
   }
 
-  if (IsPdfExtension(impl_->path)) {
+  const bool is_pdf_source = IsPdfExtension(impl_->path);
+  if (!is_pdf_source && !IsSupportedPowerPointExtension(impl_->path)) {
     fail_load(
-      "PDF input is not supported on Windows. Choose a PowerPoint file such as .pptx; PDF support remains a macOS-only feature for now.");
-    return;
-  }
-
-  if (!IsSupportedPowerPointExtension(impl_->path)) {
-    fail_load(
-      "Unsupported presentation type. Windows accepts .ppt, .pptx, .pptm, .ppsx, .potx, and .potm PowerPoint files.");
+      "Unsupported presentation type. Windows accepts PDF and .ppt, .pptx, .pptm, .ppsx, .potx, and .potm PowerPoint files.");
     return;
   }
 
@@ -3343,6 +3412,13 @@ void PresentationDocument::LoadOnWorker()
     std::lock_guard<std::mutex> lock(impl_->mutex);
     force_reload = impl_->active_force_reload;
     impl_->file_stamp = current_stamp;
+    if (is_pdf_source) {
+      impl_->live_enabled = false;
+      impl_->live_auto_start = false;
+      impl_->live_start_requested = false;
+      impl_->live_ready = false;
+      impl_->live_window_title.clear();
+    }
   }
 
   bool reused_cache = false;
@@ -3357,7 +3433,26 @@ void PresentationDocument::LoadOnWorker()
         !skip_embedded_media,
         deck_data)) {
     reused_cache = true;
-    blog(LOG_INFO, "[PPTBridge SK] Reused cached Windows slide export for '%s'", impl_->path.c_str());
+    blog(
+      LOG_INFO,
+      is_pdf_source
+        ? "[PPTBridge SK] Reused cached Windows PDF pages for '%s'"
+        : "[PPTBridge SK] Reused cached Windows slide export for '%s'",
+      impl_->path.c_str());
+  } else if (is_pdf_source) {
+    if (!RenderPdfDeckData(source_path, impl_->cache_root, deck_data, load_error)) {
+      if (load_error.empty()) {
+        load_error = "Windows PDF rendering failed.";
+      }
+    } else {
+      SaveCachedSlides(
+        metadata_path,
+        current_stamp,
+        deck_data.slides,
+        deck_data.media_by_slide,
+        deck_data.slide_aspect_ratio,
+        deck_data.media_scan_complete);
+    }
   } else {
     std::string output;
     int exit_code = -1;
@@ -3409,6 +3504,10 @@ void PresentationDocument::LoadOnWorker()
     }
     impl_->current_media_triggered = false;
     impl_->last_error = load_error;
+    if (is_pdf_source && impl_->loaded &&
+        impl_->timer_started_at == std::chrono::steady_clock::time_point::min()) {
+      impl_->timer_started_at = std::chrono::steady_clock::now();
+    }
     live_enabled = impl_->live_enabled;
     should_start_live = impl_->live_enabled && (impl_->live_auto_start || impl_->live_start_requested);
     live_request_generation = impl_->live_request_generation;
@@ -3530,12 +3629,18 @@ void PresentationDocument::LoadOnWorker()
 
   blog(
     LOG_INFO,
-    "[PPTBridge SK] Prepared Windows deck '%s' in %lld ms (%s)",
+    is_pdf_source
+      ? "[PPTBridge SK] Prepared Windows PDF '%s' in %lld ms (%s)"
+      : "[PPTBridge SK] Prepared Windows deck '%s' in %lld ms (%s)",
     impl_->path.c_str(),
     elapsed_ms(load_started),
-    reused_cache ? "cached slide export" : "fresh PowerPoint export");
+    is_pdf_source
+      ? (reused_cache ? "cached PDF pages" : "fresh native PDF render")
+      : (reused_cache ? "cached slide export" : "fresh PowerPoint export"));
 
-  if (!load_error.empty() && !live_enabled) {
+  if (!load_error.empty() && is_pdf_source) {
+    blog(LOG_WARNING, "[PPTBridge SK] Windows PDF render failed for '%s': %s", impl_->path.c_str(), load_error.c_str());
+  } else if (!load_error.empty() && !live_enabled) {
     blog(LOG_WARNING, "[PPTBridge SK] Windows export failed for '%s': %s", impl_->path.c_str(), load_error.c_str());
   } else if (!load_error.empty() && live_error.empty() && live_snapshot.running) {
     blog(

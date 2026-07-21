@@ -16,6 +16,8 @@ param(
   [int]$StopTimeoutSeconds = 30,
   [int]$StressCycles = 10,
   [string[]]$CompatibilityDecks = @(),
+  [string[]]$PdfDecks = @(),
+  [int[]]$PdfExpectedPageCounts = @(),
   [int]$CompatibilityStartTimeoutSeconds = 330
 )
 
@@ -729,6 +731,17 @@ foreach ($deck in @($CompatibilityDecks)) {
     throw "Compatibility QA deck does not exist: $deck"
   }
 }
+foreach ($deck in @($PdfDecks)) {
+  if (-not (Test-Path -LiteralPath $deck -PathType Leaf)) {
+    throw "PDF QA deck does not exist: $deck"
+  }
+  if (-not [string]::Equals([IO.Path]::GetExtension($deck), ".pdf", [StringComparison]::OrdinalIgnoreCase)) {
+    throw "PDF QA deck must use the .pdf extension: $deck"
+  }
+}
+if ($PdfExpectedPageCounts.Count -gt 0 -and $PdfExpectedPageCounts.Count -ne $PdfDecks.Count) {
+  throw "PdfExpectedPageCounts must be empty or contain one value for each PdfDecks entry."
+}
 if (-not (Test-Path -LiteralPath $ClickerProbePath -PathType Leaf)) {
   throw "Clicker probe does not exist: $ClickerProbePath"
 }
@@ -737,6 +750,7 @@ $DeckPlain = Normalize-DeckPath $DeckPlain
 $DeckAnimation = Normalize-DeckPath $DeckAnimation
 $DeckMedia = Normalize-DeckPath $DeckMedia
 $CompatibilityDecks = @($CompatibilityDecks | ForEach-Object { Normalize-DeckPath $_ })
+$PdfDecks = @($PdfDecks | ForEach-Object { Normalize-DeckPath $_ })
 New-Item -ItemType Directory -Path $ArtifactsDir -Force | Out-Null
 $ArtifactsDir = Normalize-DeckPath $ArtifactsDir
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
@@ -751,6 +765,7 @@ $sceneA = "$prefix Program A"
 $sceneB = "$prefix Program B"
 $sceneAuto = "$prefix Auto"
 $sceneInvalid = "$prefix Invalid"
+$scenePdf = "$prefix PDF"
 $slideA = "$prefix Slide A"
 $slideAlias = "$prefix Slide Alias"
 $presenterA = "$prefix Presenter A"
@@ -791,7 +806,7 @@ try {
   Add-Result $results "Slide source kind is registered" ($inputKinds -contains "pptbridge_slide_source") ""
   Add-Result $results "Presenter source kind is registered" ($inputKinds -contains "pptbridge_presenter_source") ""
 
-  foreach ($scene in @($sceneA, $sceneB, $sceneAuto, $sceneInvalid)) {
+  foreach ($scene in @($sceneA, $sceneB, $sceneAuto, $sceneInvalid, $scenePdf)) {
     Invoke-ObsRequest $socket "CreateScene" @{ sceneName = $scene } | Out-Null
     $createdScenes.Add($scene) | Out-Null
   }
@@ -1464,22 +1479,272 @@ try {
       $compatibilityPassed $compatibilityDetails
   }
 
+  $pdfSlideInputs = [Collections.Generic.List[string]]::new()
+  $pdfRenderStates = [Collections.Generic.List[bool]]::new()
+  $pdfPowerPointCountBefore = @(Get-Process POWERPNT -ErrorAction SilentlyContinue).Count
+  $pdfIndex = 0
+  foreach ($pdfDeck in $PdfDecks) {
+    $pdfIndex += 1
+    $pdfFile = Split-Path -Leaf $pdfDeck
+    $pdfSlide = "$prefix PDF $pdfIndex Slide"
+    $pdfPresenter = "$prefix PDF $pdfIndex Presenter"
+    $pdfCached = "$prefix PDF $pdfIndex Cached"
+    $pdfSlideInputs.Add($pdfSlide) | Out-Null
+
+    $pdfSettings = $baseSlideSettings.Clone()
+    $pdfSettings.pptx_path = $pdfDeck
+    $pdfSettings.use_live_powerpoint = $true
+    $pdfSettings.auto_start_live_powerpoint = $true
+    $pdfSettings.close_live_powerpoint_on_shutdown = $true
+    $pdfSettings.audio_enabled = $true
+    $pdfSettings.use_live_app_audio = $true
+    $pdfSettings.auto_recover_live = $true
+
+    Invoke-ObsRequest $socket "CreateInput" @{
+      sceneName = $scenePdf
+      inputName = $pdfSlide
+      inputKind = "pptbridge_slide_source"
+      sceneItemEnabled = ($pdfIndex -eq 1)
+      inputSettings = $pdfSettings
+    } | Out-Null
+    $createdInputs.Add($pdfSlide) | Out-Null
+    Invoke-ObsRequest $socket "CreateInput" @{
+      sceneName = $scenePdf
+      inputName = $pdfPresenter
+      inputKind = "pptbridge_presenter_source"
+      sceneItemEnabled = $false
+      inputSettings = @{
+        pptx_path = $pdfDeck
+        canvas_width = 1920
+        canvas_height = 1080
+        presenter_layout = "balanced"
+        presenter_preview_scale_mode = "fit"
+        presenter_show_cue_list = $true
+        use_live_powerpoint = $true
+        auto_start_live_powerpoint = $true
+      }
+    } | Out-Null
+    $createdInputs.Add($pdfPresenter) | Out-Null
+
+    Invoke-ObsRequest $socket "SetStudioModeEnabled" @{ studioModeEnabled = $false } | Out-Null
+    Invoke-ObsRequest $socket "SetCurrentProgramScene" @{ sceneName = $scenePdf } | Out-Null
+    $pdfRenderWatch = [Diagnostics.Stopwatch]::StartNew()
+    $pdfCuePath = [IO.Path]::ChangeExtension($pdfDeck, ".pptbridge-cues.txt")
+    Remove-Item -LiteralPath $pdfCuePath -Force -ErrorAction SilentlyContinue
+    $pdfFirstShot = Join-Path $ArtifactsDir "$stamp-pdf-$pdfIndex-first.png"
+    $pdfReady = Wait-Until {
+      try {
+        Press-InputButton $socket $pdfPresenter "pptbridge_export_cue_list_btn"
+        return Test-Path -LiteralPath $pdfCuePath -PathType Leaf
+      } catch {
+        return $false
+      }
+    } -TimeoutSeconds 45 -PollMilliseconds 650
+    $pdfRenderWatch.Stop()
+    Save-ObsScreenshot $socket $pdfSlide $pdfFirstShot
+    $pdfFirstInfo = Get-ImageInfo $pdfFirstShot
+    $pdfFirstHash = Get-FileHashText $pdfFirstShot
+    $pdfFirstDark = Get-DarkPixelRatio $pdfFirstShot
+    $pdfRenderStates.Add($pdfReady) | Out-Null
+    Add-Result $results "Native PDF renders: $pdfFile" (
+      $pdfReady -and $pdfFirstInfo.width -eq 1920 -and $pdfFirstInfo.height -eq 1080 -and
+      $pdfFirstInfo.bytes -gt 5000 -and $pdfFirstDark -lt 0.98) (
+      "ready={0}; elapsed={1:N2}s; image={2}x{3}/{4} bytes; dark={5:N3}" -f
+        $pdfReady,$pdfRenderWatch.Elapsed.TotalSeconds,
+        $pdfFirstInfo.width,$pdfFirstInfo.height,$pdfFirstInfo.bytes,$pdfFirstDark)
+
+    $pdfStoredSettings = Invoke-ObsRequest $socket "GetInputSettings" @{ inputName = $pdfSlide }
+    $pdfLiveFlagsOff =
+      -not [bool]$pdfStoredSettings.inputSettings.use_live_powerpoint -and
+      -not [bool]$pdfStoredSettings.inputSettings.auto_start_live_powerpoint -and
+      -not [bool]$pdfStoredSettings.inputSettings.close_live_powerpoint_on_shutdown -and
+      -not [bool]$pdfStoredSettings.inputSettings.audio_enabled -and
+      -not [bool]$pdfStoredSettings.inputSettings.use_live_app_audio -and
+      -not [bool]$pdfStoredSettings.inputSettings.auto_recover_live
+    Add-Result $results "PDF disables PowerPoint-only controls: $pdfFile" $pdfLiveFlagsOff (
+      "live={0}; auto={1}; close={2}; audio={3}; appAudio={4}; recovery={5}" -f
+        $pdfStoredSettings.inputSettings.use_live_powerpoint,
+        $pdfStoredSettings.inputSettings.auto_start_live_powerpoint,
+        $pdfStoredSettings.inputSettings.close_live_powerpoint_on_shutdown,
+        $pdfStoredSettings.inputSettings.audio_enabled,
+        $pdfStoredSettings.inputSettings.use_live_app_audio,
+        $pdfStoredSettings.inputSettings.auto_recover_live)
+
+    Press-InputButton $socket $pdfSlide "pptbridge_next_btn"
+    Start-Sleep -Seconds 1
+    $pdfNextShot = Join-Path $ArtifactsDir "$stamp-pdf-$pdfIndex-next.png"
+    Save-ObsScreenshot $socket $pdfSlide $pdfNextShot
+    $pdfNextHash = Get-FileHashText $pdfNextShot
+    Press-InputButton $socket $pdfSlide "pptbridge_prev_btn"
+    Start-Sleep -Seconds 1
+    $pdfPreviousShot = Join-Path $ArtifactsDir "$stamp-pdf-$pdfIndex-previous.png"
+    Save-ObsScreenshot $socket $pdfSlide $pdfPreviousShot
+    $pdfPreviousHash = Get-FileHashText $pdfPreviousShot
+    Add-Result $results "PDF Next and Previous navigation: $pdfFile" (
+      $pdfReady -and $pdfNextHash -ne $pdfFirstHash -and $pdfPreviousHash -eq $pdfFirstHash) (
+      "nextChanged={0}; previousRestored={1}" -f
+        ($pdfNextHash -ne $pdfFirstHash),($pdfPreviousHash -eq $pdfFirstHash))
+
+    Press-InputButton $socket $pdfSlide "pptbridge_last_btn"
+    Start-Sleep -Seconds 1
+    $pdfLastShot = Join-Path $ArtifactsDir "$stamp-pdf-$pdfIndex-last.png"
+    Save-ObsScreenshot $socket $pdfSlide $pdfLastShot
+    $pdfLastHash = Get-FileHashText $pdfLastShot
+    Press-InputButton $socket $pdfSlide "pptbridge_next_btn"
+    Start-Sleep -Seconds 1
+    $pdfAfterLastShot = Join-Path $ArtifactsDir "$stamp-pdf-$pdfIndex-after-last.png"
+    Save-ObsScreenshot $socket $pdfSlide $pdfAfterLastShot
+    $pdfAfterLastHash = Get-FileHashText $pdfAfterLastShot
+    Press-InputButton $socket $pdfSlide "pptbridge_prev_btn"
+    Start-Sleep -Seconds 1
+    $pdfBeforeLastShot = Join-Path $ArtifactsDir "$stamp-pdf-$pdfIndex-before-last.png"
+    Save-ObsScreenshot $socket $pdfSlide $pdfBeforeLastShot
+    $pdfBeforeLastHash = Get-FileHashText $pdfBeforeLastShot
+    Add-Result $results "PDF final-page guard and return: $pdfFile" (
+      $pdfReady -and $pdfLastHash -ne $pdfFirstHash -and
+      $pdfAfterLastHash -eq $pdfLastHash -and $pdfBeforeLastHash -ne $pdfLastHash) (
+      "lastReached={0}; nextStayed={1}; previousReturned={2}" -f
+        ($pdfLastHash -ne $pdfFirstHash),($pdfAfterLastHash -eq $pdfLastHash),($pdfBeforeLastHash -ne $pdfLastHash))
+
+    Press-InputButton $socket $pdfSlide "pptbridge_first_btn"
+    Start-Sleep -Seconds 1
+    $pdfBeforeBlackShot = Join-Path $ArtifactsDir "$stamp-pdf-$pdfIndex-black-before.png"
+    Save-ObsScreenshot $socket $pdfSlide $pdfBeforeBlackShot
+    Press-InputButton $socket $pdfSlide "pptbridge_black_btn"
+    Start-Sleep -Seconds 1
+    $pdfBlackShot = Join-Path $ArtifactsDir "$stamp-pdf-$pdfIndex-black-on.png"
+    Save-ObsScreenshot $socket $pdfSlide $pdfBlackShot
+    Press-InputButton $socket $pdfSlide "pptbridge_black_btn"
+    Start-Sleep -Seconds 1
+    $pdfAfterBlackShot = Join-Path $ArtifactsDir "$stamp-pdf-$pdfIndex-black-after.png"
+    Save-ObsScreenshot $socket $pdfSlide $pdfAfterBlackShot
+    $pdfBeforeBlackHash = Get-FileHashText $pdfBeforeBlackShot
+    $pdfBlackRatio = Get-DarkPixelRatio $pdfBlackShot
+    $pdfAfterBlackHash = Get-FileHashText $pdfAfterBlackShot
+    Add-Result $results "PDF black screen toggles and restores: $pdfFile" (
+      $pdfReady -and $pdfBlackRatio -ge 0.99 -and $pdfAfterBlackHash -eq $pdfBeforeBlackHash) (
+      "darkOn={0:N3}; restored={1}" -f $pdfBlackRatio,($pdfAfterBlackHash -eq $pdfBeforeBlackHash))
+
+    $pdfPresenterShot = Join-Path $ArtifactsDir "$stamp-pdf-$pdfIndex-presenter.png"
+    Save-ObsScreenshot $socket $pdfPresenter $pdfPresenterShot
+    $pdfPresenterInfo = Get-ImageInfo $pdfPresenterShot
+    Add-Result $results "PDF Presenter renders current and next pages: $pdfFile" (
+      $pdfReady -and $pdfPresenterInfo.width -eq 1920 -and $pdfPresenterInfo.height -eq 1080 -and
+      $pdfPresenterInfo.bytes -gt 5000 -and
+      (Get-FileHashText $pdfPresenterShot) -ne $pdfBeforeBlackHash) (
+      "{0}x{1}; {2} bytes" -f $pdfPresenterInfo.width,$pdfPresenterInfo.height,$pdfPresenterInfo.bytes)
+
+    $pdfCueReady = Test-Path -LiteralPath $pdfCuePath -PathType Leaf
+    $pdfCueLines = if ($pdfCueReady) { @(Get-Content -LiteralPath $pdfCuePath) } else { @() }
+    $pdfPageCount = @($pdfCueLines | Where-Object { $_ -match '^\[[ x]\] ' }).Count
+    $pdfExpectedPageCount = if ($PdfExpectedPageCounts.Count -eq $PdfDecks.Count) {
+      [int]$PdfExpectedPageCounts[$pdfIndex - 1]
+    } else {
+      0
+    }
+    $pdfPageCountPassed = $pdfPageCount -gt 1 -and
+      ($pdfExpectedPageCount -le 0 -or $pdfPageCount -eq $pdfExpectedPageCount)
+    Add-Result $results "PDF page count and cue export: $pdfFile" $pdfPageCountPassed (
+      "pages={0}; expected={1}; cue={2}" -f $pdfPageCount,$pdfExpectedPageCount,$pdfCuePath)
+
+    $pdfCacheWatch = [Diagnostics.Stopwatch]::StartNew()
+    Invoke-ObsRequest $socket "CreateInput" @{
+      sceneName = $scenePdf
+      inputName = $pdfCached
+      inputKind = "pptbridge_slide_source"
+      sceneItemEnabled = $false
+      inputSettings = $pdfSettings
+    } | Out-Null
+    $createdInputs.Add($pdfCached) | Out-Null
+    Start-Sleep -Seconds 1
+    $pdfCachedShot = Join-Path $ArtifactsDir "$stamp-pdf-$pdfIndex-cached.png"
+    Save-ObsScreenshot $socket $pdfCached $pdfCachedShot
+    $pdfCacheWatch.Stop()
+    Add-Result $results "PDF deck reuses prepared cache: $pdfFile" (
+      (Get-FileHashText $pdfCachedShot) -eq $pdfBeforeBlackHash -and
+      $pdfCacheWatch.Elapsed.TotalSeconds -lt 5) (
+      "elapsed={0:N2}s; imageMatched={1}" -f
+        $pdfCacheWatch.Elapsed.TotalSeconds,
+        ((Get-FileHashText $pdfCachedShot) -eq $pdfBeforeBlackHash))
+  }
+
+  if ($PdfDecks.Count -gt 0) {
+    $pdfPowerPointCountAfter = @(Get-Process POWERPNT -ErrorAction SilentlyContinue).Count
+    Add-Result $results "Native PDF mode does not launch PowerPoint" (
+      $pdfPowerPointCountAfter -eq $pdfPowerPointCountBefore) (
+      "POWERPNT before={0}; after={1}" -f $pdfPowerPointCountBefore,$pdfPowerPointCountAfter)
+    Add-Result $results "Multiple PDF decks stay loaded together" (
+      @($pdfRenderStates | Where-Object { $_ }).Count -eq $PdfDecks.Count -and
+      $pdfSlideInputs.Count -eq $PdfDecks.Count) (
+      "ready={0}/{1}" -f @($pdfRenderStates | Where-Object { $_ }).Count,$PdfDecks.Count)
+
+    $coexistPowerPointShot = Join-Path $ArtifactsDir "$stamp-pdf-coexist-powerpoint.png"
+    Save-ObsScreenshot $socket $slideA $coexistPowerPointShot
+    $coexistPowerPointInfo = Get-ImageInfo $coexistPowerPointShot
+    Add-Result $results "PDF and PowerPoint sources coexist" (
+      $coexistPowerPointInfo.width -eq 1920 -and $coexistPowerPointInfo.height -eq 1080 -and
+      $coexistPowerPointInfo.bytes -gt 5000 -and $null -ne (Invoke-ObsRequest $socket "GetVersion")) (
+      "PowerPoint image={0}x{1}/{2} bytes; PDFs={3}" -f
+        $coexistPowerPointInfo.width,$coexistPowerPointInfo.height,$coexistPowerPointInfo.bytes,$PdfDecks.Count)
+
+    $clickerPdfSlide = $pdfSlideInputs[0]
+    Press-InputButton $socket $clickerPdfSlide "pptbridge_first_btn"
+    Start-Sleep -Seconds 1
+    $pdfClickerBefore = Join-Path $ArtifactsDir "$stamp-pdf-clicker-before.png"
+    Save-ObsScreenshot $socket $clickerPdfSlide $pdfClickerBefore
+    $pdfClickerProbe = Invoke-ClickerProbe "PAGEDOWN"
+    Start-Sleep -Seconds 1
+    $pdfClickerAfter = Join-Path $ArtifactsDir "$stamp-pdf-clicker-after.png"
+    Save-ObsScreenshot $socket $clickerPdfSlide $pdfClickerAfter
+    $pdfClickerAdvanced = (Get-FileHashText $pdfClickerAfter) -ne (Get-FileHashText $pdfClickerBefore)
+    $pdfClickerBackProbe = Invoke-ClickerProbe "PAGEUP"
+    Start-Sleep -Seconds 1
+    $pdfClickerRestored = Join-Path $ArtifactsDir "$stamp-pdf-clicker-restored.png"
+    Save-ObsScreenshot $socket $clickerPdfSlide $pdfClickerRestored
+    Add-Result $results "Spotlight-style PageDown PageUp controls PDF without stealing focus" (
+      $pdfClickerAdvanced -and
+      (Get-FileHashText $pdfClickerRestored) -eq (Get-FileHashText $pdfClickerBefore) -and
+      $pdfClickerProbe.foregroundWasProbe -and $pdfClickerProbe.keyDownCount -eq 0 -and
+      $pdfClickerProbe.keyUpCount -eq 0 -and $pdfClickerBackProbe.foregroundWasProbe -and
+      $pdfClickerBackProbe.keyDownCount -eq 0 -and $pdfClickerBackProbe.keyUpCount -eq 0) (
+      "advanced={0}; restored={1}; nextProbe={2}; previousProbe={3}" -f
+        $pdfClickerAdvanced,
+        ((Get-FileHashText $pdfClickerRestored) -eq (Get-FileHashText $pdfClickerBefore)),
+        ($pdfClickerProbe | ConvertTo-Json -Compress),
+        ($pdfClickerBackProbe | ConvertTo-Json -Compress))
+
+    Send-OscNoArg "/pptbridge/next" $OscPort
+    Start-Sleep -Seconds 1
+    $pdfOscNext = Join-Path $ArtifactsDir "$stamp-pdf-osc-next.png"
+    Save-ObsScreenshot $socket $clickerPdfSlide $pdfOscNext
+    Send-OscNoArg "/pptbridge/previous" $OscPort
+    Start-Sleep -Seconds 1
+    $pdfOscPrevious = Join-Path $ArtifactsDir "$stamp-pdf-osc-previous.png"
+    Save-ObsScreenshot $socket $clickerPdfSlide $pdfOscPrevious
+    Add-Result $results "OSC Next and Previous control PDF" (
+      (Get-FileHashText $pdfOscNext) -ne (Get-FileHashText $pdfClickerBefore) -and
+      (Get-FileHashText $pdfOscPrevious) -eq (Get-FileHashText $pdfClickerBefore)) (
+      "nextChanged={0}; previousRestored={1}" -f
+        ((Get-FileHashText $pdfOscNext) -ne (Get-FileHashText $pdfClickerBefore)),
+        ((Get-FileHashText $pdfOscPrevious) -eq (Get-FileHashText $pdfClickerBefore)))
+  }
+
   $invalidDir = Join-Path $ArtifactsDir "invalid-inputs"
   New-Item -ItemType Directory -Path $invalidDir -Force | Out-Null
   $emptyPath = Join-Path $invalidDir "empty.pptx"
   $corruptPath = Join-Path $invalidDir "corrupt.pptx"
   $unsupportedPath = Join-Path $invalidDir "unsupported.txt"
-  $pdfPath = Join-Path $invalidDir "unsupported.pdf"
+  $pdfPath = Join-Path $invalidDir "corrupt.pdf"
   [IO.File]::WriteAllBytes($emptyPath, [byte[]]@())
   [IO.File]::WriteAllText($corruptPath, "not a PowerPoint package")
   [IO.File]::WriteAllText($unsupportedPath, "unsupported")
-  [IO.File]::WriteAllText($pdfPath, "%PDF-1.4`nunsupported on Windows")
+  [IO.File]::WriteAllText($pdfPath, "%PDF-1.4`ncorrupt PDF data")
   $invalidCases = @(
     @{ label = "missing"; path = (Join-Path $invalidDir "missing.pptx") },
     @{ label = "empty"; path = $emptyPath },
     @{ label = "corrupt"; path = $corruptPath },
     @{ label = "unsupported-extension"; path = $unsupportedPath },
-    @{ label = "pdf-unsupported"; path = $pdfPath }
+    @{ label = "corrupt-pdf"; path = $pdfPath }
   )
   foreach ($invalidCase in $invalidCases) {
     $invalidName = "$prefix Invalid $($invalidCase.label)"
@@ -1546,6 +1811,8 @@ $report = [pscustomobject]@{
     animation = $DeckAnimation
     media = $DeckMedia
     compatibility = @($CompatibilityDecks)
+    pdf = @($PdfDecks)
+    pdfExpectedPageCounts = @($PdfExpectedPageCounts)
   }
   results = @($results)
   unexpectedError = $unexpectedError
