@@ -12,8 +12,8 @@ The main public release path today is the macOS ZIP for the user's Mac:
 
 The Windows beta path is a binary plugin ZIP with a double-click installer:
 
-- [Download Windows beta plugin ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.0-beta.1/pptbridge-obs-windows-x64-v0.5.0-beta.1.zip)
-- [Open the Windows beta prerelease page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1)
+- [Download Windows beta plugin ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8-windows-beta.1/pptbridge-obs-windows-x64-v0.5.8-windows-beta.1.zip)
+- [Open the Windows beta prerelease page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8-windows-beta.1)
 
 It is designed to show up inside OBS as real source types:
 
@@ -39,7 +39,7 @@ This native version is built around a practical conference workflow:
 
 - macOS Apple Silicon: stable public release path, tested and packaged
 - macOS Intel: v0.4.4 beta download, awaiting more real Intel Mac feedback
-- Windows: beta binary package with `INSTALL.cmd`, ready for PowerPoint live-mode testing
+- Windows: runtime-tested beta binary package with `INSTALL.cmd` for OBS 30+ on Windows 10/11 x64
 
 ## Quick Platform Guide
 
@@ -52,7 +52,8 @@ This native version is built around a practical conference workflow:
 - `v0.5.2` = previous Apple Silicon stable release with Operator Mode controls, interactive cue checks, OSC status feedback, and clearer menu labels
 - `v0.5.1` = previous Apple Silicon stable release with live-mode restart recovery, arrow-key defaults, presenter background customization, and cue-list display/export
 - `v0.5.0` = previous Apple Silicon stable release with modification-time cache validation and bounded timeouts on PowerPoint helper calls
-- `v0.5.0-beta.1` = Windows beta plugin ZIP with `INSTALL.cmd` for real OBS/PowerPoint testing
+- `v0.5.8-windows-beta.1` = current Windows beta with live PowerPoint, Presenter, media/audio, Program-scene clicker routing, multi-deck support, resize-safe capture, and a double-click installer
+- `v0.5.0-beta.1` = previous Windows beta plugin ZIP
 - `v0.4.7` = Apple Silicon stable release with faster presenter preparation after live start and final-slide live-mode protection
 - `v0.4.6` = previous Apple Silicon stable release with live PowerPoint control stability, timeout-safe process handling, and cleaner release packaging
 - `v0.4.5` = previous Apple Silicon stable release with conservative presenter stability, clearer live controls, and updated docs

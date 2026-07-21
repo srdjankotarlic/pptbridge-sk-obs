@@ -68,10 +68,10 @@ If everything passes, create a Windows beta zip containing:
 - native-plugin/WINDOWS-ALPHA-TESTING.md
 
 Name it:
-pptbridge-obs-windows-x64-v0.5.0-beta.1.zip
+pptbridge-obs-windows-x64-v0.5.8-windows-beta.1.zip
 
 Also create:
-pptbridge-obs-windows-x64-v0.5.0-beta.1.zip.sha256
+pptbridge-obs-windows-x64-v0.5.8-windows-beta.1.zip.sha256
 
 Do not claim stable. Mark it Windows beta. Report exactly what passed, what failed, and include OBS log paths.
 ```

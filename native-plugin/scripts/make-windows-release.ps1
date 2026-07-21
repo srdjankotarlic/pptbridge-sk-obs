@@ -1,6 +1,6 @@
 param(
-  [string]$Version = "0.5.0-beta.1",
-  [string]$Configuration = "RelWithDebInfo",
+  [string]$Version = "0.5.8-windows-beta.1",
+  [string]$Configuration = "Release",
   [string]$BuildDir = "",
   [string]$OutputDir = "",
   [string]$PackageName = ""
@@ -45,6 +45,12 @@ $stagingRoot = Join-Path $OutputDir "staging"
 $staging = Join-Path $stagingRoot $PackageName
 $zipPath = Join-Path $OutputDir "$PackageName.zip"
 $shaPath = "$zipPath.sha256"
+
+$resolvedOutput = [IO.Path]::GetFullPath($OutputDir).TrimEnd('\') + '\'
+$resolvedStaging = [IO.Path]::GetFullPath($staging)
+if (-not $resolvedStaging.StartsWith($resolvedOutput, [StringComparison]::OrdinalIgnoreCase)) {
+  throw "Unsafe staging path outside the release output directory: $resolvedStaging"
+}
 
 Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path (Join-Path $staging "obs-plugins\64bit") | Out-Null

@@ -97,6 +97,7 @@ struct PresentationStatus {
   bool current_cue_checked = false;
   bool next_cue_checked = false;
   std::size_t checked_count = 0;
+  double slide_aspect_ratio = 16.0 / 9.0;
   std::vector<CueListItem> cues;
 };
 

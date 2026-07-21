@@ -1,69 +1,52 @@
-# PPTBridge SK Windows Beta Preview
+# PPTBridge SK Windows x64 Beta
 
-**Current beta:** `v0.5.0-beta.1` Windows plugin ZIP
+**Release:** `v0.5.8-windows-beta.1`
 
-This is a Windows beta preview of `PPTBridge SK`. It includes a compiled 64-bit OBS plugin, a double-click `INSTALL.cmd` installer, and a short user README so it can be installed on another Windows OBS computer without technical setup.
+This prerelease brings the Windows PowerPoint workflow close to the macOS v0.5.8 feature set while keeping installation to one small ZIP and a double-click `INSTALL.cmd`.
 
-## What This Windows Beta Is Meant To Do
+## Download
 
-- register `PPTBridge SK Slide` and `PPTBridge SK Presenter` as native OBS source types
-- load a PowerPoint file directly from OBS source properties
-- prefer true live PowerPoint slideshow behavior for animations, click-builds, and embedded media
-- keep OBS output locked to the OBS canvas when the PowerPoint slideshow window is resized
-- optionally follow the current PowerPoint window size when that is intentional
-- provide clear `START / RESTART - Open PowerPoint Live Mode` and `STOP - Stop PowerPoint Live Mode` buttons
-- let the user choose manual startup or `Auto Start PowerPoint When OBS Opens`
-- optionally stop the slideshow when OBS closes
-- route hotkeys, local OSC, and clicker capture to the PPTBridge source in the current OBS Program scene
-- support multi-deck shows where each OBS scene has a different PowerPoint deck
-- render a dedicated presenter view with notes, next-slide preview, timer, and presenter layout customization
-- attempt to bring PowerPoint audio into OBS through the live window path or Windows process-audio fallback
-- fall back to exported slide rendering plus extracted embedded media if the live path is not ready
+Download `pptbridge-obs-windows-x64-v0.5.8-windows-beta.1.zip`, extract it, close OBS, and double-click `INSTALL.cmd`.
 
-## What The Beta ZIP Includes
+The ZIP contains only:
 
 - `INSTALL.cmd`
 - `README.txt`
-- `obs-plugins\64bit\pptbridge-obs.dll`
-- `data\obs-plugins\pptbridge-obs\locale\en-US.ini`
-- `data\obs-plugins\pptbridge-obs\locale\en-GB.ini`
+- `obs-plugins/64bit/pptbridge-obs.dll`
+- `data/obs-plugins/pptbridge-obs/locale/en-US.ini`
+- `data/obs-plugins/pptbridge-obs/locale/en-GB.ini`
 
-## Honest Current Limits
+## What Works
 
-- this is still a beta and should be tested before paid/live production use
-- PDF input is not enabled in this Windows beta path
-- exact audio ownership can vary by OBS build and Windows capture support available on that machine
-- the macOS `v0.4.7` Apple Silicon ZIP remains the stable public release for normal users
+- clean PowerPoint audience output without desktop, PowerPoint chrome, scrollbars, or Presenter View artifacts
+- `PPTBridge SK Slide` and `PPTBridge SK Presenter` sources
+- live animations, click builds, embedded video, and PowerPoint process audio
+- presenter notes, next-slide preview, timer, cue list, five layouts, preview scaling, and custom backgrounds
+- fixed OBS output size while the PowerPoint window is moved or resized
+- final-slide protection so extra Next presses do not close the slideshow
+- manual Start, Stop, Restart, Reattach, optional Auto Start, and automatic recovery
+- multiple simultaneous PowerPoint live sessions using full canonical file paths
+- Program-scene routing for OBS hotkeys, local OSC, and Logitech Spotlight/PageDown/PageUp clickers
+- Studio Preview isolation so Preview does not steal clicker control or PowerPoint audio
+- legacy binary `.ppt` files as well as modern PowerPoint formats
+- fast live startup for very large media decks without copying embedded video into the slide cache
+- clear, safe errors for missing, empty, corrupt, unsupported, and PDF inputs
 
-## Best Current Usage Goal
+## Validation
 
-Use this beta on a Windows test machine to answer these questions before a real show:
+The release candidate was built in both `RelWithDebInfo` and clean `Release` configurations, then tested in real OBS Studio 32.1.2 on Windows 11 x64 with desktop PowerPoint 2010. Validation covered fresh and cached loads, animations, notes, video/audio, final-slide navigation, resize, Presenter layouts, cue export, all six OSC controls, all 16 OSC feedback addresses, Program/Preview clicker isolation, three simultaneous live decks, ten rapid Start/Stop cycles, legacy `.ppt`, six real event decks, and an 8.6 GB media-heavy deck.
 
-- does `INSTALL.cmd` copy the plugin into the correct OBS folder
-- do the two source types appear in OBS
-- does manual `START` open PowerPoint and attach the live slideshow
-- does `STOP` end the slideshow
-- does resizing the PowerPoint window leave OBS output unchanged when `Lock OBS Output Size` is selected
-- do multiple OBS scenes control separate PowerPoint decks
-- do OBS-focused hotkeys ignore typing in other apps
-- does Spotlight/Clicker Capture work while another app is focused
-- does local OSC/Companion control target the current OBS Program scene
-- do embedded video and audio land in OBS reliably enough for beta
-- does fallback mode remain usable if live attachment is unavailable
+The final public ZIP must pass the same runtime suite after a fresh extraction and installation before the GitHub prerelease is published.
 
-## Recommended Feedback To Collect
+## Important Audio Note
 
-- Windows version
-- OBS version
-- PowerPoint version
-- whether the plugin built and loaded
-- whether `PPTBridge SK Slide` and `PPTBridge SK Presenter` appeared
-- whether live capture attached
-- whether PowerPoint resize lock worked
-- whether multi-deck scene routing worked
-- whether Spotlight/Clicker Capture worked
-- whether local OSC/Companion worked
-- whether audio landed in the OBS mixer
-- whether presenter notes rendered
-- whether fallback mode still worked
-- OBS log file if anything failed
+PowerPoint runs all open decks in one application process. PPTBridge routes process audio only from the current Program scene. If several PPTBridge Slide sources are intentionally visible in that same Program scene, keep **Route PowerPoint App Audio Through OBS** enabled on only one of them to avoid duplicate mixing.
+
+## Known Limits
+
+- This remains a beta and should be rehearsed on the exact production computer before a paid or critical show.
+- PDF input is not enabled on Windows.
+- The plugin and installer are not code-signed yet, so Windows may show a security confirmation.
+- Desktop Microsoft PowerPoint is required; PowerPoint for the web is not supported.
+
+The macOS `v0.5.8` release remains the separate stable macOS download. This Windows release must be marked **Prerelease**, not Latest stable.

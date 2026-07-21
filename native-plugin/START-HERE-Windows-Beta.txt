@@ -4,7 +4,7 @@ PPTBridge SK for OBS - Windows Beta
 Use this file only if you are looking at the source tree.
 Normal Windows users should download:
 
-  pptbridge-obs-windows-x64-v0.5.0-beta.1.zip
+  pptbridge-obs-windows-x64-v0.5.8-windows-beta.1.zip
 
 Then:
 
@@ -43,4 +43,4 @@ Known limits:
 
 - PDF input is not enabled in this Windows beta.
 - This is a beta; test it on the target OBS/PowerPoint computer before a live show.
-- The stable public release is the macOS Apple Silicon v0.4.7 release.
+- The stable macOS Apple Silicon release is v0.5.8; this Windows package is a separate prerelease.

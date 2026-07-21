@@ -184,6 +184,7 @@ bool collect_pptbridge_from_item(obs_scene_t *, obs_sceneitem_t *item, void *use
 std::vector<std::shared_ptr<pptbridge::PresentationDocument>> resolve_target_documents()
 {
   std::vector<std::shared_ptr<pptbridge::PresentationDocument>> documents;
+  std::unordered_set<pptbridge::PresentationDocument *> seen_documents;
 
   obs_source_t *program_source = obs_frontend_get_current_scene();
   if (program_source) {
@@ -199,7 +200,9 @@ std::vector<std::shared_ptr<pptbridge::PresentationDocument>> resolve_target_doc
 
     for (const auto &path : collector.paths) {
       if (auto document = pptbridge::Registry::Instance().Acquire(path)) {
-        documents.push_back(std::move(document));
+        if (seen_documents.insert(document.get()).second) {
+          documents.push_back(std::move(document));
+        }
       }
     }
   }

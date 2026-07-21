@@ -1,70 +1,65 @@
 # PPTBridge SK for OBS - Windows Install
 
-Use the Windows ZIP release when you want to install the plugin on another Windows computer.
-
 ## Download
 
-Download only:
+Download and extract only:
 
-`pptbridge-obs-windows-x64-v0.5.0-beta.1.zip`
+`pptbridge-obs-windows-x64-v0.5.8-windows-beta.1.zip`
 
-Optional checksum:
+Optional integrity file:
 
-`pptbridge-obs-windows-x64-v0.5.0-beta.1.zip.sha256`
+`pptbridge-obs-windows-x64-v0.5.8-windows-beta.1.zip.sha256`
 
-## Install
+## Easy Install
 
 1. Close OBS Studio.
-2. Right-click the ZIP and choose `Extract All`.
-3. Open the extracted folder.
-4. Double-click `INSTALL.cmd`.
-5. Allow administrator permission if Windows asks.
-6. Start OBS Studio.
-7. Add `PPTBridge SK Slide` or `PPTBridge SK Presenter`.
-8. Select your PowerPoint file.
+2. Right-click the ZIP and choose **Extract All**.
+3. Open the extracted folder and double-click `INSTALL.cmd`.
+4. Allow administrator permission if Windows asks.
+5. Start OBS and add `PPTBridge SK Slide` from **Sources > +**.
+6. Select a PowerPoint file and click **Start / Restart PowerPoint Live Mode**.
 
-If OBS is portable or installed in a custom folder:
+The installer detects a normal OBS installation automatically. For portable OBS or a custom folder, run:
 
 ```bat
 INSTALL.cmd "D:\Path\To\obs-studio"
 ```
 
-## Live Production Setup
+Re-running `INSTALL.cmd` safely installs the new version over an older PPTBridge SK DLL. It closes only the selected OBS installation, not another portable OBS copy that may also be open.
 
-- Use `START / RESTART - Open PowerPoint Live Mode` when you are ready for the live deck.
-- Use `STOP - Stop PowerPoint Live Mode` at the end of the deck.
-- Keep `Lock OBS Output Size` selected unless you intentionally want OBS to follow the PowerPoint window shape.
-- Enable `Tools -> PPTBridge SK: Spotlight/Clicker Capture On/Off` when the presenter clicker must control the Program scene while the operator uses another app.
-- Default clicker capture uses `PageDown` and `PageUp`; normal left/right arrows stay free.
-- Plain typing keys such as letters, numbers, `Space`, `Enter`, `Tab`, and `Backspace` are never captured globally, so the operator can keep using the computer.
-- Put each deck in its own OBS scene for multi-deck shows.
+## Recommended Show Setup
 
-## Current Windows Scope
+- Add `PPTBridge SK Slide` to the audience Program scene.
+- Add `PPTBridge SK Presenter` to the stage/confidence-monitor scene for notes, next slide, timer, and cues.
+- Keep **Lock OBS Output Size** selected. The PowerPoint window can then be resized or moved without changing the 1920x1080 OBS source.
+- Enable **Tools > PPTBridge SK: Spotlight/Clicker Capture On/Off** for a Logitech Spotlight or other presenter remote that sends `PageDown` and `PageUp`.
+- Put each deck in its own OBS scene. Multiple PowerPoint live sessions may remain ready, while the clicker and OSC follow only the current Program scene.
+- Leave **Route PowerPoint App Audio Through OBS** enabled on one PPTBridge Slide source per Program scene.
 
-Windows live production support is focused on PowerPoint decks:
+Normal keyboard input remains available to the operator. The global clicker hook captures only `PageDown` and `PageUp`; ordinary letters, numbers, `Space`, and left/right arrows are not taken from the focused application.
 
-- live PowerPoint slideshow capture
-- presenter/source split
-- notes and next-slide presenter layout
-- Program-scene clicker, hotkey, and OSC routing
-- fallback slide rendering and embedded media/audio extraction
+Extra Next presses on the final slide are ignored, so the presentation remains visible and the speaker can go back with Previous.
 
-Modern `.pptx` decks give the best fallback media metadata. Legacy `.ppt` decks can still open through PowerPoint live/export mode, but embedded-media extraction is best-effort.
+## Requirements
 
-PDF decks are still a macOS-only feature in this beta line.
+- Windows 10/11 x64
+- OBS Studio 30 or newer, 64-bit
+- Desktop Microsoft PowerPoint
 
-## Build A Release ZIP From Source
+Windows supports modern PowerPoint formats and legacy `.ppt`. PDF input is not enabled in this beta.
 
-After building the Windows DLL:
+## Troubleshooting
+
+If the plugin is missing after installation, close OBS and run `INSTALL.cmd` again. Confirm that the installer selected the same OBS folder you normally launch. Then open **OBS > Help > Log Files > View Current Log**, search for `PPTBridge SK`, and attach that log to a GitHub issue.
+
+## Build The Public ZIP
+
+After a clean Release build:
 
 ```powershell
-cmake --build native-plugin/build-win --config RelWithDebInfo
-powershell -ExecutionPolicy Bypass -File native-plugin/scripts/make-windows-release.ps1
+cmake --build native-plugin/build-win-v058-clean-release --config Release
+powershell -ExecutionPolicy Bypass -File native-plugin/scripts/make-windows-release.ps1 `
+  -BuildDir native-plugin/build-win-v058-clean-release
 ```
 
-The script creates:
-
-- `native-plugin/release/pptbridge-obs-windows-x64-v0.5.0-beta.1.zip`
-- `native-plugin/release/pptbridge-obs-windows-x64-v0.5.0-beta.1.zip.sha256`
-
-The release ZIP intentionally contains only user-facing install files and the OBS plugin files.
+The script creates the ZIP and matching `.sha256` file under `native-plugin/release`. The public ZIP intentionally contains only `INSTALL.cmd`, `README.txt`, the DLL, and two required locale files.

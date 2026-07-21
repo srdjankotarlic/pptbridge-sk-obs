@@ -36,11 +36,10 @@ What is already in the Windows code now:
 
 What is **not** claimed as done yet:
 
-- verified Windows runtime parity with the macOS release
-- proven embedded video/audio parity in a real Windows OBS test
 - PDF input support on Windows
-- Windows packaging and installer flow
-- a stable public Windows installer release
+- a code-signed stable Windows installer release
+
+The `v0.5.8-windows-beta.1` candidate has real Windows OBS runtime coverage for the PowerPoint workflow, including live video/audio, Presenter, multi-deck routing, clicker/OSC, recovery, legacy `.ppt`, repeated lifecycle stress, and the five-file installer ZIP. It remains a prerelease until broader production feedback is collected.
 
 ## What Was Reused
 

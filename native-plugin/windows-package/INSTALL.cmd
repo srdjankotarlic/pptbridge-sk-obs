@@ -11,7 +11,9 @@ if not "%exitCode%"=="0" (
   echo Installation failed with exit code %exitCode%.
   echo If you need help, send the OBS log and a screenshot of this window.
   pause
+  exit /b %exitCode%
 )
+if not "%PPTBRIDGE_INSTALLER_NO_PAUSE%"=="1" pause
 exit /b %exitCode%
 
 ### POWERSHELL_INSTALLER ###
@@ -120,8 +122,23 @@ function Find-ObsRoot {
   throw "OBS Studio folder was not found. Install 64-bit OBS Studio first, or run: INSTALL.cmd ""C:\Path\To\obs-studio"""
 }
 
+function Get-TargetObsProcesses {
+  param([string]$ObsRoot)
+
+  $targetExe = [IO.Path]::GetFullPath((Join-Path $ObsRoot "bin\64bit\obs64.exe"))
+  return @(Get-Process obs64 -ErrorAction SilentlyContinue | Where-Object {
+    try {
+      [IO.Path]::GetFullPath($_.Path) -ieq $targetExe
+    } catch {
+      $false
+    }
+  })
+}
+
 function Stop-ObsIfNeeded {
-  $obsProcesses = @(Get-Process obs64 -ErrorAction SilentlyContinue)
+  param([string]$ObsRoot)
+
+  $obsProcesses = @(Get-TargetObsProcesses $ObsRoot)
   if ($obsProcesses.Count -eq 0) {
     return
   }
@@ -130,12 +147,23 @@ function Stop-ObsIfNeeded {
   Write-Host "Close OBS now so the plugin DLL can be replaced."
   $answer = Read-Host "Type Y to let this installer close OBS automatically, or press Enter after you close OBS yourself"
   if ($answer -match '^[Yy]') {
-    $obsProcesses | Stop-Process -Force
+    foreach ($process in $obsProcesses) {
+      try { [void]$process.CloseMainWindow() } catch {}
+    }
+    $gracefulDeadline = (Get-Date).AddSeconds(10)
+    while ((Get-Date) -lt $gracefulDeadline -and @(Get-TargetObsProcesses $ObsRoot).Count -gt 0) {
+      Start-Sleep -Milliseconds 500
+    }
+    $remaining = @(Get-TargetObsProcesses $ObsRoot)
+    if ($remaining.Count -gt 0) {
+      Write-Host "OBS did not close in time; finishing the close now."
+      $remaining | Stop-Process -Force
+    }
   }
 
   $deadline = (Get-Date).AddSeconds(30)
   while ((Get-Date) -lt $deadline) {
-    if (-not (Get-Process obs64 -ErrorAction SilentlyContinue)) {
+    if (@(Get-TargetObsProcesses $ObsRoot).Count -eq 0) {
       return
     }
     Start-Sleep -Milliseconds 500
@@ -169,7 +197,7 @@ if ((Test-RequiresAdministrator $obsRoot) -and -not (Test-IsAdministrator)) {
 }
 
 Write-Step "Checking OBS"
-Stop-ObsIfNeeded
+Stop-ObsIfNeeded $obsRoot
 
 Write-Step "Installing plugin"
 $targetPluginDir = Join-Path $obsRoot "obs-plugins\64bit"
