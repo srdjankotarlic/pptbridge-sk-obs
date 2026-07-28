@@ -40,7 +40,7 @@
   "applicationCategory": "MultimediaApplication",
   "description": "Free, open-source OBS Studio plugin that adds PowerPoint and PDF slides to OBS as native sources, with a presenter/confidence view (current slide, next slide, timer, notes) and slide control over OBS hotkeys, a presenter clicker, Bitfocus Companion / Stream Deck, or local OSC.",
   "url": "https://srdjankotarlic.github.io/pptbridge-sk-obs/",
-  "downloadUrl": "https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest",
+  "downloadUrl": "https://github.com/srdjankotarlic/pptbridge-sk-obs/releases",
   "softwareVersion": "0.5.9",
   "license": "https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/LICENSE",
   "image": "https://srdjankotarlic.github.io/pptbridge-sk-obs/assets/og-image.png",
@@ -114,7 +114,7 @@
   body{
     margin:0; background:var(--bg); color:var(--text);
     font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    -webkit-font-smoothing:antialiased;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
   }
   a{color:var(--accent2); text-decoration:none}
   a:hover{text-decoration:underline}
@@ -165,12 +165,21 @@
   footer{border-top:1px solid var(--line); padding:34px 0; color:var(--muted); font-size:14px; text-align:center}
   footer a{color:var(--muted)}
   @media (max-width:640px){
+    .wrap{width:100%; padding-left:20px; padding-right:20px}
+    header.site .wrap{height:60px; min-width:0}
+    header.site .name{white-space:nowrap}
+    header.site nav{gap:12px; min-width:0}
+    header.site nav a{display:none}
+    header.site nav a:last-child{display:block}
     .hero{padding-top:44px}
-    .hero h1{font-size:34px}
+    .hero h1{font-size:32px; overflow-wrap:anywhere}
     .hero p.sub{font-size:17px}
+    .cta{flex-direction:column; align-items:stretch}
+    .btn{display:block; width:100%}
+    .shot{max-width:100%}
+    .grid,.os{grid-template-columns:1fr}
+    code{overflow-wrap:anywhere}
     section h2{font-size:26px}
-    header.site nav{gap:12px}
-    header.site nav a:nth-child(3),header.site nav a:nth-child(4){display:none}
   }
 </style>
 </head>
@@ -289,7 +298,7 @@
 <footer>
   <div class="wrap">
     <p>PPTBridge SK for OBS — built by <a href="https://github.com/srdjankotarlic">Srdjan Kotarlic</a> for real live-production work.<br />
-    <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs">Source on GitHub</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest">Latest release</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/issues">Report an issue</a></p>
+    <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs">Source on GitHub</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases">All platform downloads</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/issues">Report an issue</a></p>
   </div>
 </footer>
 

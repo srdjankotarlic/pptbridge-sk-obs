@@ -4,7 +4,7 @@
 
 Built for and used in real live-event production. PPTBridge SK is an independent third-party plugin and is not affiliated with the OBS Project.
 
-[![Latest release](https://img.shields.io/github/v/release/srdjankotarlic/pptbridge-sk-obs?label=latest)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest) ![macOS Apple Silicon stable](https://img.shields.io/badge/macOS%20Apple%20Silicon-stable-2ea44f) ![Windows stable](https://img.shields.io/badge/Windows-stable-2ea44f) ![OBS Studio 30+](https://img.shields.io/badge/OBS%20Studio-30%2B-4c4c4c)
+[![Windows v0.5.9 stable](https://img.shields.io/badge/Windows-v0.5.9%20stable-2ea44f)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.9) [![macOS Apple Silicon v0.5.8 stable](https://img.shields.io/badge/macOS%20Apple%20Silicon-v0.5.8%20stable-2ea44f)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8) ![OBS Studio 30+](https://img.shields.io/badge/OBS%20Studio-30%2B-4c4c4c)
 
 **[Download Windows x64 v0.5.9](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.9/pptbridge-obs-windows-x64-v0.5.9.zip)** | **[Download macOS Apple Silicon v0.5.8](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-macos-apple-silicon.zip)** | [5-minute quickstart](QUICKSTART.md) | [Watch the demo](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov)
 

@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS Setup Guide
 
-**Created by Srđan Kotarlić** | v0.4.7
+**Created by Srđan Kotarlić** | Windows v0.5.9 / Apple Silicon v0.5.8
 
 For the fastest install path, start with [QUICKSTART.md](QUICKSTART.md). This guide is the fuller walkthrough for setup, controls, multiple decks, and troubleshooting.
 
@@ -18,31 +18,43 @@ Use it when you want:
 - slide control from OBS hotkeys, source buttons, Companion, local OSC, or a show-control surface
 - OBS to open quietly until you choose to start PowerPoint
 
-The stable public build is currently Apple Silicon macOS. Intel Mac remains available as a separate v0.4.4 beta download while real Intel feedback is collected.
+Windows 10/11 x64 and Apple Silicon macOS are stable release platforms. Intel
+Mac remains available as a separate v0.4.4 beta while real Intel feedback is
+collected.
 
 ## Requirements
 
 You need:
 
-- Apple Silicon Mac for the stable build, or Intel Mac for the beta build
-- OBS Studio on macOS 12 or newer
+- Windows 10/11 x64, Apple Silicon macOS 12+, or an Intel Mac for the beta build
+- OBS Studio 30 or newer, 64-bit
 - at least one `.pptx` or `.pdf` file
-- Microsoft PowerPoint installed for `.pptx` live mode
+- desktop Microsoft PowerPoint for PowerPoint files and live mode; PDF decks do
+  not require PowerPoint
 
 Recommended:
 
 - install Microsoft PowerPoint for the preferred true live mode
-- download the ZIP that matches your Mac CPU:
-  - Apple Silicon: `pptbridge-obs-macos-apple-silicon.zip`
-  - Intel beta: `pptbridge-obs-macos-intel.zip`
+- download the package that matches your platform from the
+  [Download and Install table](README.md#download-and-install)
 
 ## Install The Plugin
 
-### Recommended
+### Windows 10/11 x64
+
+1. Download and extract the
+   [Windows v0.5.9 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.9/pptbridge-obs-windows-x64-v0.5.9.zip)
+2. Quit OBS if it is open
+3. Double-click `INSTALL.cmd` and approve the administrator prompt
+4. Open OBS Studio 30 or newer
+
+Full Windows details: [native-plugin/INSTALL-Windows.md](native-plugin/INSTALL-Windows.md)
+
+### macOS
 
 1. Download and unzip the right ZIP for your Mac:
-   - Apple Silicon: `pptbridge-obs-macos-apple-silicon.zip`
-   - Intel beta: `pptbridge-obs-macos-intel.zip`
+   - [Apple Silicon v0.5.8 stable](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-macos-apple-silicon.zip)
+   - [Intel v0.4.4 beta](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip)
 2. Quit OBS if it is open
 3. Open `START-HERE-macOS.txt`
 4. Double-click `1-Install-PPTBridge-SK.command`
@@ -50,7 +62,7 @@ Recommended:
 6. Let the installer copy the plugin and open OBS
 7. If OBS asks about Safe Mode, choose normal launch so third-party plugins load
 
-### Manual Fallback
+### macOS Manual Fallback
 
 Copy `pptbridge-obs.plugin` into:
 

@@ -4,16 +4,28 @@ This is the shortest path from download to a working OBS presentation scene.
 
 ## 1. Download The Right ZIP
 
-| Your Mac | Download |
-| --- | --- |
-| Apple Silicon (M-series) | [`pptbridge-obs-macos-apple-silicon.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest/download/pptbridge-obs-macos-apple-silicon.zip) |
-| Intel Mac | [`pptbridge-obs-macos-intel.zip`](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip) |
+| Platform | Download | Status |
+| --- | --- | --- |
+| Windows 10/11 x64 | [Windows v0.5.9 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.9/pptbridge-obs-windows-x64-v0.5.9.zip) | Stable |
+| Apple Silicon Mac (M-series) | [Apple Silicon v0.5.8 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-macos-apple-silicon.zip) | Stable |
+| Intel Mac | [Intel v0.4.4 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip) | Beta |
 
-To check your Mac type, open `Apple menu > About This Mac`.
+To check your Mac type, open `Apple menu > About This Mac`. Use the
+platform-specific links above because Windows and macOS currently have separate
+stable release tags.
 
 ## 2. Install
 
-1. Unzip the download.
+### Windows
+
+1. Extract the Windows ZIP.
+2. Quit OBS if it is open.
+3. Double-click `INSTALL.cmd` and approve the administrator prompt.
+4. Open OBS Studio 30 or newer.
+
+### macOS
+
+1. Unzip the Mac download.
 2. Open `START-HERE-macOS.txt`.
 3. Quit OBS if it is open.
 4. Double-click `1-Install-PPTBridge-SK.command`.
@@ -37,7 +49,7 @@ Use `PPTBridge SK Slide` for the audience feed. Use `PPTBridge SK Presenter` for
 Open each PPTBridge source's properties and select the same presentation file:
 
 - `.pptx` for PowerPoint decks
-- `.pdf` for PDF decks on macOS
+- `.pdf` for PDF decks on Windows or macOS
 
 For `.pptx` live mode, Microsoft PowerPoint must be installed.
 
@@ -117,7 +129,7 @@ Hotkeys, OSC, and clicker capture follow the current OBS Program scene.
 
 | Problem | First thing to try |
 | --- | --- |
-| PPTBridge sources do not appear | Restart OBS normally, not Safe Mode |
+| PPTBridge sources do not appear | Restart OBS normally, not Safe Mode; on Windows, run `INSTALL.cmd` again with OBS closed |
 | macOS blocks the installer | Right-click the command and choose `Open` |
 | Slides do not load | Check the file path and click `Reload Presentation` |
 | PowerPoint does not start | Confirm Microsoft PowerPoint is installed |

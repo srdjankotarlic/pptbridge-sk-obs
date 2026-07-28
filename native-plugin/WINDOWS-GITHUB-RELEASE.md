@@ -6,8 +6,12 @@ The v0.5.9 Windows release adds native PDF support to the stable live PowerPoint
 
 ## Downloads
 
-- `pptbridge-obs-windows-x64-v0.5.9.zip`
-- `pptbridge-obs-windows-x64-v0.5.9.zip.sha256`
+- **[Download Windows x64 v0.5.9](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.9/pptbridge-obs-windows-x64-v0.5.9.zip)**
+- [Windows SHA-256 checksum](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.9/pptbridge-obs-windows-x64-v0.5.9.zip.sha256)
+- **[Download macOS Apple Silicon v0.5.8](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-macos-apple-silicon.zip)**
+
+Windows and Apple Silicon use separate stable release tags. Intel Mac remains a
+[v0.4.4 beta download](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip).
 
 ## Highlights
 

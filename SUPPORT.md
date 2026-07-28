@@ -15,9 +15,9 @@ Thanks for testing PPTBridge SK. The fastest way to get a useful answer is to in
 
 Please include:
 
-- PPTBridge SK release, for example `v0.4.7`
+- PPTBridge SK release, for example Windows `v0.5.9` or macOS `v0.5.8`
 - macOS or Windows version
-- Mac type, for example Apple Silicon or Intel
+- platform/CPU, for example Windows x64, Apple Silicon, or Intel Mac
 - OBS Studio version
 - PowerPoint version, if using `.pptx`
 - deck type, `.pptx` or `.pdf`

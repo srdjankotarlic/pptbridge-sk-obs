@@ -8,17 +8,15 @@ Created by **Srdjan Kotarlic**
 
 ## Repository Description
 
-`PowerPoint/PDF slide and presenter sources for OBS on macOS. Apple Silicon stable, Intel beta.`
+`Free OBS plugin for live PowerPoint and PDF: clean slides, Presenter notes, clicker/OSC. Windows x64 and Apple Silicon stable.`
 
 ## GitHub "About" Short Text
 
-`PowerPoint/PDF slide and presenter sources for OBS on macOS.`
+`Clean PowerPoint/PDF slides and a separate Presenter view in OBS.`
 
 ## Suggested Homepage Field
 
-Use this after your first release is live:
-
-`https://github.com/<your-username>/pptbridge-sk-obs/releases/latest`
+`https://srdjankotarlic.github.io/pptbridge-sk-obs/`
 
 ## Suggested Topics
 
@@ -27,7 +25,6 @@ Copy these into GitHub topics:
 - `apple-silicon`
 - `companion`
 - `confidence-monitor`
-- `conference`
 - `event-production`
 - `live-production`
 - `livestream`
@@ -44,18 +41,23 @@ Copy these into GitHub topics:
 - `presenter-view`
 - `streamdeck`
 - `webinar`
+- `windows`
 
 ## Suggested Release Tag
 
-`v0.4.7`
+Windows: `v0.5.9`
+
+Apple Silicon: `v0.5.8`
 
 ## Suggested Release Title
 
-`PPTBridge SK for OBS v0.4.7`
+Windows: `PPTBridge SK v0.5.9 - Windows PDF Support`
+
+Apple Silicon: `PPTBridge SK v0.5.8 - Apple Silicon Stable`
 
 ## README Tagline
 
-`Native macOS OBS plugin that adds PowerPoint/PDF slide and presenter source types to OBS.`
+`Free OBS plugin that separates clean PowerPoint/PDF output from a customizable Presenter view.`
 
 ## Author Credit To Keep
 
@@ -74,4 +76,4 @@ Start with:
 
 ## Suggested Pinned Description For Portfolio
 
-`PPTBridge SK for OBS is a native macOS plugin I built for live productions that need a clean PowerPoint/PDF feed in program, a separate presenter view with notes, reliable OBS/Companion slide control, and optional stage clicker capture.`
+`PPTBridge SK is a free Windows and macOS OBS plugin for live productions that need clean PowerPoint/PDF output, a separate Presenter view, and reliable hotkey, clicker, Companion, or OSC control.`
