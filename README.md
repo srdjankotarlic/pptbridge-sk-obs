@@ -4,9 +4,9 @@
 
 Built for and used in real live-event production. PPTBridge SK is an independent third-party plugin and is not affiliated with the OBS Project.
 
-[![Windows v0.5.9 stable](https://img.shields.io/badge/Windows-v0.5.9%20stable-2ea44f)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.9) [![macOS Apple Silicon v0.5.8 stable](https://img.shields.io/badge/macOS%20Apple%20Silicon-v0.5.8%20stable-2ea44f)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8) ![OBS Studio 30+](https://img.shields.io/badge/OBS%20Studio-30%2B-4c4c4c)
+[![Windows v0.5.10 stable](https://img.shields.io/badge/Windows-v0.5.10%20stable-2ea44f)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.10) [![macOS Apple Silicon v0.5.8 stable](https://img.shields.io/badge/macOS%20Apple%20Silicon-v0.5.8%20stable-2ea44f)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8) ![OBS Studio 30+](https://img.shields.io/badge/OBS%20Studio-30%2B-4c4c4c)
 
-**[Download Windows x64 v0.5.9](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.9/pptbridge-obs-windows-x64-v0.5.9.zip)** | **[Download macOS Apple Silicon v0.5.8](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-macos-apple-silicon.zip)** | [5-minute quickstart](QUICKSTART.md) | [Watch the demo](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov)
+**[Download Windows x64 v0.5.10](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip)** | **[Download macOS Apple Silicon v0.5.8](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-macos-apple-silicon.zip)** | [5-minute quickstart](QUICKSTART.md) | [Watch the demo](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov)
 
 [![PPTBridge SK running inside OBS with clean Slide and Presenter sources](native-plugin/media/github/pptbridge-demo-preview.png)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov)
 
@@ -18,7 +18,7 @@ Windows x64 and macOS Apple Silicon are stable release platforms. Intel Mac rema
 | --- | --- | --- |
 | Apple Silicon Mac | **[Download v0.5.8 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-macos-apple-silicon.zip)** | Stable, locally runtime-tested |
 | Intel Mac | [Download v0.4.4 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip) | Beta |
-| Windows 10/11 x64 | **[Download v0.5.9 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.9/pptbridge-obs-windows-x64-v0.5.9.zip)** | Stable, runtime-tested PowerPoint and native PDF workflows |
+| Windows 10/11 x64 | **[Download v0.5.10 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip)** | Stable, runtime-tested PowerPoint and native PDF workflows |
 
 ### Install on macOS
 
@@ -37,7 +37,7 @@ The stable ZIP contains only the plugin, installer, start file, user README, Com
 3. Open OBS Studio 30+. Install desktop Microsoft PowerPoint only if you use PowerPoint files.
 4. Add `PPTBridge SK Slide` from the Sources `+` menu.
 
-Windows supports live PowerPoint, native PDF decks, Presenter, animations, embedded media/audio, multiple decks, Program-scene clicker routing, resize-safe capture, and legacy `.ppt` files. PDFs open directly through the built-in Windows PDF engine, with no PowerPoint or separate PDF application required.
+Windows supports live PowerPoint, native PDF decks, Presenter, animations, embedded media/audio, multiple decks, nested Program-scene clicker routing, resize-safe capture, and legacy `.ppt` files. PDFs open directly through the built-in Windows PDF engine, with no PowerPoint or separate PDF application required.
 
 ## Your First Deck
 
@@ -138,7 +138,7 @@ Live animation and embedded video remain in `PPTBridge SK Slide`; Presenter stay
 
 The Apple Silicon build is runtime-tested on OBS Studio 32.1.1 on an M1 Pro with real PPTX/PDF decks, multi-deck routing, live start/stop/navigation, Presenter layouts, OSC feedback, cue state, cache behavior, embedded media audio, isolated installation, and release-package checks.
 
-The Windows stable build is runtime-tested on Windows 11 x64 with OBS Studio 32.1.2 using native PDF decks plus desktop PowerPoint 2010 for animations, notes, embedded video/audio, Spotlight-style `PageDown`/`PageUp` clicker input, OSC, Program/Preview isolation, multiple simultaneous decks, legacy `.ppt`, real event decks, repeated Start/Stop cycles, and a media-heavy deck. The Windows DLL and installer are not code-signed yet, so Windows may ask for confirmation. Rehearse every event deck on the production PC before show day.
+The Windows stable build is runtime-tested on Windows 11 x64 with OBS Studio 32.1.2 using native PDF decks plus desktop PowerPoint 2010 for animations, notes, embedded video/audio, Spotlight-style `PageDown`/`PageUp` clicker input, OSC, nested Program/Preview isolation, multiple simultaneous and same-named decks, legacy `.ppt`, real event decks, repeated Start/Stop cycles, a media-heavy 8 GB deck, PDF concurrency, cache recovery, and installer rollback. The Windows DLL and installer are not code-signed yet, so Windows may ask for confirmation. Rehearse every event deck on the production PC before show day.
 
 ## Documentation and Help
 
@@ -161,7 +161,7 @@ Use [GitHub Discussions](https://github.com/srdjankotarlic/pptbridge-sk-obs/disc
 
 ## Releases
 
-The current stable releases are **[v0.5.9 for Windows x64](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.9)** and **[v0.5.8 for Apple Silicon](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8)**. Choose the ZIP that matches your operating system.
+The current stable releases are **[v0.5.10 for Windows x64](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.10)** and **[v0.5.8 for Apple Silicon](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8)**. Choose the ZIP that matches your operating system.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history and [all GitHub releases](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases) for older and beta packages.
 

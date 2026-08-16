@@ -6,7 +6,7 @@ This document captures the current engineering status and next practical path fo
 
 ## Honest Status
 
-Windows x64 `v0.5.9` and macOS Apple Silicon `v0.5.8` are stable release platforms. This document keeps the Windows engineering architecture and remaining limits explicit.
+Windows x64 `v0.5.10` and macOS Apple Silicon `v0.5.8` are stable release platforms. This document keeps the Windows engineering architecture and remaining limits explicit.
 
 What is already in the Windows code now:
 
@@ -40,7 +40,7 @@ What is **not** included yet:
 - password-protected PDF support
 - a code-signed Windows installer
 
-The Windows `v0.5.9` release has real OBS runtime coverage for native PDF and PowerPoint workflows, including Presenter, multi-deck routing, clicker/OSC, recovery, live video/audio, legacy `.ppt`, repeated lifecycle stress, and the five-file installer ZIP. It also includes a verified `Program Files` administrator-permission installation path.
+The Windows `v0.5.10` release has real OBS runtime coverage for native PDF and PowerPoint workflows, including Presenter, nested multi-deck routing, same-name file isolation, clicker/OSC, white-frame recovery, live video/audio, legacy `.ppt`, repeated lifecycle/resource stress, bounded cache behavior, concurrent PDF rendering, and the rollback-safe five-file installer ZIP. It also includes a verified `Program Files` administrator-permission installation path.
 
 ## What Was Reused
 

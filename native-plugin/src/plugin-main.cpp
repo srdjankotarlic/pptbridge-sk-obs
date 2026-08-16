@@ -139,6 +139,7 @@ bool is_pptbridge_source(obs_source_t *source)
 struct SceneCollector {
   std::vector<std::string> paths;
   std::unordered_set<std::string> seen;
+  std::unordered_set<obs_source_t *> visited_containers;
 };
 
 bool collect_pptbridge_from_item(obs_scene_t *, obs_sceneitem_t *item, void *user_data)
@@ -154,18 +155,21 @@ bool collect_pptbridge_from_item(obs_scene_t *, obs_sceneitem_t *item, void *use
     return true;
   }
 
+  auto *collector = static_cast<SceneCollector *>(user_data);
+  obs_scene_t *nested_scene = nullptr;
   if (obs_source_is_group(source)) {
-    obs_scene_t *group = obs_group_from_source(source);
-    if (group) {
-      obs_scene_enum_items(group, collect_pptbridge_from_item, user_data);
-    }
+    nested_scene = obs_group_from_source(source);
+  } else {
+    nested_scene = obs_scene_from_source(source);
+  }
+  if (nested_scene && collector->visited_containers.insert(source).second) {
+    obs_scene_enum_items(nested_scene, collect_pptbridge_from_item, user_data);
   }
 
   if (!is_pptbridge_source(source)) {
     return true;
   }
 
-  auto *collector = static_cast<SceneCollector *>(user_data);
   obs_data_t *settings = obs_source_get_settings(source);
   const char *path = settings ? obs_data_get_string(settings, "pptx_path") : nullptr;
   std::string path_str = path ? path : "";
@@ -194,6 +198,7 @@ std::vector<std::shared_ptr<pptbridge::PresentationDocument>> resolve_target_doc
     }
     SceneCollector collector;
     if (scene) {
+      collector.visited_containers.insert(program_source);
       obs_scene_enum_items(scene, collect_pptbridge_from_item, &collector);
     }
     obs_source_release(program_source);

@@ -117,6 +117,8 @@ Use at least these decks:
 - switch OBS Program to Scene A and press next; only Deck A should move
 - switch OBS Program to Scene B and press next; only Deck B should move
 - repeat with local OSC `/pptbridge/next`
+- repeat with the Program deck nested inside another OBS scene
+- load two different files with the same filename in different folders and verify each source keeps its exact deck and live window
 
 ### Spotlight/Clicker Capture
 
@@ -149,6 +151,27 @@ Use at least these decks:
 - verify media-heavy slides can use the fallback click-to-play behavior
 - verify the slide stays on the current page when media is armed before advancing
 
+### Recovery, Cache, And Stress
+
+- interrupt or unhook live Window Capture and verify the last good slide stays on air until a non-blank live frame returns
+- repeat Start/Stop at least ten times and verify OBS remains responsive
+- repeat the core runtime suite three times and verify memory, handles, and threads reach a stable plateau after test sources are removed
+- test a media-heavy deck and verify skipped static media does not create an unbounded cache copy
+- load a cached deck after removing its source and verify the cached result is never mistaken for a different same-name deck
+- verify stale cache cleanup never follows a directory junction outside the PPTBridge cache and never removes a cache held by another process
+- render PDFs concurrently from separate processes and verify no renderer crash, partial generation, or corrupt PNG is produced
+
+### Installer And Fresh ZIP
+
+- verify the public ZIP contains exactly `INSTALL.cmd`, `README.txt`, the DLL, and the two locale files
+- install from a fresh extraction into an empty portable OBS path containing spaces and non-ASCII characters
+- reinstall over an older plugin and verify stale locale files are removed
+- lock the old DLL to force activation failure and verify the previous DLL/data remain byte-identical with no staging leftovers
+- pass an invalid explicit OBS path and verify no other OBS installation changes
+- remove a package payload file and verify installation fails before the target OBS changes
+- install through administrator permission into standard OBS under `Program Files`
+- launch only the packaged plugin in real OBS and rerun the complete runtime matrix
+
 ## Known Current Limits
 
 - Password-protected PDFs are not supported.
@@ -156,7 +179,7 @@ Use at least these decks:
 - PowerPoint process audio is owned by the current Program scene; when several PPTBridge Slide sources are visible in one Program scene, enable app audio on only one source.
 - The DLL and installer are not code-signed yet.
 
-The Windows `v0.5.9` build is runtime-tested on Windows 11 x64 with OBS Studio 32.1.2 and PowerPoint 2010. PDF tests additionally use real multi-page documents and the built-in Windows PDF renderer. A public asset requires complete passing runtime runs from the build output and from a freshly extracted release ZIP. The final installer must also pass a real administrator-permission install into the standard OBS `Program Files` directory.
+The Windows `v0.5.10` build is runtime-tested on Windows 11 x64 with OBS Studio 32.1.2 and PowerPoint 2010. PDF tests additionally use real multi-page documents and the built-in Windows PDF renderer. A public asset requires complete passing runtime runs from the build output and from a freshly extracted release ZIP. The final installer must also pass a real administrator-permission install into the standard OBS `Program Files` directory.
 
 ## What Feedback To Send Back
 

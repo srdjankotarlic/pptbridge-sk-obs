@@ -20,11 +20,14 @@
 #include <cmath>
 #include <fstream>
 #include <functional>
+#include <iomanip>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <obs-frontend-api.h>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <util/platform.h>
 #include <vector>
@@ -324,13 +327,19 @@ std::wstring Utf8ToWide(const std::string &value)
     return {};
   }
 
-  const int size = MultiByteToWideChar(CP_UTF8, 0, value.c_str(), -1, nullptr, 0);
-  if (size <= 1) {
+  if (value.size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
     return {};
   }
 
-  std::wstring wide(static_cast<size_t>(size - 1), L'\0');
-  MultiByteToWideChar(CP_UTF8, 0, value.c_str(), -1, wide.data(), size);
+  const int input_size = static_cast<int>(value.size());
+  const int size = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, value.data(), input_size, nullptr, 0);
+  if (size <= 0) {
+    return {};
+  }
+  std::wstring wide(static_cast<size_t>(size), L'\0');
+  if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, value.data(), input_size, wide.data(), size) != size) {
+    return {};
+  }
   return wide;
 }
 
@@ -340,13 +349,35 @@ std::string WideToUtf8(const std::wstring &value)
     return {};
   }
 
-  const int size = WideCharToMultiByte(CP_UTF8, 0, value.c_str(), -1, nullptr, 0, nullptr, nullptr);
-  if (size <= 1) {
+  if (value.size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
     return {};
   }
 
-  std::string utf8(static_cast<size_t>(size - 1), '\0');
-  WideCharToMultiByte(CP_UTF8, 0, value.c_str(), -1, utf8.data(), size, nullptr, nullptr);
+  const int input_size = static_cast<int>(value.size());
+  const int size = WideCharToMultiByte(
+    CP_UTF8,
+    WC_ERR_INVALID_CHARS,
+    value.data(),
+    input_size,
+    nullptr,
+    0,
+    nullptr,
+    nullptr);
+  if (size <= 0) {
+    return {};
+  }
+  std::string utf8(static_cast<size_t>(size), '\0');
+  if (WideCharToMultiByte(
+        CP_UTF8,
+        WC_ERR_INVALID_CHARS,
+        value.data(),
+        input_size,
+        utf8.data(),
+        size,
+        nullptr,
+        nullptr) != size) {
+    return {};
+  }
   return utf8;
 }
 
@@ -448,7 +479,8 @@ LiveChildStatus snapshot_live_child_status(const SourceContext *context)
   if (capture) {
     status.capture_width = obs_source_get_width(capture);
     status.capture_height = obs_source_get_height(capture);
-    status.capture_renderable = status.capture_width > 0 && status.capture_height > 0;
+    status.capture_renderable = status.capture_hooked &&
+      status.capture_width > 0 && status.capture_height > 0;
     obs_source_release(capture);
   }
   return status;
@@ -520,10 +552,57 @@ struct WindowSearchContext {
   std::string preferred_title;
   std::string deck_name;
   std::string deck_stem;
+  std::string expected_title_marker;
   LiveWindowTarget result;
   int best_score = 0;
   double slide_aspect_ratio = 16.0 / 9.0;
+  double window_left = 0.0;
+  double window_top = 0.0;
+  double window_width = 0.0;
+  double window_height = 0.0;
 };
+
+std::string powerpoint_window_title_marker(std::string deck_path)
+{
+  std::replace(deck_path.begin(), deck_path.end(), '/', '\\');
+  deck_path = ToLowerCopy(std::move(deck_path));
+
+  uint64_t hash = 1469598103934665603ull;
+  for (const unsigned char ch : deck_path) {
+    hash ^= static_cast<uint64_t>(ch);
+    hash *= 1099511628211ull;
+  }
+
+  std::ostringstream marker;
+  marker << " - PPTBridge ["
+         << std::hex << std::setw(16) << std::setfill('0') << hash
+         << "]";
+  return marker.str();
+}
+
+bool apply_unique_powerpoint_window_title(LiveWindowTarget &target, const std::string &marker)
+{
+  if (!target.hwnd || target.title.empty() || marker.empty()) {
+    return false;
+  }
+
+  const auto title_lower = ToLowerCopy(target.title);
+  const auto tag_offset = title_lower.find(" - pptbridge [");
+  const std::string base_title = tag_offset == std::string::npos
+    ? target.title
+    : target.title.substr(0, tag_offset);
+  const std::string unique_title = base_title + marker;
+  const auto wide_title = Utf8ToWide(unique_title);
+  if (wide_title.empty() || !SetWindowTextW(target.hwnd, wide_title.c_str())) {
+    return false;
+  }
+
+  target.title = unique_title;
+  target.descriptor = sanitize_descriptor_value(target.title) + ":" +
+    sanitize_descriptor_value(target.class_name) + ":" +
+    sanitize_descriptor_value(target.executable_name);
+  return true;
+}
 
 std::string filename_stem_for_match(std::string value)
 {
@@ -566,6 +645,39 @@ bool contains_filename_stem(const std::string &title_lower, const std::string &s
     offset += 1;
   }
   return false;
+}
+
+int powerpoint_window_geometry_score(HWND hwnd, const WindowSearchContext &context)
+{
+  if (context.window_width <= 0.0 || context.window_height <= 0.0 ||
+      !std::isfinite(context.window_left) || !std::isfinite(context.window_top) ||
+      !std::isfinite(context.window_width) || !std::isfinite(context.window_height)) {
+    return 0;
+  }
+
+  RECT rect = {};
+  if (!GetWindowRect(hwnd, &rect)) {
+    return 0;
+  }
+  const double width = static_cast<double>(rect.right - rect.left);
+  const double height = static_cast<double>(rect.bottom - rect.top);
+  if (width <= 0.0 || height <= 0.0) {
+    return 0;
+  }
+
+  // PowerPoint exposes slideshow geometry in points while Win32 uses pixels.
+  // Deriving the scale from this candidate also works across mixed-DPI screens.
+  const double scale_x = width / context.window_width;
+  const double scale_y = height / context.window_height;
+  if (scale_x < 0.2 || scale_x > 8.0 || scale_y < 0.2 || scale_y > 8.0) {
+    return 0;
+  }
+  const double position_error =
+    std::abs(static_cast<double>(rect.left) - (context.window_left * scale_x)) +
+    std::abs(static_cast<double>(rect.top) - (context.window_top * scale_y));
+  const double scale_error = std::abs(scale_x - scale_y) * 100.0;
+  const double total_error = position_error + scale_error;
+  return std::max(0, 800 - static_cast<int>(std::lround(total_error * 12.0)));
 }
 
 struct SlidePaneSearchContext {
@@ -729,8 +841,15 @@ BOOL CALLBACK enum_powerpoint_windows(HWND hwnd, LPARAM param)
   const auto preferred_lower = ToLowerCopy(context->preferred_title);
   const auto deck_lower = ToLowerCopy(context->deck_name);
   const auto deck_stem_lower = ToLowerCopy(context->deck_stem);
+  const auto expected_marker_lower = ToLowerCopy(context->expected_title_marker);
   const bool is_screen_class = class_lower == "screenclass";
   const bool looks_like_slideshow = looks_like_powerpoint_slideshow_title(title_lower);
+
+  const auto marker_offset = title_lower.find(" - pptbridge [");
+  if (marker_offset != std::string::npos &&
+      (expected_marker_lower.empty() || title_lower.find(expected_marker_lower) == std::string::npos)) {
+    return TRUE;
+  }
 
   if (!is_screen_class && !looks_like_slideshow) {
     return TRUE;
@@ -771,6 +890,7 @@ BOOL CALLBACK enum_powerpoint_windows(HWND hwnd, LPARAM param)
   if (looks_like_slideshow) {
     score += 65;
   }
+  score += powerpoint_window_geometry_score(hwnd, *context);
 
   if (score <= context->best_score) {
     return TRUE;
@@ -784,14 +904,32 @@ BOOL CALLBACK enum_powerpoint_windows(HWND hwnd, LPARAM param)
 LiveWindowTarget find_powerpoint_window(
   const std::string &window_title,
   const std::string &deck_name,
-  double slide_aspect_ratio)
+  const std::string &deck_path,
+  double slide_aspect_ratio,
+  double window_left,
+  double window_top,
+  double window_width,
+  double window_height)
 {
   WindowSearchContext search = {};
   search.preferred_title = window_title;
   search.deck_name = deck_name;
   search.deck_stem = filename_stem_for_match(deck_name);
+  search.expected_title_marker = powerpoint_window_title_marker(deck_path);
   search.slide_aspect_ratio = slide_aspect_ratio;
+  search.window_left = window_left;
+  search.window_top = window_top;
+  search.window_width = window_width;
+  search.window_height = window_height;
   EnumWindows(enum_powerpoint_windows, reinterpret_cast<LPARAM>(&search));
+  if (search.result.hwnd && !apply_unique_powerpoint_window_title(
+        search.result,
+        search.expected_title_marker)) {
+    blog(
+      LOG_WARNING,
+      "[PPTBridge SK] Could not assign a unique title to the PowerPoint slideshow window for '%s'",
+      deck_path.c_str());
+  }
   return search.result;
 }
 
@@ -1353,6 +1491,7 @@ void sync_live_capture_activity(SourceContext *context)
 struct ProgramSceneSourceSearch {
   obs_source_t *target = nullptr;
   bool found = false;
+  std::unordered_set<obs_source_t *> visited_containers;
 };
 
 bool find_source_in_program_scene(obs_scene_t *, obs_sceneitem_t *item, void *param)
@@ -1371,10 +1510,14 @@ bool find_source_in_program_scene(obs_scene_t *, obs_sceneitem_t *item, void *pa
     return false;
   }
 
+  obs_scene_t *nested_scene = nullptr;
   if (obs_source_is_group(item_source)) {
-    if (obs_scene_t *group = obs_group_from_source(item_source)) {
-      obs_scene_enum_items(group, find_source_in_program_scene, search);
-    }
+    nested_scene = obs_group_from_source(item_source);
+  } else {
+    nested_scene = obs_scene_from_source(item_source);
+  }
+  if (nested_scene && search->visited_containers.insert(item_source).second) {
+    obs_scene_enum_items(nested_scene, find_source_in_program_scene, search);
   }
   return !search->found;
 }
@@ -1395,7 +1538,9 @@ bool source_is_in_current_program_scene(obs_source_t *source)
     scene = obs_group_from_source(program_source);
   }
 
-  ProgramSceneSourceSearch search{ source, false };
+  ProgramSceneSourceSearch search;
+  search.target = source;
+  search.visited_containers.insert(program_source);
   if (scene) {
     obs_scene_enum_items(scene, find_source_in_program_scene, &search);
   }
@@ -1437,10 +1582,16 @@ void sync_live_capture_source(SourceContext *context)
     return;
   }
 
+  const auto document_status = context->document->SnapshotStatus();
   const auto target = find_powerpoint_window(
     context->document->LiveWindowTitle(),
     context->document->Name(),
-    context->document->SnapshotStatus().slide_aspect_ratio);
+    context->document->Path(),
+    document_status.slide_aspect_ratio,
+    document_status.live_window_left,
+    document_status.live_window_top,
+    document_status.live_window_width,
+    document_status.live_window_height);
   auto current_capture = snapshot_live_capture(context);
   if (!target.hwnd) {
     const bool keep_current = current_capture.source && !current_capture.window_title.empty();
@@ -1550,10 +1701,16 @@ void sync_live_audio_source(SourceContext *context)
     return;
   }
 
+  const auto document_status = context->document->SnapshotStatus();
   const auto target = find_powerpoint_window(
     context->document->LiveWindowTitle(),
     context->document->Name(),
-    context->document->SnapshotStatus().slide_aspect_ratio);
+    context->document->Path(),
+    document_status.slide_aspect_ratio,
+    document_status.live_window_left,
+    document_status.live_window_top,
+    document_status.live_window_width,
+    document_status.live_window_height);
   if (!target.hwnd) {
     clear_live_audio_source(context);
     return;
@@ -1617,7 +1774,7 @@ bool render_live_capture(SourceContext *context)
   }
 
   auto capture = snapshot_live_capture(context);
-  if (!capture.source || capture.window_id == 0) {
+  if (!capture.source || capture.window_id == 0 || !capture.hooked) {
     release_live_capture_snapshot(capture);
     return false;
   }
