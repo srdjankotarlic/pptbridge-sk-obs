@@ -5,16 +5,16 @@ contact_links:
     about: Install PPTBridge SK and add your first OBS presentation source.
   - name: FAQ
     url: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/FAQ.md
-    about: Read common setup, PowerPoint, clicker, Companion, OSC, and Windows beta answers.
+    about: Read common setup, PowerPoint, PDF, clicker, Companion, OSC, and Windows answers.
   - name: Support checklist
     url: https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/SUPPORT.md
     about: Check what information to include before opening an issue.
   - name: Latest release
     url: https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest
-    about: Download the current public macOS build.
-  - name: Windows beta
-    url: https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.0-beta.1
-    about: Download the Windows source validation pack.
+    about: Download the current public builds.
+  - name: Windows stable
+    url: https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.10
+    about: Download the stable Windows x64 plugin.
   - name: v1.0 release checklist
     url: https://github.com/srdjankotarlic/pptbridge-sk-obs/issues/1
     about: Track signing, notarization, and launch readiness.

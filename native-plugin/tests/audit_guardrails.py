@@ -524,6 +524,80 @@ def main() -> int:
     win_start_live = extract_function(win_source, "void PresentationDocument::StartLivePowerPointAsync(")
     if "impl_->live_ready = false" not in win_start_live:
         raise AssertionError("Windows START/RESTART must clear stale live-ready state before relaunching PowerPoint")
+    win_slide_source = (ROOT / "src" / "source_slide_win.cpp").read_text(encoding="utf-8")
+    if "status.capture_renderable = status.capture_hooked &&" not in win_slide_source:
+        raise AssertionError("An unhooked Windows capture must never replace the last good fallback slide")
+    win_render_live = extract_function(win_slide_source, "bool render_live_capture(")
+    if "!capture.hooked" not in win_render_live:
+        raise AssertionError("Windows live rendering must reject white/uninitialized unhooked capture frames")
+
+    for symbol in (
+        "WindowsPowerShellPath()",
+        "Get-PPTBridgeComparablePath",
+        "$presentationPath -ieq $normalizedPath",
+        "$windowPath -ieq $presentationPath",
+        "WINDOW_LEFT|",
+        "WINDOW_TOP|",
+        "WINDOW_WIDTH|",
+        "WINDOW_HEIGHT|",
+        'Remove-PPTBridgeStaleGenerationDirs $CacheDir "ppt-generation-"',
+        '"ppt-generation-" + [Guid]::NewGuid().ToString("N")',
+        "The last successfully rendered slide remains on air.",
+        "MoveFileExW(",
+        "MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH",
+        "PowerPointAutomationMutex()",
+        "std::lock_guard<std::mutex> automation_lock(PowerPointAutomationMutex())",
+        "$stopDeadline = [DateTime]::UtcNow.AddSeconds(5)",
+        "kDeckCacheRetention",
+        "IsSafeDeckCacheRoot",
+        "DeckCacheLease",
+        "LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY",
+        "MaintainDeckCachesOnce(impl_->cache_root)",
+        "DeckDataUsesLegacyCacheLayout",
+        "RemoveLegacyCacheLayout(impl_->cache_root)",
+        "CachedMediaFilesExist",
+        "MaxEntryBytes = [int64](2GB)",
+        "MaxTotalBytes = [int64](2GB)",
+        "MinimumFreeBytes = [int64](512MB)",
+        "MEDIA_SKIPPED|",
+        "destinationPath.StartsWith($destinationPrefix, [StringComparison]::OrdinalIgnoreCase)",
+    ):
+        if symbol not in win_source:
+            raise AssertionError(f"Windows PowerPoint hardening must preserve {symbol}")
+    if "$presentation.Name -ieq $targetName" in win_source:
+        raise AssertionError("Windows live PowerPoint routing must never fall back to a same-name presentation")
+    if "Remove-Item -LiteralPath $slidesDir -Recurse -Force" in win_source:
+        raise AssertionError("Windows export must not delete the current slide cache before a replacement succeeds")
+    if "$generation.LastWriteTimeUtc -lt $cutoff" not in win_source:
+        raise AssertionError("PowerPoint generation cleanup needs a cross-process grace period")
+    if "$exportSucceeded = $true\n      Remove-PPTBridgeStaleGenerationDirs" not in win_source:
+        raise AssertionError("PowerPoint generations must be pruned only after a replacement export succeeds")
+    for helper_source in (win_source, (ROOT / "src" / "source_slide_win.cpp").read_text(encoding="utf-8")):
+        if "size - 1" in helper_source and (
+            "MultiByteToWideChar" in helper_source or "WideCharToMultiByte" in helper_source
+        ):
+            raise AssertionError("Windows UTF conversion buffers must not reserve one byte less than the API writes")
+        for symbol in ("MB_ERR_INVALID_CHARS", "WC_ERR_INVALID_CHARS"):
+            if symbol not in helper_source:
+                raise AssertionError(f"Windows UTF conversion must validate malformed input via {symbol}")
+
+    for symbol in (
+        "PdfRenderMutex()",
+        "std::lock_guard<std::mutex> render_lock(PdfRenderMutex())",
+        "GlobalPdfRenderLock",
+        'L"Local\\\\PPTBridgeSK-WindowsPdfRender-v1"',
+        "WAIT_ABANDONED",
+        "Timed out waiting for another Windows PDF render to finish.",
+        'L"pdf-generation-"',
+        "ScopedDirectoryCleanup",
+        "CleanupStalePdfGenerations(output_root)",
+        "MoveFileExW(",
+        "MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH",
+    ):
+        if symbol not in win_pdf_renderer:
+            raise AssertionError(f"Windows PDF cache hardening must preserve {symbol}")
+    if "generations[index].modified < cutoff" not in win_pdf_renderer:
+        raise AssertionError("PDF generation cleanup needs a cross-process grace period")
 
     if "void PresentationDocument::StopLivePowerPointAsync(" not in win_source:
         raise AssertionError("Windows UI controls need async PowerPoint live stop support")
@@ -593,6 +667,18 @@ def main() -> int:
             raise AssertionError(f"Windows presenter customization properties must expose {key}")
     if "control_export_cue_list" not in win_source_slide:
         raise AssertionError("Windows presenter source should expose a cue-list export button")
+    for symbol in (
+        "obs_scene_from_source(item_source)",
+        "visited_containers.insert(item_source).second",
+        "obs_scene_enum_items(nested_scene, find_source_in_program_scene, search)",
+        "powerpoint_window_title_marker(",
+        "apply_unique_powerpoint_window_title(",
+        "SetWindowTextW(",
+        "context->document->Path()",
+        'title_lower.find(" - pptbridge [")',
+    ):
+        if symbol not in win_source_slide:
+            raise AssertionError(f"Windows Program audio routing must traverse nested OBS scenes via {symbol}")
 
     win_slide_render = extract_function(win_source, "bool PresentationDocument::RenderSlideBGRA(")
     if "options.background_color" in win_slide_render:
@@ -610,6 +696,13 @@ def main() -> int:
         raise AssertionError("Windows default Next Slide hotkey should be 2 only")
     if 'apply_default_bindings_if_empty(\n    g_previous_hotkey,\n    { OBS_KEY_1 }' not in win_defaults:
         raise AssertionError("Windows default Previous Slide hotkey should be 1 only")
+    for symbol in (
+        "obs_scene_from_source(source)",
+        "visited_containers.insert(source).second",
+        "obs_scene_enum_items(nested_scene, collect_pptbridge_from_item, user_data)",
+    ):
+        if symbol not in plugin_main_win:
+            raise AssertionError(f"Windows clicker/OSC routing must traverse nested OBS scenes via {symbol}")
 
     windows_installer = (ROOT / "windows-package" / "INSTALL.cmd").read_text(encoding="utf-8")
     if 'Start-Process -FilePath "cmd.exe"' in windows_installer:
@@ -618,6 +711,8 @@ def main() -> int:
         "$startInfo = [Diagnostics.ProcessStartInfo]::new()",
         "$startInfo.FileName = $env:ComSpec",
         '$startInfo.Arguments = \'/d /s /c ""\'',
+        '$noPauseArgument = if ($env:PPTBRIDGE_INSTALLER_NO_PAUSE -eq "1")',
+        'if /I "%~2"=="--no-pause" set "PPTBRIDGE_INSTALLER_NO_PAUSE=1"',
         '$startInfo.Verb = "runas"',
         "$startInfo.UseShellExecute = $true",
         "$adminProcess.WaitForExit()",
@@ -627,6 +722,27 @@ def main() -> int:
             raise AssertionError(f"Windows installer elevation must include {symbol}")
     if windows_installer.count('if not "%PPTBRIDGE_INSTALLER_NO_PAUSE%"=="1" pause') != 2:
         raise AssertionError("Windows installer automation must skip both success and failure pauses")
+    for symbol in (
+        "No other OBS installation was changed.",
+        'Write-Host ("ERROR: " + $_.Exception.Message) -ForegroundColor Red',
+        "function Get-Sha256Hash",
+        "$sourceHash = Get-Sha256Hash $sourceDll",
+        "$targetHash = Get-Sha256Hash $targetDll",
+        'if ($sourceHash -ne $targetHash)',
+    ):
+        if symbol not in windows_installer:
+            raise AssertionError(f"Windows installer verification must preserve {symbol}")
+    for symbol in (
+        "$stagedDll = Join-Path $targetPluginDir",
+        "$backupDll = Join-Path $targetPluginDir",
+        "$oldDllMoved = $false",
+        "$newDataPlaced = $false",
+        "Stage and verify every new file before changing the working OBS plugin.",
+        "Installation failed safely; the previous plugin was restored.",
+        "Backups are removed only after the new DLL and both locale files pass verification.",
+    ):
+        if symbol not in windows_installer:
+            raise AssertionError(f"Windows installer must keep transactional upgrade protection via {symbol}")
 
     return 0
 

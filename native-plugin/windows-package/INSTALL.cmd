@@ -3,6 +3,7 @@ setlocal
 cd /d "%~dp0"
 set "PPTBRIDGE_INSTALLER=%~f0"
 set "PPTBRIDGE_OBS_ROOT_ARG=%~1"
+if /I "%~2"=="--no-pause" set "PPTBRIDGE_INSTALLER_NO_PAUSE=1"
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -Command "$self=$env:PPTBRIDGE_INSTALLER; $raw=[IO.File]::ReadAllText($self); $marker='### POWERSHELL_INSTALLER ###'; $idx=$raw.LastIndexOf($marker); if($idx -lt 0){throw 'Installer payload missing.'}; $payload=$raw.Substring($idx + $marker.Length); $tmp=Join-Path $env:TEMP ('pptbridge-install-' + [guid]::NewGuid().ToString('N') + '.ps1'); [IO.File]::WriteAllText($tmp,$payload,[Text.Encoding]::UTF8); & powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File $tmp; $code=$LASTEXITCODE; Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue; exit $code"
 set "exitCode=%ERRORLEVEL%"
@@ -19,10 +20,33 @@ exit /b %exitCode%
 ### POWERSHELL_INSTALLER ###
 $ErrorActionPreference = "Stop"
 
+trap {
+  Write-Host ""
+  Write-Host ("ERROR: " + $_.Exception.Message) -ForegroundColor Red
+  exit 1
+}
+
 function Write-Step {
   param([string]$Message)
   Write-Host ""
   Write-Host "== $Message =="
+}
+
+function Get-Sha256Hash {
+  param([string]$Path)
+
+  $stream = [IO.File]::Open(
+    $Path,
+    [IO.FileMode]::Open,
+    [IO.FileAccess]::Read,
+    [IO.FileShare]::Read)
+  $sha256 = [Security.Cryptography.SHA256]::Create()
+  try {
+    return ([BitConverter]::ToString($sha256.ComputeHash($stream))).Replace("-", "")
+  } finally {
+    $sha256.Dispose()
+    $stream.Dispose()
+  }
 }
 
 function Test-IsAdministrator {
@@ -37,8 +61,15 @@ function Test-RequiresAdministrator {
   $programFiles = [Environment]::GetFolderPath("ProgramFiles")
   $programFilesX86 = [Environment]::GetFolderPath("ProgramFilesX86")
   $fullPath = [IO.Path]::GetFullPath($Path)
-  return ($programFiles -and $fullPath.StartsWith($programFiles, [StringComparison]::OrdinalIgnoreCase)) -or
-    ($programFilesX86 -and $fullPath.StartsWith($programFilesX86, [StringComparison]::OrdinalIgnoreCase))
+  foreach ($root in @($programFiles, $programFilesX86)) {
+    if ([string]::IsNullOrWhiteSpace($root)) { continue }
+    $rootPath = [IO.Path]::GetFullPath($root).TrimEnd('\')
+    if ($fullPath.Equals($rootPath, [StringComparison]::OrdinalIgnoreCase) -or
+        $fullPath.StartsWith($rootPath + '\', [StringComparison]::OrdinalIgnoreCase)) {
+      return $true
+    }
+  }
+  return $false
 }
 
 function Test-ObsRoot {
@@ -74,8 +105,11 @@ function Get-RegistryObsRoots {
 
 function Find-ObsRoot {
   $argRoot = $env:PPTBRIDGE_OBS_ROOT_ARG
-  if (Test-ObsRoot $argRoot) {
-    return [IO.Path]::GetFullPath($argRoot)
+  if (-not [string]::IsNullOrWhiteSpace($argRoot)) {
+    if (Test-ObsRoot $argRoot) {
+      return [IO.Path]::GetFullPath($argRoot)
+    }
+    throw "The selected OBS folder is not valid: $argRoot. It must contain bin\64bit\obs64.exe. No other OBS installation was changed."
   }
 
   $candidates = [System.Collections.Generic.List[string]]::new()
@@ -193,7 +227,8 @@ if ((Test-RequiresAdministrator $obsRoot) -and -not (Test-IsAdministrator)) {
   Write-Host "Administrator permission is needed to install into this OBS folder."
   $startInfo = [Diagnostics.ProcessStartInfo]::new()
   $startInfo.FileName = $env:ComSpec
-  $startInfo.Arguments = '/d /s /c ""' + $env:PPTBRIDGE_INSTALLER + '" "' + $obsRoot + '""'
+  $noPauseArgument = if ($env:PPTBRIDGE_INSTALLER_NO_PAUSE -eq "1") { " --no-pause" } else { "" }
+  $startInfo.Arguments = '/d /s /c ""' + $env:PPTBRIDGE_INSTALLER + '" "' + $obsRoot + '"' + $noPauseArgument + '"'
   $startInfo.Verb = "runas"
   $startInfo.UseShellExecute = $true
   try {
@@ -218,29 +253,113 @@ Write-Step "Installing plugin"
 $targetPluginDir = Join-Path $obsRoot "obs-plugins\64bit"
 $targetDataDir = Join-Path $obsRoot "data\obs-plugins\pptbridge-obs"
 $targetDll = Join-Path $targetPluginDir "pptbridge-obs.dll"
+$targetDataParent = Split-Path -Parent $targetDataDir
+$installId = [guid]::NewGuid().ToString("N")
+$stagedDll = Join-Path $targetPluginDir ("pptbridge-obs.dll.install-" + $installId)
+$stagedDataDir = Join-Path $targetDataParent ("pptbridge-obs.install-" + $installId)
+$backupDll = Join-Path $targetPluginDir ("pptbridge-obs.dll.backup-" + $installId)
+$backupDataDir = Join-Path $targetDataParent ("pptbridge-obs.backup-" + $installId)
 
 New-Item -ItemType Directory -Force -Path $targetPluginDir | Out-Null
-New-Item -ItemType Directory -Force -Path (Split-Path -Parent $targetDataDir) | Out-Null
+New-Item -ItemType Directory -Force -Path $targetDataParent | Out-Null
 
-Copy-Item -LiteralPath $sourceDll -Destination $targetDll -Force
-if (Test-Path -LiteralPath $targetDataDir) {
-  Remove-Item -LiteralPath $targetDataDir -Recurse -Force
-}
-Copy-Item -LiteralPath $sourceData -Destination (Split-Path -Parent $targetDataDir) -Recurse -Force
+$oldDllMoved = $false
+$oldDataMoved = $false
+$newDllPlaced = $false
+$newDataPlaced = $false
+$sourceHash = Get-Sha256Hash $sourceDll
 
 try {
-  Unblock-File -LiteralPath $targetDll -ErrorAction SilentlyContinue
-  Get-ChildItem -LiteralPath $targetDataDir -Recurse -File -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
+  # Stage and verify every new file before changing the working OBS plugin.
+  Copy-Item -LiteralPath $sourceDll -Destination $stagedDll -Force
+  New-Item -ItemType Directory -Path $stagedDataDir | Out-Null
+  Get-ChildItem -LiteralPath $sourceData | Copy-Item -Destination $stagedDataDir -Recurse -Force
+
+  $stagedLocale = Join-Path $stagedDataDir "locale\en-US.ini"
+  $stagedLocaleGb = Join-Path $stagedDataDir "locale\en-GB.ini"
+  if (-not (Test-Path -LiteralPath $stagedLocale) -or
+      -not (Test-Path -LiteralPath $stagedLocaleGb)) {
+    throw "Install verification failed: the required OBS locale files are missing from the download."
+  }
+  $stagedHash = Get-Sha256Hash $stagedDll
+  if ($sourceHash -ne $stagedHash) {
+    throw "Install verification failed while preparing the plugin DLL."
+  }
+
+  try {
+    Unblock-File -LiteralPath $stagedDll -ErrorAction SilentlyContinue
+    Get-ChildItem -LiteralPath $stagedDataDir -Recurse -File -ErrorAction SilentlyContinue |
+      Unblock-File -ErrorAction SilentlyContinue
+  } catch {
+  }
+
+  if (Test-Path -LiteralPath $targetDll) {
+    Move-Item -LiteralPath $targetDll -Destination $backupDll
+    $oldDllMoved = $true
+  }
+  if (Test-Path -LiteralPath $targetDataDir) {
+    Move-Item -LiteralPath $targetDataDir -Destination $backupDataDir
+    $oldDataMoved = $true
+  }
+
+  Move-Item -LiteralPath $stagedDll -Destination $targetDll
+  $newDllPlaced = $true
+  Move-Item -LiteralPath $stagedDataDir -Destination $targetDataDir
+  $newDataPlaced = $true
+
+  $locale = Join-Path $targetDataDir "locale\en-US.ini"
+  $localeGb = Join-Path $targetDataDir "locale\en-GB.ini"
+  if (-not (Test-Path -LiteralPath $targetDll) -or
+      -not (Test-Path -LiteralPath $locale) -or
+      -not (Test-Path -LiteralPath $localeGb)) {
+    throw "Install verification failed after activating the new plugin files."
+  }
+  $targetHash = Get-Sha256Hash $targetDll
+  if ($sourceHash -ne $targetHash) {
+    throw "Install verification failed: the installed plugin does not match the downloaded plugin file."
+  }
 } catch {
+  $installFailure = $_.Exception.Message
+  $rollbackErrors = [System.Collections.Generic.List[string]]::new()
+
+  foreach ($entry in @(
+      @{ Placed = $newDataPlaced; Path = $targetDataDir; Recursive = $true },
+      @{ Placed = $newDllPlaced; Path = $targetDll; Recursive = $false }
+    )) {
+    if ($entry.Placed -and (Test-Path -LiteralPath $entry.Path)) {
+      try {
+        Remove-Item -LiteralPath $entry.Path -Force -Recurse:$entry.Recursive
+      } catch {
+        $rollbackErrors.Add($_.Exception.Message) | Out-Null
+      }
+    }
+  }
+
+  foreach ($entry in @(
+      @{ Moved = $oldDllMoved; Backup = $backupDll; Target = $targetDll },
+      @{ Moved = $oldDataMoved; Backup = $backupDataDir; Target = $targetDataDir }
+    )) {
+    if ($entry.Moved -and (Test-Path -LiteralPath $entry.Backup)) {
+      try {
+        Move-Item -LiteralPath $entry.Backup -Destination $entry.Target
+      } catch {
+        $rollbackErrors.Add($_.Exception.Message) | Out-Null
+      }
+    }
+  }
+
+  if ($rollbackErrors.Count -gt 0) {
+    throw "Installation failed: $installFailure Previous plugin files could not be fully restored: $($rollbackErrors -join '; ')"
+  }
+  throw "Installation failed safely; the previous plugin was restored. $installFailure"
+} finally {
+  Remove-Item -LiteralPath $stagedDll -Force -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath $stagedDataDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-$locale = Join-Path $targetDataDir "locale\en-US.ini"
-if (-not (Test-Path -LiteralPath $targetDll)) {
-  throw "Install verification failed: DLL was not copied to $targetDll"
-}
-if (-not (Test-Path -LiteralPath $locale)) {
-  throw "Install verification failed: locale file was not copied to $locale"
-}
+# Backups are removed only after the new DLL and both locale files pass verification.
+Remove-Item -LiteralPath $backupDll -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $backupDataDir -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Step "Done"
 Write-Host "PPTBridge SK was installed successfully."

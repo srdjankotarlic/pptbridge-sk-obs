@@ -20,13 +20,17 @@
 #include <winrt/base.h>
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <mutex>
 #include <sstream>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -36,6 +40,9 @@ namespace pptbridge {
 namespace {
 
 constexpr uint32_t kMaxPdfPages = 5000;
+constexpr size_t kRetainedPdfGenerations = 3;
+constexpr DWORD kGlobalPdfRenderTimeoutMs = 10 * 60 * 1000;
+constexpr wchar_t kGlobalPdfRenderMutexName[] = L"Local\\PPTBridgeSK-WindowsPdfRender-v1";
 
 class WinRtApartment final {
 public:
@@ -72,9 +79,117 @@ std::wstring PageFileName(uint32_t page_number)
   return name.str();
 }
 
+std::mutex &PdfRenderMutex()
+{
+  static std::mutex mutex;
+  return mutex;
+}
+
+std::wstring PdfGenerationName()
+{
+  static std::atomic<uint64_t> counter{0};
+  const auto tick = static_cast<uint64_t>(
+    std::chrono::steady_clock::now().time_since_epoch().count());
+  std::wostringstream name;
+  name << L"pdf-generation-" << GetCurrentProcessId() << L"-" << std::hex << tick << L"-"
+       << counter.fetch_add(1, std::memory_order_relaxed);
+  return name.str();
+}
+
+class ScopedDirectoryCleanup final {
+public:
+  explicit ScopedDirectoryCleanup(fs::path path) : path_(std::move(path)) {}
+  ~ScopedDirectoryCleanup()
+  {
+    if (active_) {
+      std::error_code error;
+      fs::remove_all(path_, error);
+    }
+  }
+
+  void Release() { active_ = false; }
+
+private:
+  fs::path path_;
+  bool active_ = true;
+};
+
+class GlobalPdfRenderLock final {
+public:
+  GlobalPdfRenderLock()
+  {
+    mutex_ = CreateMutexW(nullptr, FALSE, kGlobalPdfRenderMutexName);
+    if (!mutex_) {
+      return;
+    }
+    const DWORD wait_result = WaitForSingleObject(mutex_, kGlobalPdfRenderTimeoutMs);
+    acquired_ = wait_result == WAIT_OBJECT_0 || wait_result == WAIT_ABANDONED;
+  }
+
+  ~GlobalPdfRenderLock()
+  {
+    if (acquired_) {
+      ReleaseMutex(mutex_);
+    }
+    if (mutex_) {
+      CloseHandle(mutex_);
+    }
+  }
+
+  bool Acquired() const { return acquired_; }
+
+  GlobalPdfRenderLock(const GlobalPdfRenderLock &) = delete;
+  GlobalPdfRenderLock &operator=(const GlobalPdfRenderLock &) = delete;
+
+private:
+  HANDLE mutex_ = nullptr;
+  bool acquired_ = false;
+};
+
+void CleanupStalePdfGenerations(const fs::path &root)
+{
+  struct Generation {
+    fs::path path;
+    fs::file_time_type modified;
+  };
+
+  std::vector<Generation> generations;
+  std::error_code error;
+  for (fs::directory_iterator iterator(root, error), end; !error && iterator != end; iterator.increment(error)) {
+    if (!iterator->is_directory(error) || error) {
+      error.clear();
+      continue;
+    }
+    const auto name = iterator->path().filename().wstring();
+    if (name.rfind(L"pdf-generation-", 0) != 0) {
+      continue;
+    }
+    const auto modified = iterator->last_write_time(error);
+    if (!error) {
+      generations.push_back({iterator->path(), modified});
+    }
+    error.clear();
+  }
+
+  std::sort(generations.begin(), generations.end(), [](const Generation &left, const Generation &right) {
+    return left.modified > right.modified;
+  });
+  // Fresh generations can still be rendered by another OBS process.
+  const auto cutoff = fs::file_time_type::clock::now() - std::chrono::hours(24);
+  for (size_t index = kRetainedPdfGenerations; index < generations.size(); ++index) {
+    if (generations[index].modified < cutoff) {
+      fs::remove_all(generations[index].path, error);
+      error.clear();
+    }
+  }
+}
+
 bool WriteBytesAtomically(const fs::path &destination, const std::vector<uint8_t> &bytes, std::string &out_error)
 {
-  const fs::path temporary = destination.wstring() + L".tmp";
+  static std::atomic<uint64_t> temporary_counter{0};
+  const fs::path temporary = destination.wstring() + L".tmp-" +
+    std::to_wstring(GetCurrentProcessId()) + L"-" +
+    std::to_wstring(temporary_counter.fetch_add(1, std::memory_order_relaxed));
   {
     std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
     if (!output) {
@@ -89,11 +204,11 @@ bool WriteBytesAtomically(const fs::path &destination, const std::vector<uint8_t
     }
   }
 
-  std::error_code error;
-  fs::remove(destination, error);
-  error.clear();
-  fs::rename(temporary, destination, error);
-  if (error) {
+  if (!MoveFileExW(
+        temporary.c_str(),
+        destination.c_str(),
+        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+    std::error_code error;
     fs::remove(temporary, error);
     out_error = "Could not finalize a rendered PDF page in the PPTBridge cache.";
     return false;
@@ -144,12 +259,28 @@ bool RenderWindowsPdfPages(
     return false;
   }
 
+  std::lock_guard<std::mutex> render_lock(PdfRenderMutex());
+  GlobalPdfRenderLock global_render_lock;
+  if (!global_render_lock.Acquired()) {
+    out_error = "Timed out waiting for another Windows PDF render to finish.";
+    return false;
+  }
+
   std::error_code directory_error;
-  fs::create_directories(fs::path(output_directory), directory_error);
+  const fs::path output_root(output_directory);
+  fs::create_directories(output_root, directory_error);
   if (directory_error) {
     out_error = "Could not create the Windows PDF cache directory.";
     return false;
   }
+
+  const fs::path generation_directory = output_root / PdfGenerationName();
+  fs::create_directories(generation_directory, directory_error);
+  if (directory_error) {
+    out_error = "Could not create a Windows PDF cache generation.";
+    return false;
+  }
+  ScopedDirectoryCleanup generation_cleanup(generation_directory);
 
   try {
     WinRtApartment apartment;
@@ -205,31 +336,15 @@ bool RenderWindowsPdfPages(
         return false;
       }
 
-      const fs::path page_path = fs::path(output_directory) / PageFileName(page_index + 1);
+      const fs::path page_path = generation_directory / PageFileName(page_index + 1);
       if (!WriteBytesAtomically(page_path, bytes, out_error)) {
         return false;
       }
       out_result.image_paths.push_back(page_path.wstring());
     }
 
-    for (const auto &entry : fs::directory_iterator(fs::path(output_directory), directory_error)) {
-      if (directory_error) {
-        break;
-      }
-      if (!entry.is_regular_file() || entry.path().extension() != L".png") {
-        continue;
-      }
-      const auto name = entry.path().filename().wstring();
-      if (name.rfind(L"page-", 0) != 0) {
-        continue;
-      }
-      if (std::find(out_result.image_paths.begin(), out_result.image_paths.end(), entry.path().wstring()) ==
-          out_result.image_paths.end()) {
-        fs::remove(entry.path(), directory_error);
-        directory_error.clear();
-      }
-    }
-
+    generation_cleanup.Release();
+    CleanupStalePdfGenerations(output_root);
     return true;
   } catch (const winrt::hresult_error &) {
     out_error =

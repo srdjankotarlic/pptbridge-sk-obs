@@ -6,7 +6,7 @@ Use the Windows x64 ZIP for Windows 10/11. Use the Apple Silicon ZIP for M-serie
 
 ## Is Windows supported?
 
-Yes. Windows 10/11 x64 is a stable v0.5.9 release platform with a small ZIP and a double-click `INSTALL.cmd` installer. PDF decks work without PowerPoint; desktop Microsoft PowerPoint is required only for PowerPoint files.
+Yes. Windows 10/11 x64 is a stable v0.5.10 release platform with a small ZIP and a double-click `INSTALL.cmd` installer. PDF decks work without PowerPoint; desktop Microsoft PowerPoint is required only for PowerPoint files.
 
 Start here:
 

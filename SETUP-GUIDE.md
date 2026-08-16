@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS Setup Guide
 
-**Created by Srđan Kotarlić** | Windows v0.5.9 / Apple Silicon v0.5.8
+**Created by Srđan Kotarlić** | Windows v0.5.10 / Apple Silicon v0.5.8
 
 For the fastest install path, start with [QUICKSTART.md](QUICKSTART.md). This guide is the fuller walkthrough for setup, controls, multiple decks, and troubleshooting.
 
@@ -43,7 +43,7 @@ Recommended:
 ### Windows 10/11 x64
 
 1. Download and extract the
-   [Windows v0.5.9 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.9/pptbridge-obs-windows-x64-v0.5.9.zip)
+   [Windows v0.5.10 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip)
 2. Quit OBS if it is open
 3. Double-click `INSTALL.cmd` and approve the administrator prompt
 4. Open OBS Studio 30 or newer

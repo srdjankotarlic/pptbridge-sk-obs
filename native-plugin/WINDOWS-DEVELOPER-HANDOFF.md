@@ -14,7 +14,7 @@ native-plugin/WINDOWS-TESTING.md
 native-plugin/WINDOWS-PORT.md
 
 Important context:
-- Windows x64 is a stable v0.5.9 release platform. Do not publish a replacement asset until the full release checklist passes.
+- Windows x64 is a stable v0.5.10 release platform. Do not publish a replacement asset until the full release checklist passes.
 - Do not change the macOS stable release files unless a Windows compile fix truly requires a shared file change.
 - The Windows code matches the macOS v0.5.8 production workflow where possible:
   - PPTBridge SK Slide and PPTBridge SK Presenter OBS sources
@@ -71,10 +71,10 @@ If everything passes, create the minimal Windows zip containing:
 - README.txt
 
 Name it:
-pptbridge-obs-windows-x64-v0.5.9.zip
+pptbridge-obs-windows-x64-v0.5.10.zip
 
 Also create:
-pptbridge-obs-windows-x64-v0.5.9.zip.sha256
+pptbridge-obs-windows-x64-v0.5.10.zip.sha256
 
 Report exactly what passed, what failed, and include OBS log paths. Keep known limits visible: desktop PowerPoint is required for PowerPoint files, password-protected PDFs are unsupported, and the installer is not code-signed yet.
 ```

@@ -22,8 +22,10 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <cwctype>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <mutex>
 #include <optional>
 #include <set>
@@ -40,7 +42,6 @@ namespace pptbridge {
 
 namespace {
 
-constexpr const wchar_t *kPowerShellExe = L"powershell.exe";
 constexpr uint32_t kExportWidth = 1920;
 constexpr uint32_t kExportHeight = 1080;
 constexpr DWORD kExportProcessTimeoutMs = 300000;
@@ -48,6 +49,9 @@ constexpr DWORD kLiveStartProcessTimeoutMs = 90000;
 constexpr DWORD kLiveStopProcessTimeoutMs = 30000;
 constexpr DWORD kLiveCommandProcessTimeoutMs = 20000;
 constexpr DWORD kProcessPollMs = 20;
+constexpr auto kDeckCacheRetention = std::chrono::hours(24 * 90);
+constexpr wchar_t kDeckCacheLockFileName[] = L".active.lock";
+constexpr wchar_t kDeckCacheUsageFileName[] = L".last-used";
 
 struct CachedSlide {
   std::wstring image_path;
@@ -59,6 +63,7 @@ struct ParsedDeckData {
   std::vector<std::vector<EmbeddedMedia>> media_by_slide;
   double slide_aspect_ratio = 0.0;
   bool media_scan_complete = true;
+  size_t media_skipped_count = 0;
 };
 
 struct LiveSnapshot {
@@ -68,6 +73,10 @@ struct LiveSnapshot {
   std::string presentation_title;
   std::string window_title;
   double slide_aspect_ratio = 0.0;
+  double window_left = 0.0;
+  double window_top = 0.0;
+  double window_width = 0.0;
+  double window_height = 0.0;
 };
 
 uint64_t StableHash(std::string_view value)
@@ -86,13 +95,20 @@ std::wstring Utf8ToWide(const std::string &value)
     return {};
   }
 
-  const int size = MultiByteToWideChar(CP_UTF8, 0, value.c_str(), -1, nullptr, 0);
-  if (size <= 1) {
+  if (value.size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
     return {};
   }
 
-  std::wstring wide(static_cast<size_t>(size - 1), L'\0');
-  MultiByteToWideChar(CP_UTF8, 0, value.c_str(), -1, wide.data(), size);
+  const int input_size = static_cast<int>(value.size());
+  const int size = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, value.data(), input_size, nullptr, 0);
+  if (size <= 0) {
+    return {};
+  }
+
+  std::wstring wide(static_cast<size_t>(size), L'\0');
+  if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, value.data(), input_size, wide.data(), size) != size) {
+    return {};
+  }
   return wide;
 }
 
@@ -102,14 +118,65 @@ std::string WideToUtf8(const std::wstring &value)
     return {};
   }
 
-  const int size = WideCharToMultiByte(CP_UTF8, 0, value.c_str(), -1, nullptr, 0, nullptr, nullptr);
-  if (size <= 1) {
+  if (value.size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
     return {};
   }
 
-  std::string utf8(static_cast<size_t>(size - 1), '\0');
-  WideCharToMultiByte(CP_UTF8, 0, value.c_str(), -1, utf8.data(), size, nullptr, nullptr);
+  const int input_size = static_cast<int>(value.size());
+  const int size = WideCharToMultiByte(
+    CP_UTF8,
+    WC_ERR_INVALID_CHARS,
+    value.data(),
+    input_size,
+    nullptr,
+    0,
+    nullptr,
+    nullptr);
+  if (size <= 0) {
+    return {};
+  }
+
+  std::string utf8(static_cast<size_t>(size), '\0');
+  if (WideCharToMultiByte(
+        CP_UTF8,
+        WC_ERR_INVALID_CHARS,
+        value.data(),
+        input_size,
+        utf8.data(),
+        size,
+        nullptr,
+        nullptr) != size) {
+    return {};
+  }
   return utf8;
+}
+
+std::wstring WindowsPowerShellPath()
+{
+  std::vector<wchar_t> system_directory(MAX_PATH + 1, L'\0');
+  UINT length = GetSystemDirectoryW(system_directory.data(), static_cast<UINT>(system_directory.size()));
+  if (length == 0) {
+    return L"powershell.exe";
+  }
+  if (length >= system_directory.size()) {
+    system_directory.resize(static_cast<size_t>(length) + 1, L'\0');
+    length = GetSystemDirectoryW(system_directory.data(), static_cast<UINT>(system_directory.size()));
+    if (length == 0 || length >= system_directory.size()) {
+      return L"powershell.exe";
+    }
+  }
+
+  fs::path path(std::wstring(system_directory.data(), length));
+  path /= L"WindowsPowerShell";
+  path /= L"v1.0";
+  path /= L"powershell.exe";
+  return path.wstring();
+}
+
+std::mutex &PowerPointAutomationMutex()
+{
+  static std::mutex mutex;
+  return mutex;
 }
 
 std::string ToLowerCopy(std::string value)
@@ -347,6 +414,224 @@ fs::path PluginCacheRoot()
   return root;
 }
 
+std::wstring ComparableFilesystemPath(const fs::path &path)
+{
+  std::error_code error;
+  fs::path normalized = fs::weakly_canonical(path, error);
+  if (error) {
+    normalized = path.lexically_normal();
+  }
+
+  std::wstring value = normalized.wstring();
+  std::replace(value.begin(), value.end(), L'/', L'\\');
+  while (value.size() > 3 && value.back() == L'\\') {
+    value.pop_back();
+  }
+  std::transform(value.begin(), value.end(), value.begin(), [](wchar_t ch) {
+    return static_cast<wchar_t>(std::towlower(ch));
+  });
+  return value;
+}
+
+bool IsSafeDeckCacheRoot(const fs::path &cache_root)
+{
+  const std::wstring name = cache_root.filename().wstring();
+  return name.rfind(L"deck-", 0) == 0 &&
+    ComparableFilesystemPath(cache_root.parent_path()) == ComparableFilesystemPath(PluginCacheRoot());
+}
+
+bool IsPathWithin(const fs::path &candidate, const fs::path &root)
+{
+  std::wstring candidate_value = ComparableFilesystemPath(candidate);
+  std::wstring root_value = ComparableFilesystemPath(root);
+  if (candidate_value == root_value) {
+    return true;
+  }
+  if (root_value.empty() || root_value.back() != L'\\') {
+    root_value.push_back(L'\\');
+  }
+  return candidate_value.rfind(root_value, 0) == 0;
+}
+
+bool IsReparsePoint(const fs::path &path)
+{
+  const DWORD attributes = GetFileAttributesW(path.c_str());
+  return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
+}
+
+void TouchDeckCacheUsage(const fs::path &cache_root)
+{
+  if (!IsSafeDeckCacheRoot(cache_root)) {
+    return;
+  }
+
+  const fs::path marker = cache_root / kDeckCacheUsageFileName;
+  HANDLE file = CreateFileW(
+    marker.c_str(),
+    FILE_WRITE_ATTRIBUTES,
+    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+    nullptr,
+    OPEN_ALWAYS,
+    FILE_ATTRIBUTE_HIDDEN,
+    nullptr);
+  if (file == INVALID_HANDLE_VALUE) {
+    return;
+  }
+
+  FILETIME now = {};
+  GetSystemTimeAsFileTime(&now);
+  SetFileTime(file, nullptr, nullptr, &now);
+  CloseHandle(file);
+}
+
+class DeckCacheLease final {
+public:
+  explicit DeckCacheLease(const fs::path &cache_root)
+  {
+    if (!IsSafeDeckCacheRoot(cache_root)) {
+      return;
+    }
+
+    handle_ = CreateFileW(
+      (cache_root / kDeckCacheLockFileName).c_str(),
+      GENERIC_READ | GENERIC_WRITE,
+      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+      nullptr,
+      OPEN_ALWAYS,
+      FILE_ATTRIBUTE_HIDDEN,
+      nullptr);
+    if (handle_ == INVALID_HANDLE_VALUE) {
+      return;
+    }
+
+    if (!LockFileEx(handle_, 0, 0, 1, 0, &overlapped_)) {
+      CloseHandle(handle_);
+      handle_ = INVALID_HANDLE_VALUE;
+      return;
+    }
+    locked_ = true;
+  }
+
+  ~DeckCacheLease()
+  {
+    if (locked_) {
+      UnlockFileEx(handle_, 0, 1, 0, &overlapped_);
+    }
+    if (handle_ != INVALID_HANDLE_VALUE) {
+      CloseHandle(handle_);
+    }
+  }
+
+  DeckCacheLease(const DeckCacheLease &) = delete;
+  DeckCacheLease &operator=(const DeckCacheLease &) = delete;
+
+private:
+  HANDLE handle_ = INVALID_HANDLE_VALUE;
+  OVERLAPPED overlapped_ = {};
+  bool locked_ = false;
+};
+
+void RemoveCacheChild(const fs::path &path)
+{
+  std::error_code error;
+  if (IsReparsePoint(path)) {
+    fs::remove(path, error);
+  } else {
+    fs::remove_all(path, error);
+  }
+}
+
+bool ClearInactiveDeckCache(const fs::path &cache_root)
+{
+  if (!IsSafeDeckCacheRoot(cache_root)) {
+    return false;
+  }
+
+  const fs::path lock_path = cache_root / kDeckCacheLockFileName;
+  HANDLE lock_file = CreateFileW(
+    lock_path.c_str(),
+    GENERIC_READ | GENERIC_WRITE,
+    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+    nullptr,
+    OPEN_ALWAYS,
+    FILE_ATTRIBUTE_HIDDEN,
+    nullptr);
+  if (lock_file == INVALID_HANDLE_VALUE) {
+    return false;
+  }
+
+  OVERLAPPED overlapped = {};
+  const bool locked = LockFileEx(
+    lock_file,
+    LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
+    0,
+    1,
+    0,
+    &overlapped) != FALSE;
+  if (!locked) {
+    CloseHandle(lock_file);
+    return false;
+  }
+
+  std::error_code error;
+  for (fs::directory_iterator iterator(cache_root, error), end;
+       !error && iterator != end;
+       iterator.increment(error)) {
+    const fs::path child = iterator->path();
+    if (child.filename() == kDeckCacheLockFileName) {
+      continue;
+    }
+    RemoveCacheChild(child);
+  }
+
+  UnlockFileEx(lock_file, 0, 1, 0, &overlapped);
+  CloseHandle(lock_file);
+  return true;
+}
+
+void MaintainDeckCachesOnce(const fs::path &current_cache_root)
+{
+  static std::once_flag maintenance_once;
+  std::call_once(maintenance_once, [&current_cache_root]() {
+    const fs::path root = PluginCacheRoot();
+    const std::wstring current = ComparableFilesystemPath(current_cache_root);
+    const auto cutoff = fs::file_time_type::clock::now() - kDeckCacheRetention;
+    std::error_code error;
+    size_t cleaned = 0;
+
+    for (fs::directory_iterator iterator(root, error), end;
+         !error && iterator != end;
+         iterator.increment(error)) {
+      if (iterator->is_symlink(error) || error || !iterator->is_directory(error)) {
+        error.clear();
+        continue;
+      }
+
+      const fs::path candidate = iterator->path();
+      if (!IsSafeDeckCacheRoot(candidate) || ComparableFilesystemPath(candidate) == current) {
+        continue;
+      }
+
+      const fs::path marker = candidate / kDeckCacheUsageFileName;
+      const fs::path timestamp_path = fs::exists(marker, error) && !error ? marker : candidate;
+      error.clear();
+      const auto modified = fs::last_write_time(timestamp_path, error);
+      if (error || modified >= cutoff) {
+        error.clear();
+        continue;
+      }
+
+      if (ClearInactiveDeckCache(candidate)) {
+        ++cleaned;
+      }
+    }
+
+    if (cleaned > 0) {
+      blog(LOG_INFO, "[PPTBridge SK] Cleaned %zu inactive Windows presentation cache(s) older than 90 days", cleaned);
+    }
+  });
+}
+
 fs::path CacheRootForDeck(const std::string &pptx_path)
 {
   std::wstringstream folder_name;
@@ -354,6 +639,7 @@ fs::path CacheRootForDeck(const std::string &pptx_path)
   fs::path root = PluginCacheRoot() / folder_name.str();
   std::error_code ec;
   fs::create_directories(root, ec);
+  TouchDeckCacheUsage(root);
   return root;
 }
 
@@ -369,15 +655,33 @@ std::string CurrentFileStamp(const fs::path &path)
 
 bool WriteUtf8File(const fs::path &path, const std::string &body)
 {
+  static std::atomic<uint64_t> temporary_counter{0};
   std::error_code ec;
   fs::create_directories(path.parent_path(), ec);
-  std::ofstream stream(path, std::ios::binary | std::ios::trunc);
+  if (ec) {
+    return false;
+  }
+
+  const auto suffix = std::to_wstring(GetCurrentProcessId()) + L"-" +
+    std::to_wstring(temporary_counter.fetch_add(1, std::memory_order_relaxed));
+  const fs::path temporary = path.wstring() + L".tmp-" + suffix;
+  std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
   if (!stream.is_open()) {
     return false;
   }
 
   stream.write(body.data(), static_cast<std::streamsize>(body.size()));
-  return stream.good();
+  stream.flush();
+  const bool written = stream.good();
+  stream.close();
+  if (!written || !MoveFileExW(
+        temporary.c_str(),
+        path.c_str(),
+        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+    fs::remove(temporary, ec);
+    return false;
+  }
+  return true;
 }
 
 std::string ReadUtf8File(const fs::path &path)
@@ -537,12 +841,14 @@ bool SaveCachedSlides(
   const std::vector<CachedSlide> &slides,
   const std::vector<std::vector<EmbeddedMedia>> &media_by_slide,
   double slide_aspect_ratio,
-  bool media_scan_complete)
+  bool media_scan_complete,
+  size_t media_skipped_count)
 {
   std::ostringstream output;
   output << "STAMP|" << stamp << "\n";
   output << "ASPECT|" << slide_aspect_ratio << "\n";
   output << "MEDIA_SCAN|" << (media_scan_complete ? "1" : "0") << "\n";
+  output << "MEDIA_SKIPPED|" << media_skipped_count << "\n";
   for (size_t index = 0; index < slides.size(); ++index) {
     const auto &slide = slides[index];
     output << "SLIDE|"
@@ -591,6 +897,23 @@ bool CachedSlideImagesExist(const std::vector<CachedSlide> &slides)
   return true;
 }
 
+bool CachedMediaFilesExist(const std::vector<std::vector<EmbeddedMedia>> &media_by_slide)
+{
+  for (const auto &slide_media : media_by_slide) {
+    for (const auto &media : slide_media) {
+      if (media.file_path.empty()) {
+        return false;
+      }
+      std::error_code error;
+      const fs::path media_path(Utf8ToWide(media.file_path));
+      if (!fs::exists(media_path, error) || error || !fs::is_regular_file(media_path, error)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 bool LoadCachedSlides(
   const fs::path &metadata_path,
   const std::string &stamp,
@@ -625,6 +948,15 @@ bool LoadCachedSlides(
 
     if (line.rfind("MEDIA_SCAN|", 0) == 0) {
       media_scan_complete = line.substr(11) != "0";
+      continue;
+    }
+
+    if (line.rfind("MEDIA_SKIPPED|", 0) == 0) {
+      try {
+        out_deck.media_skipped_count = static_cast<size_t>(std::stoull(line.substr(14)));
+      } catch (...) {
+        out_deck.media_skipped_count = 0;
+      }
       continue;
     }
 
@@ -690,6 +1022,7 @@ bool LoadCachedSlides(
 
   if ((require_media_scan && !media_scan_complete) ||
       !CachedSlideImagesExist(slides) ||
+      (require_media_scan && !CachedMediaFilesExist(media_by_slide)) ||
       slide_aspect_ratio < 0.2 || slide_aspect_ratio > 10.0) {
     return false;
   }
@@ -703,6 +1036,53 @@ bool LoadCachedSlides(
   out_deck.slide_aspect_ratio = slide_aspect_ratio;
   out_deck.media_scan_complete = media_scan_complete;
   return true;
+}
+
+bool DeckDataUsesLegacyCacheLayout(const ParsedDeckData &deck, const fs::path &cache_root)
+{
+  if (!IsSafeDeckCacheRoot(cache_root)) {
+    return false;
+  }
+
+  const fs::path legacy_slides = cache_root / L"slides";
+  const fs::path legacy_media = cache_root / L"embedded-media";
+  for (const auto &slide : deck.slides) {
+    if (IsPathWithin(fs::path(slide.image_path), legacy_slides)) {
+      return true;
+    }
+  }
+  for (const auto &slide_media : deck.media_by_slide) {
+    for (const auto &media : slide_media) {
+      if (IsPathWithin(fs::path(Utf8ToWide(media.file_path)), legacy_media)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool LegacyCacheLayoutExists(const fs::path &cache_root)
+{
+  if (!IsSafeDeckCacheRoot(cache_root)) {
+    return false;
+  }
+  std::error_code error;
+  return fs::exists(cache_root / L"slides", error) ||
+    fs::exists(cache_root / L"embedded-media", error);
+}
+
+void RemoveLegacyCacheLayout(const fs::path &cache_root)
+{
+  if (!IsSafeDeckCacheRoot(cache_root)) {
+    return;
+  }
+
+  for (const wchar_t *name : {L"slides", L"embedded-media"}) {
+    const fs::path child = cache_root / name;
+    if (IsPathWithin(child, cache_root)) {
+      RemoveCacheChild(child);
+    }
+  }
 }
 
 bool RenderPdfDeckData(
@@ -773,6 +1153,16 @@ function Normalize-PPTBridgeFilePath([string]$Path) {
     $normalized = "\\" + $normalized.Substring(2)
   }
   return $normalized.Replace('/', '\')
+}
+
+function Get-PPTBridgeComparablePath([string]$Path) {
+  $normalized = Normalize-PPTBridgeFilePath $Path
+  if ([string]::IsNullOrWhiteSpace($normalized)) { return "" }
+  try {
+    return [System.IO.Path]::GetFullPath($normalized).TrimEnd('\')
+  } catch {
+    return $normalized.TrimEnd('\')
+  }
 }
 
 function Open-PPTBridgeZipArchive([string]$Path) {
@@ -951,7 +1341,7 @@ function Get-PPTBridgeNormalizedRect($Node, [double]$SlideWidth, [double]$SlideH
   }
 }
 
-function Export-PPTBridgeZipEntry($Archive, [string]$EntryPath, [string]$DestinationRoot) {
+function Export-PPTBridgeZipEntry($Archive, [string]$EntryPath, [string]$DestinationRoot, $MediaBudget) {
   if ($null -eq $Archive -or [string]::IsNullOrWhiteSpace($EntryPath) -or [string]::IsNullOrWhiteSpace($DestinationRoot)) {
     return ""
   }
@@ -959,7 +1349,30 @@ function Export-PPTBridgeZipEntry($Archive, [string]$EntryPath, [string]$Destina
   $entry = $Archive.GetEntry($EntryPath.Replace('\', '/'))
   if ($null -eq $entry) { return "" }
 
-  $destinationPath = Join-Path $DestinationRoot ($EntryPath.Replace('/', [System.IO.Path]::DirectorySeparatorChar))
+  $destinationRootFull = [System.IO.Path]::GetFullPath($DestinationRoot).TrimEnd('\')
+  $relativePath = $EntryPath.Replace('/', [System.IO.Path]::DirectorySeparatorChar).TrimStart('\')
+  if ([System.IO.Path]::IsPathRooted($relativePath)) { return "" }
+  $destinationPath = [System.IO.Path]::GetFullPath((Join-Path $destinationRootFull $relativePath))
+  $destinationPrefix = $destinationRootFull + [System.IO.Path]::DirectorySeparatorChar
+  if (-not $destinationPath.StartsWith($destinationPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+    return ""
+  }
+
+  $entryLength = [int64]$entry.Length
+  if ($null -ne $MediaBudget) {
+    $wouldExceedEntryLimit = $entryLength -gt [int64]$MediaBudget.MaxEntryBytes
+    $wouldExceedTotalLimit = $entryLength -gt ([int64]$MediaBudget.MaxTotalBytes - [int64]$MediaBudget.UsedBytes)
+    $insufficientDiskSpace = $false
+    try {
+      $drive = [System.IO.DriveInfo]::new([System.IO.Path]::GetPathRoot($destinationRootFull))
+      $insufficientDiskSpace = [int64]$drive.AvailableFreeSpace -lt ($entryLength + [int64]$MediaBudget.MinimumFreeBytes)
+    } catch {}
+    if ($wouldExceedEntryLimit -or $wouldExceedTotalLimit -or $insufficientDiskSpace) {
+      $MediaBudget.SkippedCount = [int]$MediaBudget.SkippedCount + 1
+      return ""
+    }
+  }
+
   $destinationDirectory = Split-Path -Parent $destinationPath
   if (-not [string]::IsNullOrWhiteSpace($destinationDirectory)) {
     New-Item -ItemType Directory -Force -Path $destinationDirectory | Out-Null
@@ -974,6 +1387,10 @@ function Export-PPTBridgeZipEntry($Archive, [string]$EntryPath, [string]$Destina
       $output.Dispose()
       $input.Dispose()
     }
+  }
+
+  if ($null -ne $MediaBudget) {
+    $MediaBudget.UsedBytes = [int64]$MediaBudget.UsedBytes + $entryLength
   }
 
   return $destinationPath
@@ -1064,7 +1481,7 @@ function Resolve-PPTBridgeExportedSlideFile($ExportedFiles, [int]$Index) {
   return ""
 }
 
-function Get-PPTBridgeMediaForSlide($Archive, [string]$SlideEntry, [string]$CacheDir, [double]$SlideWidth, [double]$SlideHeight, $ExtractedCache) {
+function Get-PPTBridgeMediaForSlide($Archive, [string]$SlideEntry, [string]$CacheDir, [double]$SlideWidth, [double]$SlideHeight, $ExtractedCache, $MediaBudget) {
   $results = New-Object System.Collections.Generic.List[object]
   $signatures = New-Object 'System.Collections.Generic.HashSet[string]'
   $slideXml = Get-PPTBridgeZipEntryText $Archive $SlideEntry
@@ -1113,7 +1530,7 @@ function Get-PPTBridgeMediaForSlide($Archive, [string]$SlideEntry, [string]$Cach
     if ($ExtractedCache.ContainsKey($bestTarget)) {
       $extractedPath = [string]$ExtractedCache[$bestTarget]
     } else {
-      $extractedPath = Export-PPTBridgeZipEntry $Archive $bestTarget (Join-Path $CacheDir "embedded-media")
+      $extractedPath = Export-PPTBridgeZipEntry $Archive $bestTarget (Join-Path $CacheDir "embedded-media") $MediaBudget
       if ([string]::IsNullOrWhiteSpace($extractedPath)) { continue }
       $ExtractedCache[$bestTarget] = $extractedPath
     }
@@ -1159,12 +1576,11 @@ function Set-PPTBridgePowerPointVisible($App) {
 
 function Find-PPTBridgePresentation($App, [string]$Path) {
   if ($null -eq $App -or [string]::IsNullOrWhiteSpace($Path)) { return $null }
-  $normalizedPath = Normalize-PPTBridgeFilePath $Path
-  $targetName = [System.IO.Path]::GetFileName($normalizedPath)
+  $normalizedPath = Get-PPTBridgeComparablePath $Path
   foreach ($presentation in @($App.Presentations)) {
     try {
-      $presentationPath = Normalize-PPTBridgeFilePath ([string]$presentation.FullName)
-      if ($presentationPath -ieq $normalizedPath -or $presentation.Name -ieq $targetName) {
+      $presentationPath = Get-PPTBridgeComparablePath ([string]$presentation.FullName)
+      if ($presentationPath -ieq $normalizedPath) {
         return $presentation
       }
     } catch {}
@@ -1181,10 +1597,11 @@ function Open-PPTBridgePresentation($App, [string]$Path, [bool]$WithWindow) {
 
 function Get-PPTBridgeWindow($App, $Presentation) {
   if ($null -eq $App -or $null -eq $Presentation) { return $null }
+  $presentationPath = Get-PPTBridgeComparablePath ([string]$Presentation.FullName)
   foreach ($window in @($App.SlideShowWindows)) {
     try {
-      if ($window.Presentation.FullName -eq $Presentation.FullName -or
-          $window.Presentation.Name -eq $Presentation.Name) {
+      $windowPath = Get-PPTBridgeComparablePath ([string]$window.Presentation.FullName)
+      if ($windowPath -ieq $presentationPath) {
         return $window
       }
     } catch {}
@@ -1232,6 +1649,10 @@ function Emit-PPTBridgeSnapshot($Window, $Presentation) {
   try { $title = [string]$Presentation.Name } catch {}
   $windowTitle = "PowerPoint Slide Show - [" + [System.IO.Path]::GetFileNameWithoutExtension($title) + "]"
   $slideAspect = 0.0
+  $windowLeft = 0.0
+  $windowTop = 0.0
+  $windowWidth = 0.0
+  $windowHeight = 0.0
   try {
     $slideWidth = [double]$Presentation.PageSetup.SlideWidth
     $slideHeight = [double]$Presentation.PageSetup.SlideHeight
@@ -1239,6 +1660,10 @@ function Emit-PPTBridgeSnapshot($Window, $Presentation) {
       $slideAspect = $slideWidth / $slideHeight
     }
   } catch {}
+  try { $windowLeft = [double]$Window.Left } catch {}
+  try { $windowTop = [double]$Window.Top } catch {}
+  try { $windowWidth = [double]$Window.Width } catch {}
+  try { $windowHeight = [double]$Window.Height } catch {}
 
   Write-Output "RUNNING|1"
   Write-Output ("SLIDE|{0}" -f $current)
@@ -1246,6 +1671,10 @@ function Emit-PPTBridgeSnapshot($Window, $Presentation) {
   Write-Output ("TITLE|{0}" -f (Escape-PPTBridgeValue $title))
   Write-Output ("WINDOW|{0}" -f (Escape-PPTBridgeValue $windowTitle))
   Write-Output ("ASPECT|" + $slideAspect.ToString("R", [Globalization.CultureInfo]::InvariantCulture))
+  Write-Output ("WINDOW_LEFT|" + $windowLeft.ToString("R", [Globalization.CultureInfo]::InvariantCulture))
+  Write-Output ("WINDOW_TOP|" + $windowTop.ToString("R", [Globalization.CultureInfo]::InvariantCulture))
+  Write-Output ("WINDOW_WIDTH|" + $windowWidth.ToString("R", [Globalization.CultureInfo]::InvariantCulture))
+  Write-Output ("WINDOW_HEIGHT|" + $windowHeight.ToString("R", [Globalization.CultureInfo]::InvariantCulture))
 }
 
 )POWERSHELL";
@@ -1288,6 +1717,20 @@ function Start-PPTBridgePendingMedia($Window, $Presentation) {
   return $false
 }
 
+function Remove-PPTBridgeStaleGenerationDirs([string]$CacheDir, [string]$Prefix) {
+  if ([string]::IsNullOrWhiteSpace($CacheDir) -or -not (Test-Path -LiteralPath $CacheDir)) { return }
+  # Another OBS process may still render a recently published generation.
+  $cutoff = [DateTime]::UtcNow.AddHours(-24)
+  $generations = @(Get-ChildItem -LiteralPath $CacheDir -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name.StartsWith($Prefix, [StringComparison]::OrdinalIgnoreCase) } |
+    Sort-Object LastWriteTimeUtc -Descending)
+  foreach ($generation in @($generations | Select-Object -Skip 3)) {
+    if ($generation.LastWriteTimeUtc -lt $cutoff) {
+      Remove-Item -LiteralPath $generation.FullName -Recurse -Force -ErrorAction SilentlyContinue
+    }
+  }
+}
+
 switch ($Mode) {
   "export" {
     if ([string]::IsNullOrWhiteSpace($PptxPath) -or [string]::IsNullOrWhiteSpace($CacheDir)) {
@@ -1295,13 +1738,14 @@ switch ($Mode) {
     }
 
     $PptxPath = Normalize-PPTBridgeFilePath $PptxPath
-    $slidesDir = Join-Path $CacheDir "slides"
+    $generationDir = Join-Path $CacheDir ("ppt-generation-" + [Guid]::NewGuid().ToString("N"))
+    $slidesDir = Join-Path $generationDir "slides"
     New-Item -ItemType Directory -Force -Path $slidesDir | Out-Null
-    Get-ChildItem -LiteralPath $slidesDir -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
     $archive = $null
     $app = $null
     $presentation = $null
     $ownsPresentation = $false
+    $exportSucceeded = $false
     try {
       $archive = Open-PPTBridgeZipArchive $PptxPath
       $slideEntries = @()
@@ -1311,6 +1755,13 @@ switch ($Mode) {
         $slideSize = Get-PPTBridgeSlideSize $archive
       }
       $extractedMediaCache = @{}
+      $mediaBudget = [pscustomobject]@{
+        UsedBytes = [int64]0
+        MaxEntryBytes = [int64](2GB)
+        MaxTotalBytes = [int64](2GB)
+        MinimumFreeBytes = [int64](512MB)
+        SkippedCount = 0
+      }
 
       $app = New-Object -ComObject PowerPoint.Application
       Set-PPTBridgePowerPointVisible $app
@@ -1354,7 +1805,7 @@ switch ($Mode) {
           (Escape-PPTBridgeValue $notes))
 
         if (-not $SkipEmbeddedMedia -and $null -ne $archive -and $index -le $slideEntries.Count) {
-          foreach ($media in @(Get-PPTBridgeMediaForSlide $archive $slideEntries[$index - 1] $CacheDir $slideSize.Width $slideSize.Height $extractedMediaCache)) {
+          foreach ($media in @(Get-PPTBridgeMediaForSlide $archive $slideEntries[$index - 1] $generationDir $slideSize.Width $slideSize.Height $extractedMediaCache $mediaBudget)) {
             Write-Output ("MEDIA|{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}|{8}|{9}" -f
               $index,
               [string]$media.Kind,
@@ -1369,6 +1820,9 @@ switch ($Mode) {
           }
         }
       }
+      Write-Output ("MEDIA_SKIPPED|{0}" -f [int]$mediaBudget.SkippedCount)
+      $exportSucceeded = $true
+      Remove-PPTBridgeStaleGenerationDirs $CacheDir "ppt-generation-"
     } finally {
       if ($null -ne $archive) { $archive.Dispose() }
       if ($ownsPresentation -and $null -ne $presentation) {
@@ -1382,6 +1836,9 @@ switch ($Mode) {
         if ($canQuit) {
           try { $app.Quit() } catch {}
         }
+      }
+      if (-not $exportSucceeded -and -not [string]::IsNullOrWhiteSpace($generationDir)) {
+        Remove-Item -LiteralPath $generationDir -Recurse -Force -ErrorAction SilentlyContinue
       }
     }
   }
@@ -1428,9 +1885,13 @@ switch ($Mode) {
     $window = Get-PPTBridgeWindow $app $presentation
     if ($window) {
       try { $window.View.Exit() } catch {}
-      Start-Sleep -Milliseconds 250
+      $stopDeadline = [DateTime]::UtcNow.AddSeconds(5)
+      do {
+        Start-Sleep -Milliseconds 100
+        $presentation = Find-PPTBridgePresentation $app $PptxPath
+        $window = Get-PPTBridgeWindow $app $presentation
+      } while ($window -and [DateTime]::UtcNow -lt $stopDeadline)
     }
-    $window = Get-PPTBridgeWindow $app $presentation
     Emit-PPTBridgeSnapshot $window $presentation
   }
 
@@ -1525,9 +1986,10 @@ bool RunPowerShellMode(
   int &out_exit_code,
   bool skip_embedded_media = false)
 {
+  std::lock_guard<std::mutex> automation_lock(PowerPointAutomationMutex());
   const auto script_path = EnsurePowerShellScript();
   std::vector<std::wstring> args = {
-    kPowerShellExe,
+    WindowsPowerShellPath(),
     L"-NoLogo",
     L"-NoProfile",
     L"-ExecutionPolicy",
@@ -1587,6 +2049,15 @@ bool ParseExportOutput(const std::string &output, ParsedDeckData &out_deck, std:
 
     if (line.rfind("MEDIA_SCAN|", 0) == 0) {
       out_deck.media_scan_complete = line.substr(11) != "0";
+      continue;
+    }
+
+    if (line.rfind("MEDIA_SKIPPED|", 0) == 0) {
+      try {
+        out_deck.media_skipped_count = static_cast<size_t>(std::stoull(line.substr(14)));
+      } catch (...) {
+        out_deck.media_skipped_count = 0;
+      }
       continue;
     }
 
@@ -1659,6 +2130,10 @@ bool ParseExportOutput(const std::string &output, ParsedDeckData &out_deck, std:
     out_error = "PowerPoint export completed, but the exported slide image files were not found.";
     return false;
   }
+  if (out_deck.media_scan_complete && !CachedMediaFilesExist(out_deck.media_by_slide)) {
+    out_error = "PowerPoint export completed, but an extracted embedded-media file was not found.";
+    return false;
+  }
 
   if (out_deck.media_by_slide.size() < out_deck.slides.size()) {
     out_deck.media_by_slide.resize(out_deck.slides.size());
@@ -1708,6 +2183,38 @@ bool ParseLiveSnapshot(const std::string &output, LiveSnapshot &snapshot, std::s
         snapshot.slide_aspect_ratio = std::stod(line.substr(7));
       } catch (...) {
         snapshot.slide_aspect_ratio = 0.0;
+      }
+      continue;
+    }
+    if (line.rfind("WINDOW_LEFT|", 0) == 0) {
+      try {
+        snapshot.window_left = std::stod(line.substr(12));
+      } catch (...) {
+        snapshot.window_left = 0.0;
+      }
+      continue;
+    }
+    if (line.rfind("WINDOW_TOP|", 0) == 0) {
+      try {
+        snapshot.window_top = std::stod(line.substr(11));
+      } catch (...) {
+        snapshot.window_top = 0.0;
+      }
+      continue;
+    }
+    if (line.rfind("WINDOW_WIDTH|", 0) == 0) {
+      try {
+        snapshot.window_width = std::stod(line.substr(13));
+      } catch (...) {
+        snapshot.window_width = 0.0;
+      }
+      continue;
+    }
+    if (line.rfind("WINDOW_HEIGHT|", 0) == 0) {
+      try {
+        snapshot.window_height = std::stod(line.substr(14));
+      } catch (...) {
+        snapshot.window_height = 0.0;
       }
       continue;
     }
@@ -2109,9 +2616,35 @@ struct PresentationDocument::Impl {
     : path(std::move(pptx_path_)),
       name(WideToUtf8(fs::path(Utf8ToWide(path)).filename().wstring())),
       cache_root(CacheRootForDeck(path)),
+      cache_lease(cache_root),
       metadata_path(cache_root / L"slides-metadata.txt"),
       file_stamp(CurrentFileStamp(fs::path(Utf8ToWide(path))))
   {
+  }
+
+  void ClearLiveWindow()
+  {
+    live_window_title.clear();
+    live_window_left = 0.0;
+    live_window_top = 0.0;
+    live_window_width = 0.0;
+    live_window_height = 0.0;
+  }
+
+  bool ApplyLiveWindow(const LiveSnapshot &snapshot)
+  {
+    const bool changed =
+      live_window_title != snapshot.window_title ||
+      live_window_left != snapshot.window_left ||
+      live_window_top != snapshot.window_top ||
+      live_window_width != snapshot.window_width ||
+      live_window_height != snapshot.window_height;
+    live_window_title = snapshot.window_title;
+    live_window_left = snapshot.window_left;
+    live_window_top = snapshot.window_top;
+    live_window_width = snapshot.window_width;
+    live_window_height = snapshot.window_height;
+    return changed;
   }
 
   std::mutex mutex;
@@ -2120,6 +2653,7 @@ struct PresentationDocument::Impl {
   std::string path;
   std::string name;
   fs::path cache_root;
+  DeckCacheLease cache_lease;
   fs::path metadata_path;
   std::string file_stamp;
   std::vector<CachedSlide> slides;
@@ -2141,6 +2675,10 @@ struct PresentationDocument::Impl {
   bool live_ready = false;
   bool presenter_assets_wanted = false;
   std::string live_window_title;
+  double live_window_left = 0.0;
+  double live_window_top = 0.0;
+  double live_window_width = 0.0;
+  double live_window_height = 0.0;
   std::string last_error;
   uint64_t state_version = 1;
   std::chrono::steady_clock::time_point timer_started_at = std::chrono::steady_clock::time_point::min();
@@ -2188,7 +2726,7 @@ void PresentationDocument::SetLivePowerPointEnabled(bool enabled)
     if (!enabled) {
       impl_->live_start_requested = false;
       impl_->live_ready = false;
-      impl_->live_window_title.clear();
+      impl_->ClearLiveWindow();
       impl_->current_media_triggered = false;
     }
     impl_->state_version += 1;
@@ -2256,7 +2794,7 @@ void PresentationDocument::StartLivePowerPointAsync()
       impl_->live_auto_start = false;
       impl_->live_start_requested = false;
       impl_->live_ready = false;
-      impl_->live_window_title.clear();
+      impl_->ClearLiveWindow();
       impl_->last_error.clear();
       impl_->state_version += 1;
       return;
@@ -2274,7 +2812,7 @@ void PresentationDocument::StartLivePowerPointAsync()
     impl_->live_start_requested = true;
     impl_->live_request_generation += 1;
     impl_->live_ready = false;
-    impl_->live_window_title.clear();
+    impl_->ClearLiveWindow();
     impl_->black_screen = false;
     impl_->current_media_triggered = false;
     impl_->load_requested = true;
@@ -2300,7 +2838,7 @@ void PresentationDocument::StopLivePowerPoint()
     cache_dir = WideToUtf8(impl_->cache_root.wstring());
     presentation_path = impl_->path;
     window_title = impl_->live_window_title;
-    impl_->live_window_title.clear();
+    impl_->ClearLiveWindow();
     impl_->current_media_triggered = false;
     impl_->black_screen = false;
     impl_->state_version += 1;
@@ -2351,7 +2889,7 @@ void PresentationDocument::StopLivePowerPointOnLiveQueue(
     return;
   }
   impl_->live_ready = false;
-  impl_->live_window_title.clear();
+  impl_->ClearLiveWindow();
   impl_->current_media_triggered = false;
   if (stopped) {
     impl_->last_error.clear();
@@ -2389,7 +2927,7 @@ void PresentationDocument::StopLivePowerPointAsync()
     cache_dir = WideToUtf8(impl_->cache_root.wstring());
     presentation_path = impl_->path;
     window_title = impl_->live_window_title;
-    impl_->live_window_title.clear();
+    impl_->ClearLiveWindow();
     impl_->current_media_triggered = false;
     impl_->black_screen = false;
     impl_->state_version += 1;
@@ -2473,12 +3011,8 @@ void PresentationDocument::SyncLiveStateAsync()
           changed = true;
         }
       }
-      if (!snapshot.window_title.empty() && self->impl_->live_window_title != snapshot.window_title) {
-        self->impl_->live_window_title = snapshot.window_title;
-        changed = true;
-      } else if (!snapshot.running && !self->impl_->live_window_title.empty()) {
-        self->impl_->live_window_title.clear();
-        changed = true;
+      if (!snapshot.window_title.empty()) {
+        changed = self->impl_->ApplyLiveWindow(snapshot) || changed;
       }
       if (snapshot.slide_aspect_ratio >= 0.2 && snapshot.slide_aspect_ratio <= 10.0 &&
           self->impl_->slide_aspect_ratio != snapshot.slide_aspect_ratio) {
@@ -2507,7 +3041,7 @@ void PresentationDocument::SyncLiveStateAsync()
       const std::string message = LiveRecoveryErrorMessage(detail);
       if (self->impl_->live_ready || !self->impl_->live_window_title.empty() || self->impl_->last_error != message) {
         self->impl_->live_ready = false;
-        self->impl_->live_window_title.clear();
+        self->impl_->ClearLiveWindow();
         self->impl_->last_error = message;
         self->impl_->state_version += 1;
       }
@@ -2660,7 +3194,7 @@ void PresentationDocument::RunLivePowerPointCommandAsync(
         self->impl_->current_index = next_index;
       }
       self->impl_->live_ready = true;
-      self->impl_->live_window_title = snapshot.window_title;
+      self->impl_->ApplyLiveWindow(snapshot);
       if (snapshot.slide_aspect_ratio >= 0.2 && snapshot.slide_aspect_ratio <= 10.0) {
         self->impl_->slide_aspect_ratio = snapshot.slide_aspect_ratio;
       }
@@ -2668,7 +3202,7 @@ void PresentationDocument::RunLivePowerPointCommandAsync(
       self->impl_->current_media_triggered = false;
     } else {
       self->impl_->live_ready = false;
-      self->impl_->live_window_title.clear();
+      self->impl_->ClearLiveWindow();
       self->impl_->last_error = LiveRecoveryErrorMessage(!error.empty() ? error : output);
     }
     self->impl_->state_version += 1;
@@ -2821,6 +3355,10 @@ PresentationStatus PresentationDocument::SnapshotStatus() const
   status.loaded = impl_->loaded;
   status.black_screen = impl_->black_screen;
   status.slide_aspect_ratio = impl_->slide_aspect_ratio;
+  status.live_window_left = impl_->live_window_left;
+  status.live_window_top = impl_->live_window_top;
+  status.live_window_width = impl_->live_window_width;
+  status.live_window_height = impl_->live_window_height;
   status.total_slides = impl_->slides.size();
   status.current_index = status.total_slides > 0 ? std::min(impl_->current_index, status.total_slides - 1) : 0;
   status.current_slide = status.total_slides > 0 ? status.current_index + 1 : 0;
@@ -2991,6 +3529,8 @@ bool PresentationDocument::RenderSlideBGRA(
     is_pdf_source = IsPdfExtension(impl_->path);
     if (impl_->black_screen) {
       black = true;
+    } else if (impl_->loaded && !impl_->slides.empty()) {
+      image_path = impl_->slides[std::min(impl_->current_index, impl_->slides.size() - 1)].image_path;
     } else if (impl_->loading) {
       message_title = L"PPTBridge SK";
       message_subtitle = is_pdf_source
@@ -3006,8 +3546,6 @@ bool PresentationDocument::RenderSlideBGRA(
       message_subtitle = is_pdf_source
         ? L"No rendered pages were found for this PDF file."
         : L"No exported slides were found for this PowerPoint file.";
-    } else {
-      image_path = impl_->slides[std::min(impl_->current_index, impl_->slides.size() - 1)].image_path;
     }
   }
 
@@ -3078,7 +3616,7 @@ bool PresentationDocument::RenderPresenterBGRA(
 
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
-    if (impl_->loading) {
+    if (impl_->loading && (!impl_->loaded || impl_->slides.empty())) {
       DrawCenteredMessage(
         graphics,
         width,
@@ -3364,20 +3902,27 @@ void PresentationDocument::LoadOnWorker()
   };
   const auto fail_load = [this](std::string message) {
     std::lock_guard<std::mutex> lock(impl_->mutex);
-    impl_->slides.clear();
-    impl_->media_by_slide.clear();
-    impl_->loaded = false;
+    const bool has_last_good = impl_->loaded && !impl_->slides.empty();
+    if (!has_last_good) {
+      impl_->slides.clear();
+      impl_->media_by_slide.clear();
+      impl_->loaded = false;
+      impl_->current_index = 0;
+      impl_->current_media_triggered = false;
+    }
     impl_->loading = false;
     impl_->load_requested = false;
     impl_->active_force_reload = false;
-    if (impl_->live_start_requested) {
+    if (impl_->live_start_requested && !impl_->live_ready) {
       impl_->live_start_requested = false;
       impl_->live_request_generation += 1;
     }
-    impl_->live_ready = false;
-    impl_->live_window_title.clear();
-    impl_->current_index = 0;
-    impl_->current_media_triggered = false;
+    if (!has_last_good) {
+      impl_->live_ready = false;
+      impl_->ClearLiveWindow();
+    } else {
+      message += " The last successfully rendered slide remains on air.";
+    }
     impl_->last_error = std::move(message);
     impl_->state_version += 1;
   };
@@ -3402,6 +3947,8 @@ void PresentationDocument::LoadOnWorker()
     return;
   }
 
+  TouchDeckCacheUsage(impl_->cache_root);
+  MaintainDeckCachesOnce(impl_->cache_root);
   const std::string current_stamp = CurrentFileStamp(source_path);
   const fs::path metadata_path = impl_->metadata_path;
   ParsedDeckData deck_data;
@@ -3417,22 +3964,26 @@ void PresentationDocument::LoadOnWorker()
       impl_->live_auto_start = false;
       impl_->live_start_requested = false;
       impl_->live_ready = false;
-      impl_->live_window_title.clear();
+      impl_->ClearLiveWindow();
     }
   }
 
   bool reused_cache = false;
+  bool cache_metadata_published = false;
   bool skip_embedded_media = false;
+  const bool legacy_layout_present = LegacyCacheLayoutExists(impl_->cache_root);
   {
     std::lock_guard<std::mutex> lock(impl_->mutex);
     skip_embedded_media = impl_->live_enabled;
   }
-  if (!force_reload && LoadCachedSlides(
-        metadata_path,
-        current_stamp,
-        !skip_embedded_media,
-        deck_data)) {
+  const bool loaded_cached_deck = !force_reload && LoadCachedSlides(
+    metadata_path,
+    current_stamp,
+    !skip_embedded_media,
+    deck_data);
+  if (loaded_cached_deck && !DeckDataUsesLegacyCacheLayout(deck_data, impl_->cache_root)) {
     reused_cache = true;
+    cache_metadata_published = true;
     blog(
       LOG_INFO,
       is_pdf_source
@@ -3440,20 +3991,26 @@ void PresentationDocument::LoadOnWorker()
         : "[PPTBridge SK] Reused cached Windows slide export for '%s'",
       impl_->path.c_str());
   } else if (is_pdf_source) {
+    deck_data = {};
     if (!RenderPdfDeckData(source_path, impl_->cache_root, deck_data, load_error)) {
       if (load_error.empty()) {
         load_error = "Windows PDF rendering failed.";
       }
     } else {
-      SaveCachedSlides(
+      cache_metadata_published = SaveCachedSlides(
         metadata_path,
         current_stamp,
         deck_data.slides,
         deck_data.media_by_slide,
         deck_data.slide_aspect_ratio,
-        deck_data.media_scan_complete);
+        deck_data.media_scan_complete,
+        deck_data.media_skipped_count);
     }
   } else {
+    if (loaded_cached_deck) {
+      blog(LOG_INFO, "[PPTBridge SK] Migrating legacy Windows slide cache for '%s'", impl_->path.c_str());
+      deck_data = {};
+    }
     std::string output;
     int exit_code = -1;
     {
@@ -3473,13 +4030,30 @@ void PresentationDocument::LoadOnWorker()
         load_error = output.empty() ? "PowerPoint export failed on Windows." : output;
       }
     } else {
-      SaveCachedSlides(
+      cache_metadata_published = SaveCachedSlides(
         metadata_path,
         current_stamp,
         deck_data.slides,
         deck_data.media_by_slide,
         deck_data.slide_aspect_ratio,
-        deck_data.media_scan_complete);
+        deck_data.media_scan_complete,
+        deck_data.media_skipped_count);
+    }
+  }
+
+  if (!reused_cache && !deck_data.slides.empty() && !cache_metadata_published) {
+    blog(LOG_WARNING, "[PPTBridge SK] Could not publish Windows cache metadata for '%s'", impl_->path.c_str());
+  }
+  if (deck_data.media_skipped_count > 0) {
+    blog(
+      LOG_WARNING,
+      "[PPTBridge SK] Skipped %zu oversized embedded media file(s) for '%s'; use PowerPoint Live Mode to play them without duplicating them into the cache",
+      deck_data.media_skipped_count,
+      impl_->path.c_str());
+  }
+  if (skip_embedded_media) {
+    for (auto &slide_media : deck_data.media_by_slide) {
+      slide_media.clear();
     }
   }
 
@@ -3488,21 +4062,33 @@ void PresentationDocument::LoadOnWorker()
   bool live_enabled = false;
   bool should_start_live = false;
   uint64_t live_request_generation = 0;
+  const bool prepared_new_deck = !deck_data.slides.empty();
   {
+    std::lock_guard<std::mutex> render_lock(impl_->render_mutex);
     std::lock_guard<std::mutex> lock(impl_->mutex);
-    impl_->slides = std::move(deck_data.slides);
-    impl_->media_by_slide = std::move(deck_data.media_by_slide);
-    if (deck_data.slide_aspect_ratio >= 0.2 && deck_data.slide_aspect_ratio <= 10.0) {
-      impl_->slide_aspect_ratio = deck_data.slide_aspect_ratio;
-    }
-    if (impl_->media_by_slide.size() < impl_->slides.size()) {
-      impl_->media_by_slide.resize(impl_->slides.size());
-    }
-    impl_->loaded = !impl_->slides.empty();
-    if (!impl_->live_ready) {
+    if (prepared_new_deck) {
+      impl_->slides = std::move(deck_data.slides);
+      impl_->media_by_slide = std::move(deck_data.media_by_slide);
+      if (deck_data.slide_aspect_ratio >= 0.2 && deck_data.slide_aspect_ratio <= 10.0) {
+        impl_->slide_aspect_ratio = deck_data.slide_aspect_ratio;
+      }
+      if (impl_->media_by_slide.size() < impl_->slides.size()) {
+        impl_->media_by_slide.resize(impl_->slides.size());
+      }
+      impl_->loaded = true;
+      if (!impl_->live_ready) {
+        impl_->current_index = 0;
+      }
+      impl_->current_media_triggered = false;
+    } else if (impl_->loaded && !impl_->slides.empty() && !load_error.empty()) {
+      load_error += " The last successfully rendered slide remains on air.";
+    } else {
+      impl_->slides.clear();
+      impl_->media_by_slide.clear();
+      impl_->loaded = false;
       impl_->current_index = 0;
+      impl_->current_media_triggered = false;
     }
-    impl_->current_media_triggered = false;
     impl_->last_error = load_error;
     if (is_pdf_source && impl_->loaded &&
         impl_->timer_started_at == std::chrono::steady_clock::time_point::min()) {
@@ -3516,6 +4102,9 @@ void PresentationDocument::LoadOnWorker()
       impl_->load_requested = false;
     }
     impl_->state_version += 1;
+  }
+  if (prepared_new_deck && legacy_layout_present && cache_metadata_published) {
+    RemoveLegacyCacheLayout(impl_->cache_root);
   }
 
   if (should_start_live) {
@@ -3553,7 +4142,7 @@ void PresentationDocument::LoadOnWorker()
         if (keep_started_session) {
           impl_->live_ready = true;
           impl_->loaded = true;
-          impl_->live_window_title = live_snapshot.window_title;
+          impl_->ApplyLiveWindow(live_snapshot);
           if (live_snapshot.slide_aspect_ratio >= 0.2 && live_snapshot.slide_aspect_ratio <= 10.0) {
             impl_->slide_aspect_ratio = live_snapshot.slide_aspect_ratio;
           }
@@ -3578,7 +4167,7 @@ void PresentationDocument::LoadOnWorker()
                    impl_->live_request_generation == live_request_generation &&
                    impl_->live_start_requested) {
           impl_->live_ready = false;
-          impl_->live_window_title.clear();
+          impl_->ClearLiveWindow();
           impl_->last_error = !live_error.empty()
             ? live_error
             : (output.empty() ? "PowerPoint live slideshow did not start." : output);

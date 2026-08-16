@@ -45,13 +45,13 @@ Copy these into GitHub topics:
 
 ## Suggested Release Tag
 
-Windows: `v0.5.9`
+Windows: `v0.5.10`
 
 Apple Silicon: `v0.5.8`
 
 ## Suggested Release Title
 
-Windows: `PPTBridge SK v0.5.9 - Windows PDF Support`
+Windows: `PPTBridge SK v0.5.10 - Windows Production Hardening`
 
 Apple Silicon: `PPTBridge SK v0.5.8 - Apple Silicon Stable`
 

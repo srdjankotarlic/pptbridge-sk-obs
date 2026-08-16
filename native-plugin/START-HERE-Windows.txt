@@ -4,7 +4,7 @@ PPTBridge SK for OBS - Windows
 Use this file only if you are looking at the source tree.
 Normal Windows users should download:
 
-  pptbridge-obs-windows-x64-v0.5.9.zip
+  pptbridge-obs-windows-x64-v0.5.10.zip
 
 Then:
 
@@ -45,4 +45,4 @@ Known limits:
 - Desktop PowerPoint is required only for PowerPoint files, not PDFs.
 - The DLL and installer are not code-signed yet, so Windows may ask for confirmation.
 - Test every event deck on the target OBS/PowerPoint computer before a live show.
-- Windows x64 v0.5.9 and macOS Apple Silicon v0.5.8 are stable release platforms.
+- Windows x64 v0.5.10 and macOS Apple Silicon v0.5.8 are stable release platforms.

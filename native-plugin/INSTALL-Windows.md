@@ -4,11 +4,11 @@
 
 Download and extract only:
 
-`pptbridge-obs-windows-x64-v0.5.9.zip`
+`pptbridge-obs-windows-x64-v0.5.10.zip`
 
 Optional integrity file:
 
-`pptbridge-obs-windows-x64-v0.5.9.zip.sha256`
+`pptbridge-obs-windows-x64-v0.5.10.zip.sha256`
 
 ## Easy Install
 
@@ -25,7 +25,7 @@ The installer detects a normal OBS installation automatically. For portable OBS 
 INSTALL.cmd "D:\Path\To\obs-studio"
 ```
 
-Re-running `INSTALL.cmd` safely installs the new version over an older PPTBridge SK DLL. It closes only the selected OBS installation, not another portable OBS copy that may also be open.
+Re-running `INSTALL.cmd` safely installs the new version over an older PPTBridge SK DLL. New files are staged and verified first, and the previous plugin is restored if activation fails. The installer closes only the selected OBS installation, not another portable OBS copy that may also be open.
 
 ## Recommended Show Setup
 
@@ -57,9 +57,9 @@ If the plugin is missing after installation, close OBS and run `INSTALL.cmd` aga
 After a clean Release build:
 
 ```powershell
-cmake --build native-plugin/build-win-v059-clean-release --config Release
+cmake --build native-plugin/build-win-v0510-clean-release --config Release
 powershell -ExecutionPolicy Bypass -File native-plugin/scripts/make-windows-release.ps1 `
-  -BuildDir native-plugin/build-win-v059-clean-release
+  -BuildDir native-plugin/build-win-v0510-clean-release
 ```
 
 The script creates the ZIP and matching `.sha256` file under `native-plugin/release`. The public ZIP intentionally contains only `INSTALL.cmd`, `README.txt`, the DLL, and two required locale files.

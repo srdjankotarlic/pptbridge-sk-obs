@@ -15,7 +15,7 @@ Thanks for testing PPTBridge SK. The fastest way to get a useful answer is to in
 
 Please include:
 
-- PPTBridge SK release, for example Windows `v0.5.9` or macOS `v0.5.8`
+- PPTBridge SK release, for example Windows `v0.5.10` or macOS `v0.5.8`
 - macOS or Windows version
 - platform/CPU, for example Windows x64, Apple Silicon, or Intel Mac
 - OBS Studio version

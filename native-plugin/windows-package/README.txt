@@ -1,5 +1,5 @@
 PPTBridge SK for OBS - Windows x64
-Version: v0.5.9
+Version: v0.5.10
 
 INSTALL IN A FEW CLICKS
 
@@ -14,6 +14,9 @@ The installer finds a normal OBS installation automatically. For portable OBS
 or a custom installation, run:
 
 INSTALL.cmd "D:\Path\To\obs-studio"
+
+Re-running the installer is safe. New files are verified before the active
+plugin is replaced, and the previous plugin is restored if installation fails.
 
 FIRST PRESENTATION
 

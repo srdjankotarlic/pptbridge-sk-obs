@@ -1,6 +1,19 @@
 # Changelog
 
-PPTBridge SK v0.5.9 is the current stable Windows x64 release. Apple Silicon remains stable on v0.5.8, with Intel Mac on a separate beta track. Download the current packages from the [README](README.md#download-and-install) or [GitHub Releases](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases).
+PPTBridge SK v0.5.10 is the current stable Windows x64 release. Apple Silicon remains stable on v0.5.8, with Intel Mac on a separate beta track. Download the current packages from the [README](README.md#download-and-install) or [GitHub Releases](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases).
+
+## Windows v0.5.10 - Production Hardening
+
+- Fixed intermittent blank white live frames by requiring OBS Window Capture to be fully hooked before replacing the last good slide.
+- Isolated live PowerPoint windows by exact canonical file path, including two different decks that share the same filename.
+- Routed clicker, OSC, and PowerPoint audio correctly through nested OBS scenes while preserving Program/Preview isolation.
+- Added transactional PowerPoint/PDF caches, active-use leases, bounded retention, junction-safe cleanup, and strict embedded-media size/free-space limits.
+- Serialized native PDF rendering across OBS processes to prevent a Windows GPU-driver access violation found during parallel stress testing.
+- Made `INSTALL.cmd` transactional: new files are staged and hashed first, failed activation restores the previous plugin, invalid paths never fall back to another OBS copy, and hash verification no longer depends on optional PowerShell modules.
+- Expanded release QA to cover real event decks, an 8 GB media deck, animation pixel validation, same-name decks, nested scenes, multiple simultaneous PowerPoint/PDF sources, PDF corruption/recovery/concurrency, repeated lifecycle runs, resource plateau, and negative installer paths.
+- Kept the Windows download to exactly five user-facing files with the same extract-and-double-click workflow.
+
+[Windows v0.5.10 release notes and download](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.10)
 
 ## Windows v0.5.9 - Stable PDF Support
 
@@ -56,6 +69,7 @@ PPTBridge SK v0.5.9 is the current stable Windows x64 release. Apple Silicon rem
 
 | Release | Track | Main focus |
 | --- | --- | --- |
+| [v0.5.10](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.10) | Windows x64 stable | Live-capture, nested-scene, same-name deck, cache, concurrent PDF, and installer hardening |
 | [v0.5.9](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.9) | Windows x64 stable | Native PDF support without PowerPoint, plus existing live PowerPoint, Presenter, clicker/OSC, and easy installer |
 | [v0.5.8](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8) | Windows x64 and Apple Silicon stable | Live PowerPoint/PDF platform workflows, Presenter, clicker/OSC, audio, recovery, and easy installers |
 | [v0.5.8-windows-beta.1](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8-windows-beta.1) | Windows beta | Live capture, Presenter parity, Program-scene clicker/audio routing, multi-deck stability, and easy installer |

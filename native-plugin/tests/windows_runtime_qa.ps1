@@ -24,6 +24,14 @@ param(
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
+$windowsPowerShellPath = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
+if ($PSVersionTable.PSEdition -ne "Desktop") {
+  throw "Windows runtime QA must run under Windows PowerShell 5.1 so Office COM automation is available. Use: `"$windowsPowerShellPath`" -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" ..."
+}
+if (-not (Test-Path -LiteralPath $windowsPowerShellPath -PathType Leaf)) {
+  throw "Windows PowerShell 5.1 was not found at: $windowsPowerShellPath"
+}
+
 if ([string]::IsNullOrWhiteSpace($ClickerProbePath)) {
   $ClickerProbePath = Join-Path $PSScriptRoot "windows_clicker_focus_probe.ps1"
 }
@@ -625,6 +633,38 @@ function Get-DarkPixelRatio {
   }
 }
 
+function Get-InteriorNonWhiteRatio {
+  param([string]$Path, [int]$SampleStep = 8)
+  if (-not (Test-Path -LiteralPath $Path)) {
+    return 0.0
+  }
+
+  $bitmap = [Drawing.Bitmap]::FromFile($Path)
+  try {
+    $nonWhite = 0
+    $total = 0
+    $left = [Math]::Floor($bitmap.Width * 0.15)
+    $right = [Math]::Ceiling($bitmap.Width * 0.85)
+    $top = [Math]::Floor($bitmap.Height * 0.10)
+    $bottom = [Math]::Ceiling($bitmap.Height * 0.90)
+    for ($y = $top; $y -lt $bottom; $y += $SampleStep) {
+      for ($x = $left; $x -lt $right; $x += $SampleStep) {
+        $pixel = $bitmap.GetPixel($x, $y)
+        if ($pixel.R -lt 245 -or $pixel.G -lt 245 -or $pixel.B -lt 245) {
+          $nonWhite += 1
+        }
+        $total += 1
+      }
+    }
+    if ($total -eq 0) {
+      return 0.0
+    }
+    return [double]$nonWhite / [double]$total
+  } finally {
+    $bitmap.Dispose()
+  }
+}
+
 function Send-OscNoArg {
   param([string]$Address, [int]$Port)
 
@@ -679,7 +719,7 @@ function Receive-OscAddresses {
 function Invoke-ClickerProbe {
   param([string]$Key)
 
-  $raw = & "$PSHOME\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File $ClickerProbePath -Key $Key
+  $raw = & $windowsPowerShellPath -NoProfile -ExecutionPolicy Bypass -File $ClickerProbePath -Key $Key
   if ($LASTEXITCODE -ne 0) {
     throw "Clicker focus probe failed for $Key."
   }
@@ -766,6 +806,12 @@ $sceneB = "$prefix Program B"
 $sceneAuto = "$prefix Auto"
 $sceneInvalid = "$prefix Invalid"
 $scenePdf = "$prefix PDF"
+$sceneDuplicateA = "$prefix Duplicate A"
+$sceneDuplicateB = "$prefix Duplicate B"
+$sceneNestedInner = "$prefix Nested Inner"
+$sceneNestedProgram = "$prefix Nested Program"
+$sceneNestedMediaInner = "$prefix Nested Media Inner"
+$sceneNestedMediaProgram = "$prefix Nested Media Program"
 $slideA = "$prefix Slide A"
 $slideAlias = "$prefix Slide Alias"
 $presenterA = "$prefix Presenter A"
@@ -773,6 +819,19 @@ $slideB = "$prefix Animation"
 $slideMedia = "$prefix Media"
 $slideAuto = "$prefix Auto Slide"
 $slideCached = "$prefix Cached Slide"
+$slideDuplicateA = "$prefix Duplicate Slide A"
+$slideDuplicateB = "$prefix Duplicate Slide B"
+
+$duplicateRoot = Join-Path $ArtifactsDir "duplicate-basename-inputs"
+$duplicateAParent = Join-Path $duplicateRoot "event-a"
+$duplicateBParent = Join-Path $duplicateRoot "event-b"
+New-Item -ItemType Directory -Path $duplicateAParent,$duplicateBParent -Force | Out-Null
+$duplicateDeckA = Join-Path $duplicateAParent "show.pptx"
+$duplicateDeckB = Join-Path $duplicateBParent "show.pptx"
+Copy-Item -LiteralPath $DeckPlain -Destination $duplicateDeckA -Force
+Copy-Item -LiteralPath $DeckAnimation -Destination $duplicateDeckB -Force
+$duplicateDeckA = Normalize-DeckPath $duplicateDeckA
+$duplicateDeckB = Normalize-DeckPath $duplicateDeckB
 
 $baseSlideSettings = @{
   pptx_path = $DeckPlain
@@ -789,7 +848,7 @@ $baseSlideSettings = @{
 }
 
 try {
-  foreach ($deck in @($DeckPlain, $DeckAnimation, $DeckMedia)) {
+  foreach ($deck in @($DeckPlain, $DeckAnimation, $DeckMedia, $duplicateDeckA, $duplicateDeckB)) {
     Close-DeckSlideShow $deck
   }
   Start-Sleep -Seconds 2
@@ -806,7 +865,18 @@ try {
   Add-Result $results "Slide source kind is registered" ($inputKinds -contains "pptbridge_slide_source") ""
   Add-Result $results "Presenter source kind is registered" ($inputKinds -contains "pptbridge_presenter_source") ""
 
-  foreach ($scene in @($sceneA, $sceneB, $sceneAuto, $sceneInvalid, $scenePdf)) {
+  foreach ($scene in @(
+      $sceneA,
+      $sceneB,
+      $sceneAuto,
+      $sceneInvalid,
+      $scenePdf,
+      $sceneDuplicateA,
+      $sceneDuplicateB,
+      $sceneNestedInner,
+      $sceneNestedProgram,
+      $sceneNestedMediaInner,
+      $sceneNestedMediaProgram)) {
     Invoke-ObsRequest $socket "CreateScene" @{ sceneName = $scene } | Out-Null
     $createdScenes.Add($scene) | Out-Null
   }
@@ -890,9 +960,12 @@ try {
     $liveShot = Join-Path $ArtifactsDir "$stamp-live-plain.png"
     Save-ObsScreenshot $socket $slideA $liveShot
     $liveInfo = Get-ImageInfo $liveShot
+    $liveInkRatio = Get-InteriorNonWhiteRatio $liveShot
     Add-Result $results "Live PowerPoint capture renders" (
-      $liveInfo.width -eq 1920 -and $liveInfo.height -eq 1080 -and $liveInfo.bytes -gt 5000) (
-      "{0}x{1}; {2} bytes" -f $liveInfo.width,$liveInfo.height,$liveInfo.bytes)
+      $liveInfo.width -eq 1920 -and $liveInfo.height -eq 1080 -and
+      $liveInfo.bytes -gt 5000 -and $liveInkRatio -gt 0.0003) (
+      "{0}x{1}; {2} bytes; interiorInk={3:N5}" -f
+        $liveInfo.width,$liveInfo.height,$liveInfo.bytes,$liveInkRatio)
   }
 
   $plainStartSession = @(Get-DeckSession $DeckPlain)
@@ -1157,12 +1230,16 @@ try {
       -1
     }
     $animationImageChanged = (Get-FileHashText $animationBefore) -ne (Get-FileHashText $animationAfter)
+    $animationBeforeInk = Get-InteriorNonWhiteRatio $animationBefore
+    $animationAfterInk = Get-InteriorNonWhiteRatio $animationAfter
     Add-Result $results "True live mode renders an in-slide animation step" (
       $animationReachedSlide -and $animationClickAdvanced -and
-      $animationPosition -eq 2 -and $animationImageChanged) (
-      "reachedSlide={0}; slide={1}; click={2}->{3}; imageChanged={4}" -f
+      $animationPosition -eq 2 -and $animationImageChanged -and
+      $animationBeforeInk -gt 0.0003 -and $animationAfterInk -gt 0.0003) (
+      "reachedSlide={0}; slide={1}; click={2}->{3}; imageChanged={4}; ink={5:N5}->{6:N5}" -f
         $animationReachedSlide,$animationPosition,
-        $animationClickBefore,$animationClickAfter,$animationImageChanged)
+        $animationClickBefore,$animationClickAfter,$animationImageChanged,
+        $animationBeforeInk,$animationAfterInk)
   } else {
     Add-Result $results "True live mode renders an in-slide animation step" $false "Animation slideshow did not start"
   }
@@ -1210,9 +1287,45 @@ try {
         $meterSocket.Dispose()
       }
     }
+
+    Invoke-ObsRequest $socket "CreateSceneItem" @{
+      sceneName = $sceneNestedMediaInner
+      sourceName = $slideMedia
+      sceneItemEnabled = $true
+    } | Out-Null
+    Invoke-ObsRequest $socket "CreateSceneItem" @{
+      sceneName = $sceneNestedMediaProgram
+      sourceName = $sceneNestedMediaInner
+      sceneItemEnabled = $true
+    } | Out-Null
+    Invoke-ObsRequest $socket "SetCurrentProgramScene" @{ sceneName = $sceneNestedMediaProgram } | Out-Null
+    Start-Sleep -Seconds 2
+    Press-InputButton $socket $slideMedia "pptbridge_first_btn"
+    [void](Wait-DeckSlide $DeckMedia 1)
+    Press-InputButton $socket $slideMedia "pptbridge_last_btn"
+    [void](Wait-DeckSlide $DeckMedia 3)
+    Start-Sleep -Seconds 3
+
+    $nestedMeterSocket = $null
+    try {
+      $nestedMeterSocket = Connect-Obs -Password $WebSocketPassword -EventSubscriptions 65536
+      Press-InputButton $socket $slideMedia "pptbridge_next_btn"
+      $nestedLiveAudioPeak = Collect-ObsMeterPeak $nestedMeterSocket $slideMedia 15
+      Add-Result $results "Live PowerPoint audio traverses nested Program scenes" (
+        [double]$nestedLiveAudioPeak.peak -gt 0.001) (
+        "peak={0:N6}; inputs={1}" -f
+          [double]$nestedLiveAudioPeak.peak,($nestedLiveAudioPeak.matchedInputs -join "; "))
+    } catch {
+      Add-Result $results "Live PowerPoint audio traverses nested Program scenes" $false $_.Exception.Message
+    } finally {
+      if ($nestedMeterSocket) {
+        $nestedMeterSocket.Dispose()
+      }
+    }
   } else {
     Add-Result $results "Embedded-media deck stays live and renders" $false "Media slideshow did not start"
     Add-Result $results "Live PowerPoint embedded audio reaches OBS mixer" $false "Media slideshow did not start"
+    Add-Result $results "Live PowerPoint audio traverses nested Program scenes" $false "Media slideshow did not start"
   }
   Invoke-ObsRequest $socket "SetCurrentProgramScene" @{ sceneName = $sceneA } | Out-Null
 
@@ -1223,6 +1336,87 @@ try {
     "activeQADecks={0}" -f @((Get-PowerPointSessions | Where-Object {
       $_.path -in @($DeckPlain,$DeckAnimation,$DeckMedia)
     })).Count)
+
+  $duplicateSettingsA = $baseSlideSettings.Clone()
+  $duplicateSettingsA.pptx_path = $duplicateDeckA
+  $duplicateSettingsA.use_live_powerpoint = $true
+  $duplicateSettingsA.use_live_app_audio = $false
+  $duplicateSettingsA.auto_recover_live = $false
+  $duplicateSettingsB = $duplicateSettingsA.Clone()
+  $duplicateSettingsB.pptx_path = $duplicateDeckB
+  Invoke-ObsRequest $socket "CreateInput" @{
+    sceneName = $sceneDuplicateA
+    inputName = $slideDuplicateA
+    inputKind = "pptbridge_slide_source"
+    sceneItemEnabled = $true
+    inputSettings = $duplicateSettingsA
+  } | Out-Null
+  $createdInputs.Add($slideDuplicateA) | Out-Null
+  Invoke-ObsRequest $socket "CreateInput" @{
+    sceneName = $sceneDuplicateB
+    inputName = $slideDuplicateB
+    inputKind = "pptbridge_slide_source"
+    sceneItemEnabled = $true
+    inputSettings = $duplicateSettingsB
+  } | Out-Null
+  $createdInputs.Add($slideDuplicateB) | Out-Null
+
+  Invoke-ObsRequest $socket "SetCurrentProgramScene" @{ sceneName = $sceneDuplicateA } | Out-Null
+  Press-InputButton $socket $slideDuplicateA "pptbridge_start_live_btn"
+  $duplicateAStarted = Wait-DeckStarted $duplicateDeckA
+  Invoke-ObsRequest $socket "SetCurrentProgramScene" @{ sceneName = $sceneDuplicateB } | Out-Null
+  Press-InputButton $socket $slideDuplicateB "pptbridge_start_live_btn"
+  $duplicateBStarted = Wait-DeckStarted $duplicateDeckB
+  Press-InputButton $socket $slideDuplicateA "pptbridge_first_btn"
+  Press-InputButton $socket $slideDuplicateB "pptbridge_first_btn"
+  $duplicateAFirst = Wait-DeckSlide $duplicateDeckA 1
+  $duplicateBFirst = Wait-DeckSlide $duplicateDeckB 1
+  Start-Sleep -Seconds 2
+
+  $duplicateABefore = Join-Path $ArtifactsDir "$stamp-duplicate-a-before.png"
+  $duplicateBBefore = Join-Path $ArtifactsDir "$stamp-duplicate-b-before.png"
+  Save-ObsScreenshot $socket $slideDuplicateA $duplicateABefore
+  Save-ObsScreenshot $socket $slideDuplicateB $duplicateBBefore
+  $duplicateABeforeInfo = Get-ImageInfo $duplicateABefore
+  $duplicateBBeforeInfo = Get-ImageInfo $duplicateBBefore
+  $duplicateABeforeHash = Get-FileHashText $duplicateABefore
+  $duplicateBBeforeHash = Get-FileHashText $duplicateBBefore
+
+  Press-InputButton $socket $slideDuplicateB "pptbridge_next_btn"
+  $duplicateBAdvanced = Wait-DeckSlide $duplicateDeckB 2
+  Start-Sleep -Milliseconds 750
+  $duplicateAAfter = Join-Path $ArtifactsDir "$stamp-duplicate-a-after-b-next.png"
+  $duplicateBAfter = Join-Path $ArtifactsDir "$stamp-duplicate-b-after-next.png"
+  Save-ObsScreenshot $socket $slideDuplicateA $duplicateAAfter
+  Save-ObsScreenshot $socket $slideDuplicateB $duplicateBAfter
+  $duplicateAAfterHash = Get-FileHashText $duplicateAAfter
+  $duplicateBAfterHash = Get-FileHashText $duplicateBAfter
+  $duplicateASession = @(Get-DeckSession $duplicateDeckA)
+  $duplicateBSession = @(Get-DeckSession $duplicateDeckB)
+  Add-Result $results "Same-name decks bind to their exact files and capture windows" (
+    $duplicateAStarted -and $duplicateBStarted -and $duplicateAFirst -and $duplicateBFirst -and
+    $duplicateASession.Count -eq 1 -and $duplicateBSession.Count -eq 1 -and
+    [int]$duplicateASession[0].total -eq 3 -and [int]$duplicateBSession[0].total -eq 2 -and
+    $duplicateABeforeInfo.width -eq 1920 -and $duplicateABeforeInfo.height -eq 1080 -and
+    $duplicateBBeforeInfo.width -eq 1920 -and $duplicateBBeforeInfo.height -eq 1080 -and
+    $duplicateABeforeInfo.bytes -gt 5000 -and $duplicateBBeforeInfo.bytes -gt 5000 -and
+    $duplicateABeforeHash -ne $duplicateBBeforeHash -and
+    $duplicateAAfterHash -eq $duplicateABeforeHash -and
+    $duplicateBAfterHash -ne $duplicateBBeforeHash -and
+    $duplicateBAdvanced -and (Get-DeckSlide $duplicateDeckA) -eq 1) (
+    "started={0}/{1}; totals={2}/{3}; AStayed={4}; BChanged={5}; slides={6}/{7}" -f
+      $duplicateAStarted,$duplicateBStarted,
+      $(if ($duplicateASession.Count -eq 1) { $duplicateASession[0].total } else { 0 }),
+      $(if ($duplicateBSession.Count -eq 1) { $duplicateBSession[0].total } else { 0 }),
+      ($duplicateAAfterHash -eq $duplicateABeforeHash),
+      ($duplicateBAfterHash -ne $duplicateBBeforeHash),
+      (Get-DeckSlide $duplicateDeckA),(Get-DeckSlide $duplicateDeckB))
+  Press-InputButton $socket $slideDuplicateA "pptbridge_stop_live_btn"
+  Press-InputButton $socket $slideDuplicateB "pptbridge_stop_live_btn"
+  $duplicateAStopped = Wait-DeckStopped $duplicateDeckA
+  $duplicateBStopped = Wait-DeckStopped $duplicateDeckB
+  Add-Result $results "Same-name decks stop independently" ($duplicateAStopped -and $duplicateBStopped) (
+    "A={0}; B={1}" -f $duplicateAStopped,$duplicateBStopped)
 
   $aliasPath = (Split-Path -Parent $DeckPlain) + "\.\" + (Split-Path -Leaf $DeckPlain)
   $aliasSettings = $baseSlideSettings.Clone()
@@ -1238,13 +1432,39 @@ try {
   } | Out-Null
   $createdInputs.Add($slideAlias) | Out-Null
 
-  Invoke-ObsRequest $socket "SetCurrentProgramScene" @{ sceneName = $sceneA } | Out-Null
+  Invoke-ObsRequest $socket "CreateSceneItem" @{
+    sceneName = $sceneNestedInner
+    sourceName = $slideA
+    sceneItemEnabled = $true
+  } | Out-Null
+  Invoke-ObsRequest $socket "CreateSceneItem" @{
+    sceneName = $sceneNestedProgram
+    sourceName = $sceneNestedInner
+    sceneItemEnabled = $true
+  } | Out-Null
+
   Invoke-ObsRequest $socket "SetStudioModeEnabled" @{ studioModeEnabled = $true } | Out-Null
   Invoke-ObsRequest $socket "SetCurrentPreviewScene" @{ sceneName = $sceneB } | Out-Null
   Press-InputButton $socket $slideA "pptbridge_first_btn"
   Press-InputButton $socket $slideB "pptbridge_first_btn"
   [void](Wait-DeckSlide $DeckPlain 1)
   [void](Wait-DeckSlide $DeckAnimation 1)
+
+  Invoke-ObsRequest $socket "SetCurrentProgramScene" @{ sceneName = $sceneNestedProgram } | Out-Null
+  $nestedClickerNext = Invoke-ClickerProbe "PAGEDOWN"
+  $nestedProgramAdvanced = Wait-DeckSlide $DeckPlain 2
+  $nestedPreviewStayed = (Get-DeckSlide $DeckAnimation) -eq 1
+  Add-Result $results "Clicker traverses nested Program scenes only" (
+    $nestedProgramAdvanced -and $nestedPreviewStayed -and
+    $nestedClickerNext.foregroundWasProbe -and
+    $nestedClickerNext.keyDownCount -eq 0 -and $nestedClickerNext.keyUpCount -eq 0) (
+    "program={0}; preview={1}; probe={2}" -f
+      (Get-DeckSlide $DeckPlain),(Get-DeckSlide $DeckAnimation),
+      ($nestedClickerNext | ConvertTo-Json -Compress))
+  $nestedClickerPrevious = Invoke-ClickerProbe "PAGEUP"
+  [void](Wait-DeckSlide $DeckPlain 1)
+
+  Invoke-ObsRequest $socket "SetCurrentProgramScene" @{ sceneName = $sceneA } | Out-Null
 
   $clickerNext = Invoke-ClickerProbe "PAGEDOWN"
   $clickerProgramAdvanced = Wait-DeckSlide $DeckPlain 2
@@ -1727,6 +1947,62 @@ try {
       "nextChanged={0}; previousRestored={1}" -f
         ((Get-FileHashText $pdfOscNext) -ne (Get-FileHashText $pdfClickerBefore)),
         ((Get-FileHashText $pdfOscPrevious) -eq (Get-FileHashText $pdfClickerBefore)))
+
+    $pdfReloadCopy = Join-Path $ArtifactsDir "$stamp-reload-continuity.pdf"
+    $pdfReloadSource = "$prefix PDF Reload Continuity"
+    Copy-Item -LiteralPath $PdfDecks[0] -Destination $pdfReloadCopy -Force
+    $pdfReloadCopy = Normalize-DeckPath $pdfReloadCopy
+    $pdfReloadSettings = $baseSlideSettings.Clone()
+    $pdfReloadSettings.pptx_path = $pdfReloadCopy
+    $pdfReloadSettings.use_live_powerpoint = $false
+    $pdfReloadSettings.auto_start_live_powerpoint = $false
+    $pdfReloadSettings.close_live_powerpoint_on_shutdown = $false
+    $pdfReloadSettings.audio_enabled = $false
+    $pdfReloadSettings.use_live_app_audio = $false
+    $pdfReloadSettings.auto_recover_live = $false
+    Invoke-ObsRequest $socket "CreateInput" @{
+      sceneName = $scenePdf
+      inputName = $pdfReloadSource
+      inputKind = "pptbridge_slide_source"
+      sceneItemEnabled = $true
+      inputSettings = $pdfReloadSettings
+    } | Out-Null
+    $createdInputs.Add($pdfReloadSource) | Out-Null
+
+    $pdfReloadBefore = Join-Path $ArtifactsDir "$stamp-reload-continuity-before.png"
+    $pdfReloadReady = Wait-Until {
+      try {
+        Save-ObsScreenshot $socket $pdfReloadSource $pdfReloadBefore
+        return (Get-FileHashText $pdfReloadBefore) -eq (Get-FileHashText $pdfClickerBefore)
+      } catch {
+        return $false
+      }
+    } -TimeoutSeconds 60 -PollMilliseconds 650
+    $pdfReloadBeforeHash = Get-FileHashText $pdfReloadBefore
+
+    [IO.File]::WriteAllText($pdfReloadCopy, "%PDF-1.4`ncorrupt reload input")
+    Press-InputButton $socket $pdfReloadSource "pptbridge_reload_btn"
+    Start-Sleep -Seconds 5
+    $pdfReloadFailedShot = Join-Path $ArtifactsDir "$stamp-reload-continuity-failed.png"
+    Save-ObsScreenshot $socket $pdfReloadSource $pdfReloadFailedShot
+    $pdfReloadPreserved = (Get-FileHashText $pdfReloadFailedShot) -eq $pdfReloadBeforeHash
+
+    Copy-Item -LiteralPath $PdfDecks[0] -Destination $pdfReloadCopy -Force
+    Press-InputButton $socket $pdfReloadSource "pptbridge_reload_btn"
+    $pdfReloadRecoveredShot = Join-Path $ArtifactsDir "$stamp-reload-continuity-recovered.png"
+    $pdfReloadRecovered = Wait-Until {
+      try {
+        Save-ObsScreenshot $socket $pdfReloadSource $pdfReloadRecoveredShot
+        return (Get-FileHashText $pdfReloadRecoveredShot) -eq $pdfReloadBeforeHash
+      } catch {
+        return $false
+      }
+    } -TimeoutSeconds 60 -PollMilliseconds 650
+    $pdfReloadObsAlive = $null -ne (Invoke-ObsRequest $socket "GetVersion")
+    Add-Result $results "Failed PDF reload keeps the last good slide on air and recovers" (
+      $pdfReloadReady -and $pdfReloadPreserved -and $pdfReloadRecovered -and $pdfReloadObsAlive) (
+      "ready={0}; preserved={1}; recovered={2}; OBSAlive={3}" -f
+        $pdfReloadReady,$pdfReloadPreserved,$pdfReloadRecovered,$pdfReloadObsAlive)
   }
 
   $invalidDir = Join-Path $ArtifactsDir "invalid-inputs"
@@ -1776,7 +2052,12 @@ try {
   $unexpectedError = $_.Exception.ToString()
   Add-Result $results "Runtime suite completed without an unexpected exception" $false $unexpectedError
 } finally {
-  foreach ($deck in @($DeckPlain, $DeckAnimation, $DeckMedia) + @($CompatibilityDecks)) {
+  foreach ($deck in @(
+      $DeckPlain,
+      $DeckAnimation,
+      $DeckMedia,
+      $duplicateDeckA,
+      $duplicateDeckB) + @($CompatibilityDecks)) {
     try {
       Close-DeckSlideShow $deck
     } catch {
