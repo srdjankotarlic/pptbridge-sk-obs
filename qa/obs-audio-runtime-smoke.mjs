@@ -13,10 +13,46 @@ const recordOutput = process.env.PPTBRIDGE_TEST_RECORD_OUTPUT === "1";
 const audioEnabled = process.env.PPTBRIDGE_TEST_AUDIO_ENABLED !== "0";
 const audioGainDb = Number(process.env.PPTBRIDGE_TEST_AUDIO_GAIN_DB || "0");
 const holdMilliseconds = Number(process.env.PPTBRIDGE_TEST_HOLD_MS || "0");
+const advanceCount = Number(process.env.PPTBRIDGE_TEST_ADVANCE_COUNT || "1");
 const expectSignal = process.env.PPTBRIDGE_TEST_EXPECT_SIGNAL
   ? process.env.PPTBRIDGE_TEST_EXPECT_SIGNAL === "1"
   : audioEnabled;
 const obsWebSocketPassword = process.env.PPTBRIDGE_QA_OBS_PASSWORD || "";
+
+function paddedString(packet, offset) {
+  const end = packet.indexOf(0, offset);
+  if (end < 0) {
+    throw new Error("OSC packet contains an unterminated string");
+  }
+  return {
+    value: packet.subarray(offset, end).toString("utf8"),
+    next: Math.ceil((end + 1) / 4) * 4,
+  };
+}
+
+function parseOscPacket(packet) {
+  const address = paddedString(packet, 0);
+  const tags = paddedString(packet, address.next);
+  if (tags.value === ",i") {
+    return { address: address.value, value: packet.readInt32BE(tags.next) };
+  }
+  if (tags.value === ",s") {
+    return { address: address.value, value: paddedString(packet, tags.next).value };
+  }
+  throw new Error(`unsupported OSC type tag ${tags.value} for ${address.value}`);
+}
+
+const feedbackSocket = dgram.createSocket("udp4");
+const feedbackValues = new Map();
+feedbackSocket.on("message", (packet) => {
+  const message = parseOscPacket(packet);
+  feedbackValues.set(message.address, message.value);
+});
+await new Promise((resolve, reject) => {
+  feedbackSocket.once("error", reject);
+  feedbackSocket.bind(0, "127.0.0.1", resolve);
+});
+const feedbackPort = feedbackSocket.address().port;
 
 if (!Number.isFinite(audioGainDb) || audioGainDb < -60 || audioGainDb > 24) {
   console.error("PPTBRIDGE_TEST_AUDIO_GAIN_DB must be between -60 and 24");
@@ -24,6 +60,10 @@ if (!Number.isFinite(audioGainDb) || audioGainDb < -60 || audioGainDb > 24) {
 }
 if (!Number.isFinite(holdMilliseconds) || holdMilliseconds < 0 || holdMilliseconds > 60000) {
   console.error("PPTBRIDGE_TEST_HOLD_MS must be between 0 and 60000");
+  process.exit(2);
+}
+if (!Number.isInteger(advanceCount) || advanceCount < 1 || advanceCount > 100) {
+  console.error("PPTBRIDGE_TEST_ADVANCE_COUNT must be an integer between 1 and 100");
   process.exit(2);
 }
 
@@ -147,6 +187,20 @@ function sampleHasSignal(sample) {
     Array.isArray(channel) && channel.some((level) => Number.isFinite(level) && level > 0.00003));
 }
 
+function maximumMeterValue(samples, field) {
+  let maximum = Number.NEGATIVE_INFINITY;
+  for (const sample of samples) {
+    for (const channel of sample?.[field] || []) {
+      for (const value of Array.isArray(channel) ? channel : []) {
+        if (Number.isFinite(value)) {
+          maximum = Math.max(maximum, value);
+        }
+      }
+    }
+  }
+  return Number.isFinite(maximum) ? maximum : null;
+}
+
 async function waitForSignal(inputNames, timeoutMilliseconds) {
   const expected = new Set(inputNames);
   const deadline = Date.now() + timeoutMilliseconds;
@@ -213,10 +267,30 @@ try {
       use_live_powerpoint: false,
       audio_enabled: audioEnabled,
       audio_gain_db: audioGainDb,
+      pptbridge_osc_feedback_enabled: true,
+      pptbridge_osc_feedback_host: "127.0.0.1",
+      pptbridge_osc_feedback_port: feedbackPort,
     },
     sceneItemEnabled: true,
   });
-  await sleep(2000);
+  const loadDeadline = Date.now() + 30000;
+  while (Date.now() < loadDeadline) {
+    if (feedbackValues.get("/pptbridge/status/source_name") === inputName &&
+        feedbackValues.get("/pptbridge/status/loading") === 0 &&
+        feedbackValues.get("/pptbridge/status/loaded") === 1 &&
+        feedbackValues.get("/pptbridge/status/current") === 1 &&
+        feedbackValues.get("/pptbridge/status/total") >= 2) {
+      break;
+    }
+    await sleep(100);
+  }
+  if (feedbackValues.get("/pptbridge/status/loading") !== 0 ||
+      feedbackValues.get("/pptbridge/status/loaded") !== 1 ||
+      feedbackValues.get("/pptbridge/status/total") < 2) {
+    throw new Error(
+      `PPTBridge source did not finish loading: ` +
+      `${JSON.stringify(Object.fromEntries(feedbackValues))}`);
+  }
   meterSamples.length = 0;
   if (recordOutput) {
     const recordStatus = await request("GetRecordStatus");
@@ -228,7 +302,10 @@ try {
     await sleep(500);
   }
   await sendOsc("/pptbridge/first");
-  await sendOsc("/pptbridge/next");
+  for (let step = 0; step < advanceCount; step += 1) {
+    await sendOsc("/pptbridge/next");
+    await sleep(150);
+  }
   const mediaTriggeredAt = Date.now();
 
   const childPrefix = `${inputName} Media `;
@@ -271,10 +348,13 @@ try {
     inputName,
     audioEnabled,
     audioGainDb,
+    advanceCount,
     expectedSignal: expectSignal,
     matchingSamples: matchingSamples.length,
     childSamples: childSamples.length,
     signalDetected,
+    maximumLevelDb: maximumMeterValue(matchingSamples, "inputLevelsDb"),
+    maximumLevelMultiplier: maximumMeterValue(matchingSamples, "inputLevelsMul"),
     recordingOutputPath,
   }, null, 2));
 } finally {
@@ -289,4 +369,5 @@ try {
   await request("RemoveInput", { inputName }).catch(() => {});
   await request("RemoveScene", { sceneName }).catch(() => {});
   socket.close();
+  feedbackSocket.close();
 }

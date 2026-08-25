@@ -16,7 +16,7 @@ native-plugin/WINDOWS-PORT.md
 Important context:
 - Windows x64 is a stable v0.5.10 release platform. Do not publish a replacement asset until the full release checklist passes.
 - Do not change the macOS stable release files unless a Windows compile fix truly requires a shared file change.
-- The Windows code matches the macOS v0.5.8 production workflow where possible:
+- The Windows code matches the macOS v0.5.11 production workflow where possible:
   - PPTBridge SK Slide and PPTBridge SK Presenter OBS sources
   - manual START and STOP PowerPoint live controls
   - optional Auto Start PowerPoint When OBS Opens

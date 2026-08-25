@@ -8,7 +8,7 @@ The v0.5.10 Windows release hardens live PowerPoint, native PDF, cache recovery,
 
 - **[Download Windows x64 v0.5.10](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip)**
 - [Windows SHA-256 checksum](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip.sha256)
-- **[Download macOS Apple Silicon v0.5.8](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-macos-apple-silicon.zip)**
+- **[Download macOS Apple Silicon v0.5.11](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.11/pptbridge-obs-macos-apple-silicon.zip)**
 
 Windows and Apple Silicon use separate stable release tags. Intel Mac remains a
 [v0.4.4 beta download](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip).
@@ -48,4 +48,4 @@ The Windows release was validated in real OBS Studio 32.1.2 on Windows 11 x64. T
 
 PDF pages use the built-in Windows PDF engine. Password-protected PDFs are not supported. The DLL and installer are not code-signed yet, so Windows may ask for confirmation. Rehearse every production deck on the exact show computer before the event.
 
-Windows x64 is stable on `v0.5.10`. macOS Apple Silicon remains stable on `v0.5.8` and uses its separate download.
+Windows x64 is stable on `v0.5.10`. macOS Apple Silicon is stable on `v0.5.11` and uses its separate download.

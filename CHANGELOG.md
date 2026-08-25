@@ -1,6 +1,18 @@
 # Changelog
 
-PPTBridge SK v0.5.10 is the current stable Windows x64 release. Apple Silicon remains stable on v0.5.8, with Intel Mac on a separate beta track. Download the current packages from the [README](README.md#download-and-install) or [GitHub Releases](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases).
+PPTBridge SK v0.5.11 is the current stable Apple Silicon release. Windows x64 remains stable on v0.5.10, with Intel Mac on a separate beta track. Download the current packages from the [README](README.md#download-and-install) or [GitHub Releases](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases).
+
+## macOS v0.5.11 - Apple Silicon Validation and Routing Hardening
+
+- Updated the Apple Silicon package to the current shared PPTBridge codebase.
+- Added nested Program-scene routing so hotkeys, clicker input, and OSC find the correct deck inside nested OBS scenes and groups.
+- Hardened Presenter source teardown and removed stale render-state cleanup code.
+- Revalidated real PPTX/PDF loading, cached reloads, Presenter layouts, two-deck routing, live start/stop/restart, final-slide protection, black screen, and live-window reattach in OBS 32.1.1.
+- Revalidated all OSC controls and 16 feedback fields, cue state/export, PageUp/PageDown clicker routing, ordinary Left/Right/Space keyboard input, and embedded-media audio gain/disable behavior.
+- Expanded the repeatable macOS runtime suite and fixed QA timing/decode assumptions that could falsely report failures on slower first loads or media slides.
+- Kept the release package minimal: one Apple Silicon ZIP, one checksum, and the double-click installer.
+
+[Apple Silicon v0.5.11 release notes and download](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.11)
 
 ## Windows v0.5.10 - Production Hardening
 
@@ -69,6 +81,7 @@ PPTBridge SK v0.5.10 is the current stable Windows x64 release. Apple Silicon re
 
 | Release | Track | Main focus |
 | --- | --- | --- |
+| [v0.5.11](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.11) | Apple Silicon stable | Nested Program-scene routing, Presenter teardown hardening, full Mac runtime regression, and minimal installer package |
 | [v0.5.10](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.10) | Windows x64 stable | Live-capture, nested-scene, same-name deck, cache, concurrent PDF, and installer hardening |
 | [v0.5.9](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.9) | Windows x64 stable | Native PDF support without PowerPoint, plus existing live PowerPoint, Presenter, clicker/OSC, and easy installer |
 | [v0.5.8](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.8) | Windows x64 and Apple Silicon stable | Live PowerPoint/PDF platform workflows, Presenter, clicker/OSC, audio, recovery, and easy installers |

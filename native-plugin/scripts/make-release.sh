@@ -164,7 +164,7 @@ if command -v codesign >/dev/null 2>&1; then
 fi
 
 # ZIP stores DOS timestamps in every local and central-directory entry. Give
-# every packaged path one fixed timestamp so rebuilding unchanged v0.5.8 input
+# every packaged path one fixed timestamp so rebuilding unchanged release input
 # produces the same archive and SHA-256 checksum.
 find "$RELEASE_DIR" -exec touch -h -t 202001010000 {} +
 
