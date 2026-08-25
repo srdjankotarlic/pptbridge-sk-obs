@@ -1,4 +1,4 @@
-## PPTBridge SK v0.5.8 - Apple Silicon Stable
+## PPTBridge SK v0.5.11 - Apple Silicon Stable
 
 PPTBridge SK is a free, independent OBS Studio plugin for live PowerPoint and PDF workflows:
 
@@ -9,7 +9,7 @@ PPTBridge SK is a free, independent OBS Studio plugin for live PowerPoint and PD
 
 Use **`pptbridge-obs-macos-apple-silicon.zip`** for M1/M2/M3/M4 Macs.
 
-Windows x64 v0.5.10 and Apple Silicon v0.5.8 are stable platforms. Intel Mac remains a separate beta track. See the [download table](https://github.com/srdjankotarlic/pptbridge-sk-obs#download-and-install) before choosing a package.
+Apple Silicon v0.5.11 and Windows x64 v0.5.10 are stable platforms. Intel Mac remains a separate beta track. See the [download table](https://github.com/srdjankotarlic/pptbridge-sk-obs#download-and-install) before choosing a package.
 
 ### Install
 
@@ -23,14 +23,12 @@ For an animated `.pptx`, select the deck and click `Start / Restart PowerPoint L
 
 ### What Is New
 
-- Fixed multi-deck live startup while another PowerPoint slideshow is already running.
-- Fixed a render-thread race when Presenter layout or background properties change.
-- Added automatic live-session recovery and manual live-window reattach.
-- Starting live mode from Presenter now starts the matching Slide source.
-- Added clearer validation errors for missing, unsupported, corrupt, or incomplete decks.
-- Improved immediate operator/source status refresh after controls are used.
-- Expanded embedded-audio cleanup and release QA coverage.
-- Kept ordinary left/right arrows free; global clicker capture uses PageDown/PageUp by default.
+- Updated Apple Silicon to the current shared PPTBridge codebase.
+- Added routing through nested OBS scenes and groups, so controls keep following the Program deck.
+- Hardened Presenter source teardown and removed stale render-state cleanup code.
+- Expanded repeatable OBS tests for real PPTX/PDF decks, live PowerPoint, Presenter layouts, OSC/Companion feedback, cue state, clicker isolation, and embedded-media audio.
+- Kept ordinary Left/Right/Space keys free; global clicker capture uses PageDown/PageUp by default.
+- Kept the download minimal: one Apple Silicon ZIP, checksum, double-click installer, and only the files needed to install and operate the plugin.
 
 ### Control Options
 
@@ -55,7 +53,7 @@ The release also includes `pptbridge-obs-macos-apple-silicon.zip.sha256` for che
 
 ### Verification
 
-The Apple Silicon package was built and runtime-tested on OBS Studio 32.1.1 on an M1 Pro. Coverage included real PPTX/PDF rendering, Presenter layouts, multi-deck routing, PowerPoint live start/stop/navigation/final-slide protection, OSC control and feedback, cue state, cache reuse/invalidation, embedded media audio, isolated installation, sanitizers, static analysis, and release-package checks.
+The Apple Silicon package was built and runtime-tested on OBS Studio 32.1.1 on an M1 Pro. Coverage included real PPTX/PDF rendering, Presenter layouts, nested and multi-deck Program routing, PowerPoint live start/stop/restart/navigation/final-slide protection/black screen/reattach, all OSC controls and 16 feedback fields, cue state, cache reuse, embedded-media audio gain/disable, isolated installation, sanitizers, and release-package checks.
 
 ### Help and Demo
 

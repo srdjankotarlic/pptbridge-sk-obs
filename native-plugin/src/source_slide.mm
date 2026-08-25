@@ -179,25 +179,6 @@ bool visual_child_sources_wanted(const SourceContext *context)
   return context && context->mode == ViewMode::Slide;
 }
 
-bool presenter_options_equal(const PresenterRenderOptions &left, const PresenterRenderOptions &right)
-{
-  return left.layout == right.layout &&
-         left.preview_scale_mode == right.preview_scale_mode &&
-         left.preview_scale_percent == right.preview_scale_percent &&
-         left.preview_position_x == right.preview_position_x &&
-         left.preview_position_y == right.preview_position_y &&
-         left.side_panel_width_percent == right.side_panel_width_percent &&
-         left.notes_font_size == right.notes_font_size &&
-         left.notes_area_percent == right.notes_area_percent &&
-         left.notes_zoom_percent == right.notes_zoom_percent &&
-         left.notes_position_y == right.notes_position_y &&
-         left.background_color == right.background_color &&
-         left.background_image_path == right.background_image_path &&
-         left.background_image_mode == right.background_image_mode &&
-         left.background_image_opacity_percent == right.background_image_opacity_percent &&
-         left.show_cue_list == right.show_cue_list;
-}
-
 void add_presenter_customization_properties(obs_properties_t *props)
 {
   obs_property_t *layout = obs_properties_add_list(
@@ -2301,7 +2282,6 @@ void source_update(SourceContext *context, obs_data_t *settings)
   const bool live_mode_changed = context->use_live_powerpoint != use_live_powerpoint;
   const bool live_auto_start_changed = context->auto_start_live_powerpoint != auto_start_live_powerpoint;
   const bool live_audio_mode_changed = context->use_live_app_audio != use_live_app_audio;
-  const bool presenter_options_changed = !presenter_options_equal(context->presenter_options, presenter_options);
   const bool should_stop_old_live =
     context->mode == ViewMode::Slide &&
     old_document &&

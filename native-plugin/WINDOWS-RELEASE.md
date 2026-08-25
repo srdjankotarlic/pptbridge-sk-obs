@@ -58,4 +58,4 @@ PowerPoint runs all open decks in one application process. PPTBridge routes proc
 - The plugin and installer are not code-signed yet, so Windows may show a security confirmation.
 - Desktop Microsoft PowerPoint is required only for PowerPoint files; PowerPoint for the web is not supported.
 
-Windows x64 is published as stable `v0.5.10`; macOS Apple Silicon remains stable on `v0.5.8`.
+Windows x64 is published as stable `v0.5.10`; macOS Apple Silicon is stable on `v0.5.11`.

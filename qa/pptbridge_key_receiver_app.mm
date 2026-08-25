@@ -65,6 +65,7 @@ static NSString *KeyName(unsigned short keyCode)
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 @property(nonatomic, strong) NSWindow *window;
+@property(nonatomic, assign) BOOL focusLogged;
 @end
 
 @implementation AppDelegate
@@ -97,6 +98,11 @@ static NSString *KeyName(unsigned short keyCode)
       [NSApp activateIgnoringOtherApps:YES];
       [[NSRunningApplication currentApplication] activateWithOptions:
         NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps];
+      if (!self.focusLogged && NSApp.isActive && self.window.isKeyWindow &&
+          self.window.firstResponder == view) {
+        self.focusLogged = YES;
+        AppendLog(@"focused");
+      }
     }];
 
   [NSTimer scheduledTimerWithTimeInterval:20.0

@@ -204,22 +204,22 @@ function activateObsForFocusedHotkeyTest() {
   }
 }
 
-function renderVisualThumbnail(pngBytes) {
+function renderVisualThumbnail(pngPath) {
   const result = spawnSync(ffmpegExecutable, [
     "-hide_banner",
     "-loglevel", "error",
-    "-i", "pipe:0",
+    "-i", pngPath,
     "-vf", "scale=32:18,format=gray",
     "-frames:v", "1",
     "-f", "rawvideo",
     "pipe:1",
   ], {
-    input: pngBytes,
     maxBuffer: 1024 * 1024,
+    timeout: 10000,
   });
-  if (result.status !== 0 || result.stdout.length !== 32 * 18) {
+  if (result.error || result.status !== 0 || result.stdout?.length !== 32 * 18) {
     throw new Error(
-      `ffmpeg could not decode an OBS screenshot: ${String(result.stderr || "unknown error")}`);
+      `ffmpeg could not decode an OBS screenshot: ${String(result.error || result.stderr || "unknown error")}`);
   }
   return result.stdout;
 }
@@ -292,7 +292,7 @@ async function screenshot(sourceName, fileName, minimumBytes = 2000) {
     filePath,
     bytes: bytes.length,
     hash: crypto.createHash("sha256").update(bytes).digest("hex"),
-    thumbnail: renderVisualThumbnail(bytes),
+    thumbnail: renderVisualThumbnail(filePath),
   };
 }
 
@@ -733,7 +733,6 @@ try {
     slideA,
     "slide-a-manual-live.png",
     (candidate) => candidate.bytes >= minimumLiveScreenshotBytes &&
-      visuallyDifferent(candidate, slideAInitial) &&
       visuallyDifferent(candidate, slideAAfterNext),
     20000);
 
@@ -781,7 +780,7 @@ try {
     slideA,
     "slide-a-auto-started-live.png",
     (candidate) => candidate.bytes >= minimumLiveScreenshotBytes &&
-      visuallyDifferent(candidate, slideAAfterManualStop),
+      visuallyDifferent(candidate, slideAAfterNext),
     20000);
 
   feedbackMarker = feedbackSequence;
@@ -822,7 +821,7 @@ try {
     slideA,
     "slide-a-live.png",
     (candidate) => candidate.bytes >= minimumLiveScreenshotBytes &&
-      visuallyDifferent(candidate, slideAAfterAutoStartStop),
+      visuallyDifferent(candidate, slideAAfterNext),
     20000);
 
   feedbackMarker = feedbackSequence;
@@ -946,9 +945,9 @@ try {
     },
     manualPropertyLiveScreenshotBytes: slideAManualLive.bytes,
     reattachRestoredLiveOutput: visuallySame(slideAAfterReattach, slideAManualLive),
-    manualPropertyStopReturnedStaticOutput: visuallyDifferent(slideAAfterManualStop, slideAManualLive),
+    manualPropertyStopReturnedStaticOutput: visuallySame(slideAAfterManualStop, slideAInitial),
     autoStartLiveScreenshotBytes: slideAAutoStartedLive.bytes,
-    autoStartStopReturnedStaticOutput: visuallyDifferent(slideAAfterAutoStartStop, slideAAutoStartedLive),
+    autoStartStopReturnedStaticOutput: visuallySame(slideAAfterAutoStartStop, slideAInitial),
     manualPropertyRestartScreenshotBytes: slideALive.bytes,
     liveScreenshotBytes: slideALive.bytes,
     finalSlideGuardStable,

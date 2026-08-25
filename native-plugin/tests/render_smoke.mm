@@ -329,7 +329,15 @@ int main(int argc, char **argv)
       return 1;
     }
     if (slide_count > 1) {
+      const bool final_media_triggered = !document->CurrentMedia().empty();
       document->Previous();
+      if (final_media_triggered) {
+        if (document->CurrentIndex() != slide_count - 1 || !document->CurrentMedia().empty()) {
+          std::fprintf(stderr, "previous did not stop final-slide media first\n");
+          return 1;
+        }
+        document->Previous();
+      }
       if (document->CurrentIndex() != slide_count - 2 || !document->HasNext()) {
         std::fprintf(stderr, "previous navigation failed\n");
         return 1;

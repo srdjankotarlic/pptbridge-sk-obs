@@ -17,7 +17,7 @@ To check, open `Apple menu > About This Mac`. If it says `Chip: Apple M...`, use
 
    Apple Silicon:
 
-   <https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-macos-apple-silicon.zip>
+   <https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.11/pptbridge-obs-macos-apple-silicon.zip>
 
    Intel:
 

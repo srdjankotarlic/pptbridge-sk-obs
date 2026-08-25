@@ -6,7 +6,7 @@ This document captures the current engineering status and next practical path fo
 
 ## Honest Status
 
-Windows x64 `v0.5.10` and macOS Apple Silicon `v0.5.8` are stable release platforms. This document keeps the Windows engineering architecture and remaining limits explicit.
+Windows x64 `v0.5.10` and macOS Apple Silicon `v0.5.11` are stable release platforms. This document keeps the Windows engineering architecture and remaining limits explicit.
 
 What is already in the Windows code now:
 
