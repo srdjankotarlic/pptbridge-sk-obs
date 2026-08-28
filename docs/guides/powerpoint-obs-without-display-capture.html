@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PowerPoint in OBS Without Display Capture or a Second Computer</title>
+  <meta name="description" content="Run PowerPoint and PDF decks as native OBS sources without capturing the desktop, exposing PowerPoint windows, or using a second presentation computer." />
+  <link rel="canonical" href="https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/powerpoint-obs-without-display-capture.html" />
+  <link rel="icon" type="image/png" href="../assets/favicon.png" />
+  <link rel="stylesheet" href="guide.css" />
+</head>
+<body>
+<header class="site-header"><div class="wrap"><img src="../assets/favicon.png" alt="" /><a class="brand" href="../">PPTBridge SK</a><nav><a href="./">Guides</a><a href="../#features">Features</a><a href="https://github.com/srdjankotarlic/pptbridge-sk-obs">GitHub</a></nav></div></header>
+<main><article class="wrap">
+  <div class="eyebrow">Single-computer workflow</div>
+  <h1>Use PowerPoint in OBS without display capture or a second computer</h1>
+  <p class="lede">PPTBridge turns the deck into an OBS source. Your desktop remains available for OBS, a browser, or show-control software while the audience sees only the slide.</p>
+  <div class="meta"><span>Native OBS source</span><span>No desktop capture</span><span>Multi-deck routing</span></div>
+  <img class="shot" src="../assets/launch-overview.png" alt="PPTBridge sources and controls in OBS Studio" width="1600" height="900" />
+  <h2>The basic signal path</h2>
+  <ol><li>Add <strong>PPTBridge SK Slide</strong> to the scene that goes to Program.</li><li>Select the deck file in source properties.</li><li>Scale or crop the source exactly like any other OBS source.</li><li>Use the PPTBridge hotkeys, clicker capture, Companion, or OSC to navigate.</li></ol>
+  <p>For a PDF, PPTBridge renders the pages directly. For a PowerPoint file, static preview loads first; start PowerPoint Live Mode when you need builds, animation, embedded video, or audio.</p>
+  <h2>Why this is safer than a desktop capture</h2>
+  <ul><li>The taskbar, mouse, notifications, and other apps are not part of the source.</li><li>The source remains in the OBS scene even if you work in Chrome or another application.</li><li>The default resize behavior keeps the OBS output dimensions stable when the PowerPoint window changes.</li><li>With multiple decks, controls follow the PPTBridge source in the current Program scene.</li></ul>
+  <div class="callout"><strong>One important limit:</strong> PowerPoint Live Mode still uses the desktop PowerPoint application behind the scenes. PPTBridge controls and captures it for OBS; it does not reimplement the PowerPoint animation engine.</div>
+  <h2>Keyboard and clicker behavior</h2>
+  <p>Normal left/right arrows stay available for other work. Default focused OBS hotkeys are <code>2</code> for Next and <code>1</code> for Previous. For a stage clicker that must work while another app has focus, enable Spotlight/Clicker Capture and use its PageDown/PageUp input.</p>
+  <h2>Rehearsal checklist</h2>
+  <ul><li>Confirm the deck is in the intended Program scene.</li><li>Test every animation, video, and audio cue in live mode.</li><li>Resize the PowerPoint desktop window and verify Program stays stable.</li><li>Test another application in focus while the stage clicker advances slides.</li><li>Run the final-slide protection test.</li></ul>
+  <div class="cta-row"><a class="btn primary" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases">Download PPTBridge SK</a><a class="btn secondary" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/SETUP-GUIDE.md">Full setup guide</a></div>
+  <div class="next"><strong>Using PDF instead?</strong> <a href="pdf-slides-presenter-view-obs.html">Set up direct PDF slides and a confidence view</a>.</div>
+</article></main>
+<footer><div class="wrap"><a href="./">All PPTBridge guides</a> | <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/issues">Report an issue</a></div></footer>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How to Use PowerPoint in OBS Without Showing Presenter Notes</title>
+  <meta name="description" content="Use separate PPTBridge Slide and Presenter sources so OBS sends clean PowerPoint slides to the audience while the speaker sees notes, next slide, and timer." />
+  <link rel="canonical" href="https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/powerpoint-presenter-notes-obs.html" />
+  <link rel="icon" type="image/png" href="../assets/favicon.png" />
+  <link rel="stylesheet" href="guide.css" />
+</head>
+<body>
+<header class="site-header"><div class="wrap"><img src="../assets/favicon.png" alt="" /><a class="brand" href="../">PPTBridge SK</a><nav><a href="./">Guides</a><a href="../#install">Install</a><a href="https://github.com/srdjankotarlic/pptbridge-sk-obs">GitHub</a></nav></div></header>
+<main><article class="wrap">
+  <div class="eyebrow">OBS presentation workflow</div>
+  <h1>Use PowerPoint in OBS without showing presenter notes</h1>
+  <p class="lede">The reliable layout is two OBS sources tied to the same deck: one clean source for Program and one confidence view for the speaker.</p>
+  <div class="meta"><span>Windows x64</span><span>macOS Apple Silicon</span><span>OBS Studio 30+</span></div>
+  <img class="shot" src="../assets/workflow-overview.png" alt="PPTBridge workflow with a clean Slide source and a separate Presenter source" width="1350" height="1350" />
+  <h2>Why normal capture gets awkward</h2>
+  <p>Capturing the PowerPoint desktop or Presenter View can expose the cursor, window chrome, notifications, or speaker notes. It also makes OBS depend on which display and window PowerPoint currently owns.</p>
+  <p>PPTBridge adds both outputs as native OBS sources. The audience never sees the Presenter source unless you deliberately put it in Program.</p>
+  <h2>Set up the two-source workflow</h2>
+  <ol>
+    <li>Install PPTBridge and restart OBS in normal mode.</li>
+    <li>In the audience scene, choose <strong>Sources + -> PPTBridge SK Slide</strong>.</li>
+    <li>Select the <code>.pptx</code> or <code>.pdf</code> deck.</li>
+    <li>In a separate speaker-monitor scene, add <strong>PPTBridge SK Presenter</strong> and select the same file.</li>
+    <li>Send the audience scene to Program. Put the Presenter scene on the confidence monitor with OBS Fullscreen Projector.</li>
+  </ol>
+  <div class="callout"><strong>For animations and embedded video:</strong> open either source's properties and choose <em>Start / Restart PowerPoint Live Mode</em>. Static PowerPoint preview and PDF playback do not need live mode.</div>
+  <h2>Customize the confidence view</h2>
+  <p>The Presenter source can emphasize the current slide, next slide, notes, timer, or cue list. Choose a layout preset first, then adjust preview fit, notes size, background color, or optional background image. These changes do not alter the clean Slide source.</p>
+  <h2>Production check</h2>
+  <ul>
+    <li>Confirm the Slide source, not Presenter, is in the Program scene.</li>
+    <li>Advance to the final slide and press Next once more; the live slideshow should remain visible.</li>
+    <li>Check notes and builds in the exact presentation file you will use.</li>
+    <li>Save the OBS scene collection after the rehearsal.</li>
+  </ul>
+  <div class="cta-row"><a class="btn primary" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases">Download PPTBridge SK</a><a class="btn secondary" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/QUICKSTART.md">Open the quickstart</a></div>
+  <div class="next"><strong>Next:</strong> <a href="companion-stream-deck-powerpoint-obs.html">Control the same deck from Bitfocus Companion or Stream Deck</a>.</div>
+</article></main>
+<footer><div class="wrap"><a href="./">All PPTBridge guides</a> | <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/issues">Report an issue</a></div></footer>
+</body>
+</html>

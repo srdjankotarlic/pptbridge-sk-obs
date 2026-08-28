@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How to Show PDF Slides With a Presenter View in OBS</title>
+  <meta name="description" content="Open PDF slides directly in OBS with a clean audience source plus a presenter view for current slide, next slide, timer, and cue-list guidance." />
+  <link rel="canonical" href="https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/pdf-slides-presenter-view-obs.html" />
+  <link rel="icon" type="image/png" href="../assets/favicon.png" />
+  <link rel="stylesheet" href="guide.css" />
+</head>
+<body>
+<header class="site-header"><div class="wrap"><img src="../assets/favicon.png" alt="" /><a class="brand" href="../">PPTBridge SK</a><nav><a href="./">Guides</a><a href="../#install">Install</a><a href="https://github.com/srdjankotarlic/pptbridge-sk-obs">GitHub</a></nav></div></header>
+<main><article class="wrap">
+  <div class="eyebrow">Direct PDF workflow</div>
+  <h1>Show PDF slides with a presenter view in OBS</h1>
+  <p class="lede">PDF decks open directly in PPTBridge on Windows and macOS. No PowerPoint application or separate PDF window is required.</p>
+  <div class="meta"><span>Direct PDF rendering</span><span>Current + next slide</span><span>Confidence monitor</span></div>
+  <h2>Add the audience source</h2>
+  <ol><li>Choose <strong>Sources + -> PPTBridge SK Slide</strong>.</li><li>Select the PDF.</li><li>Put this source in the Program scene and fit it to the canvas.</li><li>Use Next/Previous controls to confirm page order.</li></ol>
+  <h2>Add the presenter source</h2>
+  <ol><li>Create a separate confidence-monitor scene.</li><li>Add <strong>PPTBridge SK Presenter</strong> and select the same PDF.</li><li>Choose the layout that best balances current slide, next slide, timer, and cue list.</li><li>Project this scene to the speaker display from OBS.</li></ol>
+  <div class="callout"><strong>About speaker notes:</strong> ordinary PDF files do not carry PowerPoint speaker notes in a standard form. PPTBridge can still provide current/next preview, timer, and cue-list guidance; use the original PowerPoint file when embedded speaker notes are essential.</div>
+  <h2>When PDF is the better choice</h2>
+  <ul><li>The deck has no builds, animations, or embedded media.</li><li>You want the same rendered pages on every production machine.</li><li>PowerPoint is not installed on the OBS computer.</li><li>You need quick, direct loading with fewer moving parts.</li></ul>
+  <h2>Operator tips</h2>
+  <ul><li>Export the PDF at presentation quality and inspect small text before the show.</li><li>Check unusual page sizes; the source stays on a stable OBS canvas but may need fit/crop choices.</li><li>Use one Program scene per deck when several PDFs are open.</li><li>Keep the source file in a permanent show folder so OBS can find it after restart.</li></ul>
+  <div class="cta-row"><a class="btn primary" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases">Download PPTBridge SK</a><a class="btn secondary" href="powerpoint-presenter-notes-obs.html">PowerPoint notes workflow</a></div>
+  <div class="next"><strong>Need remote control?</strong> <a href="companion-stream-deck-powerpoint-obs.html">Add Companion or Stream Deck control</a>.</div>
+</article></main>
+<footer><div class="wrap"><a href="./">All PPTBridge guides</a> | <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/discussions">Setup questions</a></div></footer>
+</body>
+</html>
