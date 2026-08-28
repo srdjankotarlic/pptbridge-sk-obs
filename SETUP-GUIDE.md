@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS Setup Guide
 
-**Created by Srđan Kotarlić** | Windows v0.5.10 / Apple Silicon v0.5.8
+**Created by Srđan Kotarlić** | Windows v0.5.10 / Apple Silicon v0.5.11
 
 For the fastest install path, start with [QUICKSTART.md](QUICKSTART.md). This guide is the fuller walkthrough for setup, controls, multiple decks, and troubleshooting.
 
@@ -53,7 +53,7 @@ Full Windows details: [native-plugin/INSTALL-Windows.md](native-plugin/INSTALL-W
 ### macOS
 
 1. Download and unzip the right ZIP for your Mac:
-   - [Apple Silicon v0.5.8 stable](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.8/pptbridge-obs-macos-apple-silicon.zip)
+   - [Apple Silicon v0.5.11 stable](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.11/pptbridge-obs-macos-apple-silicon.zip)
    - [Intel v0.4.4 beta](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip)
 2. Quit OBS if it is open
 3. Open `START-HERE-macOS.txt`
