@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Control PowerPoint in OBS With Bitfocus Companion and Stream Deck</title>
+  <meta name="description" content="Connect PPTBridge to Bitfocus Companion or Stream Deck with local OSC controls for PowerPoint next, previous, first, last, blackout, reload, and status feedback." />
+  <link rel="canonical" href="https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/companion-stream-deck-powerpoint-obs.html" />
+  <link rel="icon" type="image/png" href="../assets/favicon.png" />
+  <link rel="stylesheet" href="guide.css" />
+</head>
+<body>
+<header class="site-header"><div class="wrap"><img src="../assets/favicon.png" alt="" /><a class="brand" href="../">PPTBridge SK</a><nav><a href="./">Guides</a><a href="../#control">Control</a><a href="https://github.com/srdjankotarlic/pptbridge-sk-obs">GitHub</a></nav></div></header>
+<main><article class="wrap">
+  <div class="eyebrow">Show control</div>
+  <h1>Control PowerPoint in OBS with Companion and Stream Deck</h1>
+  <p class="lede">PPTBridge includes local OSC control so slide commands do not depend on keyboard focus and the operator can see useful deck status.</p>
+  <div class="meta"><span>Bitfocus Companion</span><span>Generic OSC</span><span>Local machine</span></div>
+  <h2>1. Enable PPTBridge OSC</h2>
+  <ol>
+    <li>Start OBS and load the scene containing your PPTBridge source.</li>
+    <li>Open <strong>Tools -> PPTBridge SK: Local OSC Control On/Off</strong>.</li>
+    <li>Keep Companion on the same computer as OBS. PPTBridge intentionally listens on <code>127.0.0.1</code>, so slide control is not exposed across the production network.</li>
+  </ol>
+  <h2>2. Add a Generic OSC connection</h2>
+  <p>In Companion, add <strong>Generic OSC</strong> and use:</p>
+  <ul><li>Target host: <code>127.0.0.1</code></li><li>Target port: <code>57130</code></li><li>Protocol: UDP</li></ul>
+  <p>Create buttons that send messages without arguments:</p>
+  <pre><code>/pptbridge/previous
+/pptbridge/next
+/pptbridge/first
+/pptbridge/last
+/pptbridge/black
+/pptbridge/reload</code></pre>
+  <h2>3. Add status feedback</h2>
+  <p>PPTBridge sends status on UDP port <code>57131</code>. Available values include current and total slide, current/next title, timer, deck and source names, loading/error state, live status, black screen, and cue-list checked state.</p>
+  <div class="callout"><strong>Starter layout:</strong> open the <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/native-plugin/companion/PPTBridge-SK-Companion-OSC-Template.json">Companion OSC template</a>. It documents the connection, six core buttons, and every current status path.</div>
+  <h2>Recommended first page</h2>
+  <ul><li>PREV and NEXT as the largest buttons.</li><li>FIRST, LAST, BLACK, and RELOAD as guarded secondary actions.</li><li>Current slide and total slides on the button text.</li><li>Live/loading/error indicators where the operator can see them without opening OBS properties.</li></ul>
+  <h2>Test before show day</h2>
+  <ol><li>Put the intended scene in OBS Program.</li><li>Press Next from Companion and verify only that deck moves.</li><li>Switch to a second Program scene and repeat.</li><li>Stop live mode or temporarily select a bad path and confirm your status page makes the state obvious.</li></ol>
+  <div class="cta-row"><a class="btn primary" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/native-plugin/COMPANION-CONTROL.md">Full Companion / OSC guide</a><a class="btn secondary" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases">Download PPTBridge SK</a></div>
+  <div class="next"><strong>Next:</strong> <a href="powerpoint-obs-without-display-capture.html">Build a PowerPoint workflow without display capture</a>.</div>
+</article></main>
+<footer><div class="wrap"><a href="./">All PPTBridge guides</a> | <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/discussions">Setup questions</a></div></footer>
+</body>
+</html>

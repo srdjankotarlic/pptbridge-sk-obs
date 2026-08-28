@@ -151,6 +151,7 @@ The Windows stable build is runtime-tested on Windows 11 x64 with OBS Studio 32.
 | Windows installation | [native-plugin/INSTALL-Windows.md](native-plugin/INSTALL-Windows.md) |
 | Companion / Stream Deck / OSC | [native-plugin/COMPANION-CONTROL.md](native-plugin/COMPANION-CONTROL.md) |
 | Companion starter template | [PPTBridge-SK-Companion-OSC-Template.json](native-plugin/companion/PPTBridge-SK-Companion-OSC-Template.json) |
+| Production rehearsal | [PPTBridge-SK-Show-Checklist.md](native-plugin/companion/PPTBridge-SK-Show-Checklist.md) |
 | Audio routing | [native-plugin/PRO-AUDIO-MODE.md](native-plugin/PRO-AUDIO-MODE.md) |
 | Report a problem | [SUPPORT.md](SUPPORT.md) |
 | Build or contribute | [CONTRIBUTING.md](CONTRIBUTING.md) / [BUILDING.md](BUILDING.md) |
@@ -158,6 +159,13 @@ The Windows stable build is runtime-tested on Windows 11 x64 with OBS Studio 32.
 Before reporting a bug, check [SUPPORT.md](SUPPORT.md). Include the OS, CPU/Mac type, OBS/PPTBridge/PowerPoint versions, deck type, what you expected, and the OBS log from `Help > Log Files > View Current Log`.
 
 Use [GitHub Discussions](https://github.com/srdjankotarlic/pptbridge-sk-obs/discussions) for setup questions, workflow ideas, and general feedback. Use [GitHub Issues](https://github.com/srdjankotarlic/pptbridge-sk-obs/issues) for reproducible bugs and feature requests.
+
+### Practical Guides
+
+- [Keep PowerPoint presenter notes out of the OBS audience feed](https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/powerpoint-presenter-notes-obs.html)
+- [Control PowerPoint in OBS with Bitfocus Companion and Stream Deck](https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/companion-stream-deck-powerpoint-obs.html)
+- [Use PowerPoint in OBS without display capture or a second computer](https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/powerpoint-obs-without-display-capture.html)
+- [Show PDF slides with a Presenter view in OBS](https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/pdf-slides-presenter-view-obs.html)
 
 ## Releases
 
@@ -187,6 +195,8 @@ See [CHANGELOG.md](CHANGELOG.md) for release history and [all GitHub releases](h
 ## Support the Project
 
 PPTBridge SK stays free and open source. A [GitHub star](https://github.com/srdjankotarlic/pptbridge-sk-obs), a real-world test report, or sharing it with another AV operator helps the project grow. Optional support is available on [Patreon](https://www.patreon.com/posts/coffee-158046733).
+
+For speaker timing alongside presentation playback, see [ProTimer](https://srdjankotarlic.github.io/protimer/), the free stage timer and phone-remote project from the same author.
 
 ## License
 
