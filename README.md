@@ -8,6 +8,8 @@ Built for and used in real live-event production. PPTBridge SK is an independent
 
 **[Download macOS Apple Silicon v0.5.11](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.11/pptbridge-obs-macos-apple-silicon.zip)** | **[Download Windows x64 v0.5.10](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip)** | [5-minute quickstart](QUICKSTART.md) | [Watch the demo](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov)
 
+PPTBridge SK stays free, with no paywall. If it helps your production, you can [support development on Patreon (suggested $5)](https://www.patreon.com/posts/coffee-158046733).
+
 [![PPTBridge SK running inside OBS with clean Slide and Presenter sources](native-plugin/media/github/pptbridge-demo-preview.png)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov)
 
 ## Download and Install
@@ -194,7 +196,11 @@ See [CHANGELOG.md](CHANGELOG.md) for release history and [all GitHub releases](h
 
 ## Support the Project
 
-PPTBridge SK stays free and open source. A [GitHub star](https://github.com/srdjankotarlic/pptbridge-sk-obs), a real-world test report, or sharing it with another AV operator helps the project grow. Optional support is available on [Patreon](https://www.patreon.com/posts/coffee-158046733).
+PPTBridge SK stays free and open source, with no paywall or trial. A [GitHub star](https://github.com/srdjankotarlic/pptbridge-sk-obs), a real-world test report, or sharing it with another AV operator helps the project grow.
+
+**[Support PPTBridge SK development on Patreon - suggested $5](https://www.patreon.com/posts/coffee-158046733)**
+
+Support is completely optional and does not unlock a different download or version.
 
 For speaker timing alongside presentation playback, see [ProTimer](https://srdjankotarlic.github.io/protimer/), the free stage timer and phone-remote project from the same author.
 

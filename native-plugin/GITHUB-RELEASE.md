@@ -64,4 +64,6 @@ The Apple Silicon package was built and runtime-tested on OBS Studio 32.1.1 on a
 - [Support checklist](https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/SUPPORT.md)
 - [2.5-minute silent demo](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov)
 
+PPTBridge SK remains free and open source, with no paywall. If it helps your production, optional support is available on [Patreon (suggested $5)](https://www.patreon.com/posts/coffee-158046733).
+
 PPTBridge SK is a third-party project and is not affiliated with, endorsed by, or maintained by the OBS Project.

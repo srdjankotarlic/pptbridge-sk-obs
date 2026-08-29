@@ -67,7 +67,7 @@
     {
       "@type": "Question",
       "name": "Is PPTBridge SK free?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Yes. PPTBridge SK is free and open source (the native plugin is GPL-2.0-or-later because it links against OBS Studio). There is no paywall or trial." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. PPTBridge SK is free and open source (the native plugin is GPL-2.0-or-later because it links against OBS Studio). There is no paywall or trial. Users who find it useful can optionally support development on Patreon." }
     },
     {
       "@type": "Question",
@@ -138,6 +138,8 @@
   .btn.ghost:hover{background:var(--panel2); text-decoration:none}
   .btn small{display:block; font-weight:400; font-size:12px; color:rgba(255,255,255,.75)}
   .btn.ghost small{color:var(--muted)}
+  .support-note{color:var(--muted); font-size:14px; margin:14px 0 0}
+  .support-note a{font-weight:600}
   .shot{margin:42px auto 0; max-width:920px}
   .shot img{width:100%; height:auto; border:1px solid var(--line); border-radius:var(--radius); display:block}
   .shot a{display:block}
@@ -215,6 +217,7 @@
       <a class="btn primary" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip">Download for Windows<small>Windows 10/11 x64 · stable</small></a>
       <a class="btn ghost" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.11/pptbridge-obs-macos-apple-silicon.zip">Download for macOS<small>Apple Silicon · stable v0.5.11</small></a>
     </div>
+    <p class="support-note">Free download, no paywall. If PPTBridge helps your production, <a href="https://www.patreon.com/posts/coffee-158046733">support development on Patreon (suggested $5)</a>.</p>
     <div class="shot">
       <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov" aria-label="Watch the PPTBridge SK demo video">
         <img src="assets/demo-preview.png" alt="PPTBridge SK Slide and Presenter sources running inside OBS Studio" width="1280" height="720" />
@@ -300,7 +303,7 @@
 <section id="faq" class="faq">
   <div class="wrap">
     <h2>FAQ</h2>
-    <details open><summary>Is PPTBridge SK free?</summary><p>Yes — free and open source. The native plugin is GPL-2.0-or-later because it links against OBS Studio. No paywall, no trial.</p></details>
+    <details open><summary>Is PPTBridge SK free?</summary><p>Yes — free and open source. The native plugin is GPL-2.0-or-later because it links against OBS Studio. There is no paywall or trial. If it helps your production, you can optionally <a href="https://www.patreon.com/posts/coffee-158046733">support development on Patreon (suggested $5)</a>.</p></details>
     <details><summary>How do I add PowerPoint to OBS?</summary><p>Install the plugin, add a <code>PPTBridge SK Slide</code> source, and pick your <code>.pptx</code>. For live mode with animations and video, open the source properties and click <em>START - Open PowerPoint / Start Live Mode</em>. PDF decks render directly without PowerPoint.</p></details>
     <details><summary>How do I install an OBS plugin on macOS?</summary><p>Download the Apple Silicon ZIP, unzip, and double-click <code>1-Install-PPTBridge-SK.command</code>. If macOS blocks it, right-click → Open. Then launch OBS in normal mode so third-party plugins load.</p></details>
     <details><summary>Does it work on Windows?</summary><p>Yes. Windows 10/11 x64 is a stable v0.5.10 platform with a small ZIP and double-click <code>INSTALL.cmd</code> installer. OBS Studio 30+ is required; PowerPoint is needed only for PowerPoint files.</p></details>
@@ -313,7 +316,7 @@
 <footer>
   <div class="wrap">
     <p>PPTBridge SK for OBS — built by <a href="https://github.com/srdjankotarlic">Srdjan Kotarlic</a> for real live-production work.<br />
-    <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs">Source on GitHub</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases">All platform downloads</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/issues">Report an issue</a><br />
+    <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs">Source on GitHub</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases">All platform downloads</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/issues">Report an issue</a> · <a href="https://www.patreon.com/posts/coffee-158046733">Optional $5 support</a><br />
     Also useful for live events: <a href="https://srdjankotarlic.github.io/protimer/">ProTimer — free stage timer and phone remote</a>.</p>
   </div>
 </footer>
