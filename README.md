@@ -6,11 +6,11 @@ Built for and used in real live-event production. PPTBridge SK is an independent
 
 [![Windows v0.5.10 stable](https://img.shields.io/badge/Windows-v0.5.10%20stable-2ea44f)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.10) [![macOS Apple Silicon v0.5.11 stable](https://img.shields.io/badge/macOS%20Apple%20Silicon-v0.5.11%20stable-2ea44f)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.11) ![OBS Studio 30+](https://img.shields.io/badge/OBS%20Studio-30%2B-4c4c4c)
 
-**[Download macOS Apple Silicon v0.5.11](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.11/pptbridge-obs-macos-apple-silicon.zip)** | **[Download Windows x64 v0.5.10](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip)** | [5-minute quickstart](QUICKSTART.md) | [Watch the demo](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov)
+**[Download macOS Apple Silicon v0.5.11](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.11/pptbridge-obs-macos-apple-silicon.zip)** | **[Download Windows x64 v0.5.10](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip)** | [5-minute quickstart](QUICKSTART.md) | [Watch the 20-second demo](https://srdjankotarlic.github.io/pptbridge-sk-obs/#demo)
 
 PPTBridge SK stays free, with no paywall. If it helps your production, you can [support development on Patreon (suggested $5)](https://www.patreon.com/posts/coffee-158046733).
 
-[![PPTBridge SK running inside OBS with clean Slide and Presenter sources](native-plugin/media/github/pptbridge-demo-preview.png)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov)
+[![PPTBridge SK running inside OBS with clean Slide and Presenter sources](native-plugin/media/github/pptbridge-demo-preview.png)](https://srdjankotarlic.github.io/pptbridge-sk-obs/#demo)
 
 ## Download and Install
 
@@ -164,6 +164,7 @@ Use [GitHub Discussions](https://github.com/srdjankotarlic/pptbridge-sk-obs/disc
 
 ### Practical Guides
 
+- [Set up a free OBS PowerPoint plugin with clean slides and presenter view](https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/obs-powerpoint-plugin.html)
 - [Keep PowerPoint presenter notes out of the OBS audience feed](https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/powerpoint-presenter-notes-obs.html)
 - [Control PowerPoint in OBS with Bitfocus Companion and Stream Deck](https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/companion-stream-deck-powerpoint-obs.html)
 - [Use PowerPoint in OBS without display capture or a second computer](https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/powerpoint-obs-without-display-capture.html)

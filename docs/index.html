@@ -7,8 +7,8 @@
 <!-- Google Search Console verification -->
 <meta name="google-site-verification" content="8XQrjWTrPu_H5qRAX91drrvps-Gkw1Ywux-kTV5GHx0" />
 
-<title>PPTBridge SK for OBS — PowerPoint &amp; PDF slides as native OBS sources (free)</title>
-<meta name="description" content="PPTBridge SK is a free, open-source OBS Studio plugin that brings PowerPoint and PDF slides into OBS as native sources, with a presenter/confidence view, next-slide preview, timer, notes, and slide control over hotkeys, a clicker, Companion/Stream Deck, or OSC. Windows x64 and macOS Apple Silicon stable." />
+<title>PPTBridge SK | Free OBS PowerPoint &amp; PDF Plugin</title>
+<meta name="description" content="Free OBS PowerPoint and PDF plugin with clean audience output, separate presenter notes, next slide, timer, cue list, clicker, Companion, and OSC control." />
 <meta name="keywords" content="OBS plugin, OBS Studio plugin, PowerPoint to OBS, PowerPoint in OBS, PDF to OBS, presenter view OBS, confidence monitor OBS, OBS slides, OSC, Companion, Stream Deck, livestream, webinar, conference, broadcast" />
 <meta name="author" content="Srdjan Kotarlic" />
 <link rel="canonical" href="https://srdjankotarlic.github.io/pptbridge-sk-obs/" />
@@ -16,9 +16,9 @@
 
 <!-- Open Graph -->
 <meta property="og:type" content="website" />
-<meta property="og:site_name" content="PPTBridge SK for OBS" />
-<meta property="og:title" content="PPTBridge SK for OBS — PowerPoint &amp; PDF slides as native OBS sources" />
-<meta property="og:description" content="Free, open-source OBS plugin. PowerPoint and PDF slides as native OBS sources, plus a presenter view with notes, next slide, and timer. Control via hotkeys, clicker, Companion/Stream Deck, or OSC." />
+<meta property="og:site_name" content="PPTBridge SK" />
+<meta property="og:title" content="PPTBridge SK | Free OBS PowerPoint &amp; PDF Plugin" />
+<meta property="og:description" content="Separate clean PowerPoint or PDF output for the audience from a presenter view with notes, next slide, timer, and cue list inside OBS." />
 <meta property="og:url" content="https://srdjankotarlic.github.io/pptbridge-sk-obs/" />
 <meta property="og:image" content="https://srdjankotarlic.github.io/pptbridge-sk-obs/assets/og-image.png" />
 <meta property="og:image:width" content="1280" />
@@ -26,8 +26,8 @@
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="PPTBridge SK for OBS — PowerPoint &amp; PDF slides as native OBS sources" />
-<meta name="twitter:description" content="Free, open-source OBS plugin for live PowerPoint and PDF decks. Clean slide output + presenter view. Hotkeys, clicker, Companion/Stream Deck, OSC." />
+<meta name="twitter:title" content="PPTBridge SK | Free OBS PowerPoint &amp; PDF Plugin" />
+<meta name="twitter:description" content="Clean audience slides plus a separate presenter view for PowerPoint and PDF decks in OBS. Free and open source." />
 <meta name="twitter:image" content="https://srdjankotarlic.github.io/pptbridge-sk-obs/assets/og-image.png" />
 
 <!-- JSON-LD: SoftwareApplication -->
@@ -35,7 +35,7 @@
 {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "PPTBridge SK for OBS",
+  "name": "PPTBridge SK",
   "operatingSystem": "macOS, Windows",
   "applicationCategory": "MultimediaApplication",
   "description": "Free, open-source OBS Studio plugin that adds PowerPoint and PDF slides to OBS as native sources, with a presenter/confidence view (current slide, next slide, timer, notes) and slide control over OBS hotkeys, a presenter clicker, Bitfocus Companion / Stream Deck, or local OSC.",
@@ -141,7 +141,7 @@
   .support-note{color:var(--muted); font-size:14px; margin:14px 0 0}
   .support-note a{font-weight:600}
   .shot{margin:42px auto 0; max-width:920px}
-  .shot img{width:100%; height:auto; border:1px solid var(--line); border-radius:var(--radius); display:block}
+  .shot img,.shot video{width:100%; height:auto; border:1px solid var(--line); border-radius:var(--radius); display:block; background:#000}
   .shot a{display:block}
   .demo-note{color:var(--muted); font-size:14px; margin:10px 0 0}
   section{padding:46px 0; border-top:1px solid var(--line)}
@@ -192,6 +192,7 @@
     <img src="assets/favicon.png" alt="PPTBridge SK icon" />
     <span class="name">PPTBridge SK</span>
     <nav>
+      <a href="#demo">Demo</a>
       <a href="#features">Features</a>
       <a href="#install">Install</a>
       <a href="#control">Control</a>
@@ -205,8 +206,8 @@
 <main>
 <section class="hero" style="border-top:none">
   <div class="wrap">
-    <h1>PowerPoint and PDF slides as native OBS sources</h1>
-    <p class="sub">PPTBridge SK is a free, open-source <strong>OBS Studio plugin</strong>. It gives OBS a clean slide output and a separate presenter/confidence view — current slide, next slide, timer, and notes — for live shows, webinars, conferences, and church streams.</p>
+    <h1>Free OBS PowerPoint plugin with clean slides and presenter view</h1>
+    <p class="sub">PPTBridge SK separates a clean PowerPoint or PDF output for the audience from a presenter/confidence view with the current slide, next slide, notes, timer, and cue list. It runs as two native sources inside OBS Studio.</p>
     <div class="badges">
       <span class="badge">Free &amp; open source</span>
       <span class="badge">macOS Apple Silicon — stable</span>
@@ -218,11 +219,12 @@
       <a class="btn ghost" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.11/pptbridge-obs-macos-apple-silicon.zip">Download for macOS<small>Apple Silicon · stable v0.5.11</small></a>
     </div>
     <p class="support-note">Free download, no paywall. If PPTBridge helps your production, <a href="https://www.patreon.com/posts/coffee-158046733">support development on Patreon (suggested $5)</a>.</p>
-    <div class="shot">
-      <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov" aria-label="Watch the PPTBridge SK demo video">
-        <img src="assets/demo-preview.png" alt="PPTBridge SK Slide and Presenter sources running inside OBS Studio" width="1280" height="720" />
-      </a>
-      <p class="demo-note">Click the preview to watch the 2.5-minute OBS workflow demo.</p>
+    <div class="shot" id="demo">
+      <video controls muted playsinline preload="metadata" poster="assets/demo-preview.png" aria-label="PPTBridge SK presenter view and clean slide output demo">
+        <source src="assets/pptbridge-demo-short.mp4" type="video/mp4" />
+        <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov">Watch the full PPTBridge SK demo</a>.
+      </video>
+      <p class="demo-note">20-second demo: presenter view on the left, clean Program output on the right. <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.7/pptbridge-sk-demo.mov">Watch the full 2.5-minute workflow</a>.</p>
     </div>
   </div>
 </section>
@@ -291,6 +293,7 @@
     <h2>Practical OBS presentation guides</h2>
     <p class="lead">Start with the problem you need to solve. Each guide uses the same tested PPTBridge controls described in the project documentation.</p>
     <div class="grid">
+      <div class="card"><h3><a href="guides/obs-powerpoint-plugin.html">Free OBS PowerPoint plugin setup</a></h3><p>See exactly how the two-source workflow works, what it supports, and how to install it.</p></div>
       <div class="card"><h3><a href="guides/powerpoint-presenter-notes-obs.html">Keep presenter notes out of Program</a></h3><p>Separate the clean audience Slide source from the speaker's Presenter confidence view.</p></div>
       <div class="card"><h3><a href="guides/companion-stream-deck-powerpoint-obs.html">Companion and Stream Deck control</a></h3><p>Build a local OSC control page with navigation and live deck status.</p></div>
       <div class="card"><h3><a href="guides/powerpoint-obs-without-display-capture.html">PowerPoint without display capture</a></h3><p>Keep the desktop private and use the computer for other production work.</p></div>
@@ -316,8 +319,7 @@
 <footer>
   <div class="wrap">
     <p>PPTBridge SK for OBS — built by <a href="https://github.com/srdjankotarlic">Srdjan Kotarlic</a> for real live-production work.<br />
-    <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs">Source on GitHub</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases">All platform downloads</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/issues">Report an issue</a> · <a href="https://www.patreon.com/posts/coffee-158046733">Optional $5 support</a><br />
-    Also useful for live events: <a href="https://srdjankotarlic.github.io/protimer/">ProTimer — free stage timer and phone remote</a>.</p>
+    <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs">Source on GitHub</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases">All platform downloads</a> · <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/issues">Report an issue</a> · <a href="https://www.patreon.com/posts/coffee-158046733">Optional $5 support</a></p>
   </div>
 </footer>
 
