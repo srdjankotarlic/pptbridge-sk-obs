@@ -2,15 +2,21 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://srdjankotarlic.github.io/pptbridge-sk-obs/</loc>
-    <lastmod>2026-08-29</lastmod>
+    <lastmod>2026-09-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/</loc>
-    <lastmod>2026-08-28</lastmod>
+    <lastmod>2026-09-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/obs-powerpoint-plugin.html</loc>
+    <lastmod>2026-09-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/powerpoint-presenter-notes-obs.html</loc>
@@ -32,7 +38,7 @@
   </url>
   <url>
     <loc>https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/pdf-slides-presenter-view-obs.html</loc>
-    <lastmod>2026-08-28</lastmod>
+    <lastmod>2026-09-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

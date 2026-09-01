@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How to Use a Free OBS PowerPoint Plugin | PPTBridge SK</title>
+  <meta name="description" content="Use a free OBS PowerPoint plugin for clean slides and a separate presenter view with notes, next slide, timer, cue list, clicker, Companion, and OSC control." />
+  <meta name="author" content="Srdjan Kotarlic" />
+  <link rel="canonical" href="https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/obs-powerpoint-plugin.html" />
+  <link rel="icon" type="image/png" href="../assets/favicon.png" />
+  <link rel="stylesheet" href="guide.css" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="PPTBridge SK" />
+  <meta property="og:title" content="How to Use a Free OBS PowerPoint Plugin" />
+  <meta property="og:description" content="Separate clean audience slides from presenter notes and next-slide preview inside OBS Studio." />
+  <meta property="og:url" content="https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/obs-powerpoint-plugin.html" />
+  <meta property="og:image" content="https://srdjankotarlic.github.io/pptbridge-sk-obs/assets/og-image.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="How to Use a Free OBS PowerPoint Plugin" />
+  <meta name="twitter:description" content="Clean PowerPoint output plus a separate presenter view, running as native OBS sources." />
+  <meta name="twitter:image" content="https://srdjankotarlic.github.io/pptbridge-sk-obs/assets/og-image.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "How to Use a Free OBS PowerPoint Plugin",
+    "description": "How to use PPTBridge SK for clean PowerPoint output and a separate presenter view in OBS Studio.",
+    "datePublished": "2026-09-01",
+    "dateModified": "2026-09-01",
+    "author": { "@type": "Person", "name": "Srdjan Kotarlic" },
+    "publisher": { "@type": "Person", "name": "Srdjan Kotarlic" },
+    "mainEntityOfPage": "https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/obs-powerpoint-plugin.html",
+    "image": "https://srdjankotarlic.github.io/pptbridge-sk-obs/assets/og-image.png"
+  }
+  </script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <img src="../assets/favicon.png" alt="" />
+    <a class="brand" href="../">PPTBridge SK</a>
+    <nav><a href="./">Guides</a><a href="../#demo">Demo</a><a href="../#install">Install</a><a href="https://github.com/srdjankotarlic/pptbridge-sk-obs">GitHub</a></nav>
+  </div>
+</header>
+<main><article class="wrap">
+  <div class="eyebrow">OBS PowerPoint workflow</div>
+  <h1>A free OBS PowerPoint plugin with a separate presenter view</h1>
+  <p class="lede">PPTBridge SK puts a clean slide feed and a presenter/confidence view into OBS as two native sources. The audience sees only the deck; the speaker or operator can see notes, the next slide, timer, and cue list.</p>
+  <div class="meta"><span>Free and open source</span><span>Windows x64</span><span>macOS Apple Silicon</span><span>OBS Studio 30+</span></div>
+
+  <img class="shot" src="../assets/workflow-overview.png" alt="PPTBridge SK workflow with a clean Slide source for Program and a separate Presenter source for the speaker" width="1350" height="1350" />
+
+  <h2>What problem does it solve?</h2>
+  <p>Normal PowerPoint capture often needs a full-screen slideshow, a second display, or a carefully selected window. That can expose the desktop, put presenter notes on the wrong output, and make slide control depend on keyboard focus. PPTBridge keeps the presentation workflow inside OBS:</p>
+  <ul>
+    <li><strong>PPTBridge SK Slide</strong> is the clean audience source for Program, recording, stream, projector, or switcher.</li>
+    <li><strong>PPTBridge SK Presenter</strong> is the separate confidence view with current and next slide, notes, timer, and cues.</li>
+  </ul>
+  <p>Both sources can point to the same deck. You can crop, scale, and place them like normal OBS sources without showing the PowerPoint interface.</p>
+
+  <h2>Install PPTBridge SK</h2>
+  <div class="cta-row">
+    <a class="btn primary" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.11/pptbridge-obs-macos-apple-silicon.zip">Download for Apple Silicon Mac</a>
+    <a class="btn secondary" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip">Download for Windows x64</a>
+  </div>
+  <ol>
+    <li>Quit OBS and download the ZIP for your computer.</li>
+    <li>Extract it. On macOS, open <code>START-HERE-macOS.txt</code> and run <code>1-Install-PPTBridge-SK.command</code>. On Windows, run <code>INSTALL.cmd</code>.</li>
+    <li>Open OBS in normal mode, not Safe Mode.</li>
+    <li>Choose <strong>Sources + -&gt; PPTBridge SK Slide</strong> and select a <code>.pptx</code> or <code>.pdf</code> file.</li>
+    <li>Add <strong>PPTBridge SK Presenter</strong> to the scene used for the speaker or operator display, then select the same file.</li>
+  </ol>
+  <div class="callout"><strong>No paywall:</strong> PPTBridge SK is free and open source. It is an independent third-party plugin and is not affiliated with or maintained by the OBS Project.</div>
+
+  <h2>Static preview or live PowerPoint</h2>
+  <p>A PowerPoint file first loads as a static preview so the deck can appear quickly. For builds, transitions, embedded video, and audio, open the source properties and choose <strong>Start / Restart PowerPoint Live Mode</strong>. The plugin drives the real slideshow while keeping its clean output attached to the OBS source.</p>
+  <p>PDF files render directly inside PPTBridge and do not require Microsoft PowerPoint. They work well for decks without animations or embedded media.</p>
+
+  <h2>Control slides during a show</h2>
+  <ul>
+    <li><strong>OBS hotkeys:</strong> focused operator control without taking over ordinary arrow keys.</li>
+    <li><strong>Presenter clicker:</strong> optional Page Up/Page Down capture can route a stage remote to the deck in the current Program scene while the operator uses another application.</li>
+    <li><strong>Bitfocus Companion or Stream Deck:</strong> use the included Generic OSC template for navigation and status.</li>
+    <li><strong>Local OSC:</strong> connect QLab, TouchDesigner, or a custom control surface, with feedback for slide number, deck status, timer, and cues.</li>
+  </ul>
+
+  <h2>When this workflow is a good fit</h2>
+  <ul>
+    <li>Conferences, webinars, church streams, classrooms, and live events that use OBS.</li>
+    <li>A speaker needs notes and the next slide while Program must remain clean.</li>
+    <li>The operator needs to work in OBS or another application while a stage clicker changes slides.</li>
+    <li>A show uses Companion, Stream Deck, or OSC for presentation control.</li>
+  </ul>
+
+  <h2>Before using it live</h2>
+  <p>Rehearse the exact deck on the production computer, especially presentations with custom fonts, animations, embedded video, or audio. Confirm the Slide source is in the Program scene, the Presenter source is on the correct confidence display, and every control method reaches the intended deck.</p>
+  <div class="cta-row"><a class="btn primary" href="../#demo">Watch the 20-second demo</a><a class="btn secondary" href="https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/QUICKSTART.md">Open the quickstart</a></div>
+  <div class="next"><strong>Need a specific workflow?</strong> See the guides for <a href="powerpoint-presenter-notes-obs.html">presenter notes</a>, <a href="powerpoint-obs-without-display-capture.html">avoiding display capture</a>, <a href="pdf-slides-presenter-view-obs.html">PDF decks</a>, or <a href="companion-stream-deck-powerpoint-obs.html">Companion and Stream Deck</a>.</div>
+</article></main>
+<footer><div class="wrap"><a href="./">All PPTBridge guides</a> | <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/issues">Report an issue</a> | <a href="https://github.com/srdjankotarlic/pptbridge-sk-obs/discussions">Ask a setup question</a></div></footer>
+</body>
+</html>
