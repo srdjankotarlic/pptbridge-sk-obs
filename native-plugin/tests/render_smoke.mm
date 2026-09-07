@@ -214,6 +214,14 @@ int main(int argc, char **argv)
     std::size_t media_count = 0;
     for (std::size_t index = 0; index < slide_count; ++index) {
       document->GoTo(index);
+      if (document->CurrentIndex() != index ||
+          !document->RenderSlideBGRA(640, 360, pixels, stride) ||
+          pixels.size() < static_cast<std::size_t>(stride) * 360 || stride < 640 * 4 ||
+          !document->RenderPresenterBGRA(640, 360, pixels, stride, options) ||
+          pixels.size() < static_cast<std::size_t>(stride) * 360 || stride < 640 * 4) {
+        std::fprintf(stderr, "per-page slide/presenter render failed at page %zu\n", index + 1);
+        return 1;
+      }
       // In cached mode the first Next cue starts embedded media and a later
       // Next advances the slide, matching how the OBS source behaves live.
       document->Next();
@@ -234,6 +242,7 @@ int main(int argc, char **argv)
       return 1;
     }
     std::printf("embedded media metadata ok: %zu item(s)\n", media_count);
+    std::printf("all-page slide/presenter renders ok: %zu pages\n", slide_count);
 
     const auto cue_version = document->StateVersion();
     if (!document->SetCueChecked(initial_status.current_index, true)) {

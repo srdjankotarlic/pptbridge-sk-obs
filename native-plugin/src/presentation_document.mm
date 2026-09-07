@@ -1,6 +1,7 @@
 #import "presentation_document.hpp"
 
 #import <AppKit/AppKit.h>
+#import <CommonCrypto/CommonDigest.h>
 #import <dispatch/dispatch.h>
 #import <Foundation/Foundation.h>
 #import <PDFKit/PDFKit.h>
@@ -9,6 +10,7 @@
 
 #include <csignal>
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <chrono>
 #include <cstdlib>
@@ -658,37 +660,80 @@ std::string CacheDirectoryForDeck(const std::string &pptx_path)
   return temp_dir.string();
 }
 
+std::string FileContentHash(const fs::path &path)
+{
+  std::ifstream input(path, std::ios::binary);
+  if (!input) {
+    return {};
+  }
+  CC_SHA256_CTX context;
+  CC_SHA256_Init(&context);
+  std::array<char, 64 * 1024> buffer;
+  while (input.read(buffer.data(), buffer.size()) || input.gcount() > 0) {
+    CC_SHA256_Update(&context, buffer.data(), static_cast<CC_LONG>(input.gcount()));
+  }
+  if (!input.eof() || input.bad()) {
+    return {};
+  }
+  std::array<unsigned char, CC_SHA256_DIGEST_LENGTH> digest;
+  CC_SHA256_Final(digest.data(), &context);
+  constexpr char hex[] = "0123456789abcdef";
+  std::string result;
+  result.reserve(digest.size() * 2);
+  for (const auto byte : digest) {
+    result.push_back(hex[byte >> 4]);
+    result.push_back(hex[byte & 15]);
+  }
+  return result;
+}
+
 bool TryUseCachedPdf(
-  const std::string &pptx_path,
+  const std::string &source_hash,
   const std::string &cache_dir,
   std::string &out_pdf_path)
 {
-  std::error_code error;
   const auto cached_pdf = fs::path(cache_dir) / "deck.pdf";
-  if (!fs::exists(cached_pdf, error) || error) {
+  NSData *data = [NSData dataWithContentsOfFile:ToNSString((fs::path(cache_dir) / "deck-cache.json").string())];
+  id manifest = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
+  if (source_hash.empty() || ![manifest isKindOfClass:NSDictionary.class] ||
+      ![manifest[@"source_sha256"] isEqual:ToNSString(source_hash)]) {
     return false;
   }
-
-  const auto pptx_time = fs::last_write_time(pptx_path, error);
-  if (error) {
+  const auto pdf_hash = FileContentHash(cached_pdf);
+  if (pdf_hash.empty() || ![manifest[@"pdf_sha256"] isEqual:ToNSString(pdf_hash)]) {
     return false;
   }
+  out_pdf_path = cached_pdf.string();
+  return true;
+}
 
-  const auto pdf_time = fs::last_write_time(cached_pdf, error);
-  if (error) {
+bool RecordPdfCacheIdentity(
+  const std::string &pptx_path,
+  const std::string &source_hash,
+  const std::string &cache_dir,
+  const std::string &pdf_path,
+  std::string &out_error)
+{
+  if (source_hash.empty() || FileContentHash(pptx_path) != source_hash) {
+    out_error = "The presentation changed during export. Finish saving it in PowerPoint, then click Reload.";
     return false;
   }
-
-  if (pdf_time >= pptx_time) {
-    out_pdf_path = cached_pdf.string();
-    return true;
+  const auto pdf_hash = FileContentHash(pdf_path);
+  if (pdf_hash.empty()) {
+    out_error = "The exported PDF could not be read. Click Reload to try again.";
+    return false;
   }
-
-  return false;
+  NSDictionary *manifest = @{ @"source_sha256": ToNSString(source_hash), @"pdf_sha256": ToNSString(pdf_hash) };
+  NSData *data = [NSJSONSerialization dataWithJSONObject:manifest options:0 error:nil];
+  if (![data writeToFile:ToNSString((fs::path(cache_dir) / "deck-cache.json").string()) atomically:YES]) {
+    blog(LOG_WARNING, "[PPTBridge] Could not save PDF cache identity; the next load will export again");
+  }
+  return true;
 }
 
 bool TryUseLegacyCachedPdf(
   const std::string &pptx_path,
+  const std::string &source_hash,
   const std::string &cache_dir,
   std::string &out_pdf_path)
 {
@@ -698,7 +743,7 @@ bool TryUseLegacyCachedPdf(
   }
 
   std::string legacy_pdf_path;
-  if (!TryUseCachedPdf(pptx_path, legacy_dir, legacy_pdf_path)) {
+  if (!TryUseCachedPdf(source_hash, legacy_dir, legacy_pdf_path)) {
     return false;
   }
 
@@ -706,6 +751,11 @@ bool TryUseLegacyCachedPdf(
   const auto target_pdf = fs::path(cache_dir) / "deck.pdf";
   fs::copy_file(legacy_pdf_path, target_pdf, fs::copy_options::overwrite_existing, error);
   if (error) {
+    return false;
+  }
+
+  std::string identity_error;
+  if (!RecordPdfCacheIdentity(pptx_path, source_hash, cache_dir, target_pdf.string(), identity_error)) {
     return false;
   }
 
@@ -1940,19 +1990,29 @@ bool ConvertPptxToPdf(
     return false;
   }
 
-  if (TryUseCachedPdf(pptx_path, cache_dir, out_pdf_path)) {
+  // File copies can preserve old timestamps. Bind the PDF to the actual PPTX
+  // bytes, and reject truncated/replaced cache files as well as changed decks.
+  const auto source_hash = FileContentHash(pptx_path);
+  if (source_hash.empty()) {
+    out_error = "The selected .pptx file could not be read. Finish saving it, then click Reload.";
+    return false;
+  }
+  if (TryUseCachedPdf(source_hash, cache_dir, out_pdf_path)) {
     blog(LOG_INFO, "[PPTBridge] Using cached PDF for '%s'", pptx_path.c_str());
     return true;
   }
 
-  if (TryUseLegacyCachedPdf(pptx_path, cache_dir, out_pdf_path)) {
+  if (TryUseLegacyCachedPdf(pptx_path, source_hash, cache_dir, out_pdf_path)) {
     blog(LOG_INFO, "[PPTBridge] Reused legacy cached PDF for '%s'", pptx_path.c_str());
     return true;
   }
 
+  // Never leave an old identity attached to a newly exported PDF after failure.
+  std::error_code remove_error;
+  fs::remove(fs::path(cache_dir) / "deck-cache.json", remove_error);
   std::string libreoffice_error;
   if (ConvertPptxToPdfWithLibreOffice(pptx_path, cache_dir, out_pdf_path, libreoffice_error)) {
-    return true;
+    return RecordPdfCacheIdentity(pptx_path, source_hash, cache_dir, out_pdf_path, out_error);
   }
 
   blog(
@@ -1965,7 +2025,7 @@ bool ConvertPptxToPdf(
   std::string powerpoint_error;
   if (allow_powerpoint_export && !FindPowerPointBundle().empty()) {
     if (ConvertPptxToPdfWithPowerPoint(pptx_path, cache_dir, out_pdf_path, powerpoint_error)) {
-      return true;
+      return RecordPdfCacheIdentity(pptx_path, source_hash, cache_dir, out_pdf_path, out_error);
     }
 
     blog(

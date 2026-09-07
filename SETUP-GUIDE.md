@@ -215,6 +215,12 @@ preview is postponed until it can be verified without adding crash risk.
 
 ## Troubleshooting
 
+On macOS, the static PPTX preview cache is checked against the contents of both
+the presentation and its exported PDF. After replacing a PPTX at the same path,
+click `Reload Presentation` to load the replacement. Unchanged files reuse the
+cache; damaged cache files are exported again. Caches from older builds without
+content verification are exported once on their first load after this update.
+
 | Problem | What to do |
 |---|---|
 | Plugin does not appear in OBS | Restart OBS normally, not Safe Mode |
