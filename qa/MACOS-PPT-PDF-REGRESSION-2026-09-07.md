@@ -1,5 +1,9 @@
 # macOS PPTX/PDF regression QA - 2026-09-07
 
+Follow-up: [v0.5.12 release QA](MACOS-V0512-RELEASE-QA.md) records the later
+cache/focus fixes, OBS update and Stage Manager compatibility workaround.
+The observations below describe the earlier run and are retained as history.
+
 ## Decision
 
 The cache-fix build passed the completed native and OBS functional suites. It is

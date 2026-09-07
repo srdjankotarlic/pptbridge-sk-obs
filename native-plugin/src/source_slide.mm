@@ -2165,6 +2165,15 @@ obs_properties_t *source_properties(SourceContext *context)
         presenter_live_controls);
     }
   }
+  if (show_live_controls &&
+      [[[NSUserDefaults standardUserDefaults] persistentDomainForName:@"com.apple.WindowManager"][@"GloballyEnabled"] boolValue]) {
+    obs_property_t *stage_manager_note = obs_properties_add_text(
+      props, "pptbridge_stage_manager_note",
+      "Stage Manager is enabled. It can shrink or blank the live PowerPoint capture when you switch apps. Turn it off in System Settings > Desktop & Dock before using live mode. PDF and static previews are unaffected.",
+      OBS_TEXT_INFO);
+    obs_property_text_set_info_type(stage_manager_note, OBS_TEXT_INFO_WARNING);
+    obs_property_text_set_info_word_wrap(stage_manager_note, true);
+  }
   if (context && context->mode == ViewMode::Slide) {
     if (show_live_controls) {
       obs_properties_add_bool(props, "use_live_powerpoint", "Use True Live PowerPoint Mode");

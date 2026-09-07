@@ -88,6 +88,12 @@ navigating while this feature is enabled.
 
 POWERPOINT STARTUP
 
+For macOS 26 (Tahoe), use OBS Studio 32.2.2 or newer. Older OBS/Qt builds
+can crash during interface navigation or shutdown on this macOS version.
+Before live PowerPoint, turn Stage Manager off in System Settings >
+Desktop & Dock. It can turn a background slideshow into a small thumbnail
+or black capture. PDF and static PPTX previews are unaffected.
+
 In the PPTBridge SK Slide source properties:
 
 - Leave Auto Start PowerPoint When OBS Opens off if OBS should open quietly.

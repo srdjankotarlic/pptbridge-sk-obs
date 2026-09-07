@@ -1,4 +1,4 @@
-## PPTBridge SK v0.5.11 - Apple Silicon Stable
+## PPTBridge SK v0.5.12 - Apple Silicon Stable
 
 PPTBridge SK is a free, independent OBS Studio plugin for live PowerPoint and PDF workflows:
 
@@ -9,7 +9,7 @@ PPTBridge SK is a free, independent OBS Studio plugin for live PowerPoint and PD
 
 Use **`pptbridge-obs-macos-apple-silicon.zip`** for M1/M2/M3/M4 Macs.
 
-Apple Silicon v0.5.11 and Windows x64 v0.5.10 are stable platforms. Intel Mac remains a separate beta track. See the [download table](https://github.com/srdjankotarlic/pptbridge-sk-obs#download-and-install) before choosing a package.
+Apple Silicon v0.5.12 and Windows x64 v0.5.10 are stable platforms. Intel Mac remains a separate beta track. See the [download table](https://github.com/srdjankotarlic/pptbridge-sk-obs#download-and-install) before choosing a package.
 
 ### Install
 
@@ -21,14 +21,23 @@ Apple Silicon v0.5.11 and Windows x64 v0.5.10 are stable platforms. Intel Mac re
 
 For an animated `.pptx`, select the deck and click `Start / Restart PowerPoint Live Mode`. PDF decks render directly and do not require PowerPoint.
 
+**Live capture on macOS:** turn off Stage Manager in `System Settings > Desktop & Dock`
+before starting PowerPoint live mode. Otherwise macOS can supply a small thumbnail
+or black capture when you switch applications. On macOS 26, use OBS 32.2.2 or newer.
+The plugin installer does not update OBS or change Stage Manager for you.
+
 ### What Is New
 
-- Updated Apple Silicon to the current shared PPTBridge codebase.
-- Added routing through nested OBS scenes and groups, so controls keep following the Program deck.
-- Hardened Presenter source teardown and removed stale render-state cleanup code.
-- Expanded repeatable OBS tests for real PPTX/PDF decks, live PowerPoint, Presenter layouts, OSC/Companion feedback, cue state, clicker isolation, and embedded-media audio.
-- Kept ordinary Left/Right/Space keys free; global clicker capture uses PageDown/PageUp by default.
-- Kept the download minimal: one Apple Silicon ZIP, checksum, double-click installer, and only the files needed to install and operate the plugin.
+- Verify both the PPTX and cached PDF by content, so replacing a deck at the same path with an older timestamp cannot silently reuse the wrong slides. Damaged or unverified caches are rebuilt.
+- Restore the operator's application after preparing the live PowerPoint window, with a bounded activation fallback on newer macOS versions.
+- Warn about Stage Manager in live source properties and document the tested workaround.
+- Reject PowerPoint temporary lock files (`~$...`) with a useful explanation, show load errors beside Browse, and support OBS missing-file relinking for decks and Presenter backgrounds.
+- Let the installer complete successfully without an interactive terminal, while still refusing to replace a plugin in a running OBS instance.
+- Keep the existing source names, ordinary Left/Right/Space keys, OSC controls, and minimal Apple Silicon package unchanged.
+
+The first load of a PPTX whose old cache has not been verified exports once after
+this update. Later unchanged loads reuse the verified cache. This is a correctness
+fix, not a promise of instant conversion for every presentation.
 
 ### Control Options
 
@@ -53,7 +62,13 @@ The release also includes `pptbridge-obs-macos-apple-silicon.zip.sha256` for che
 
 ### Verification
 
-The Apple Silicon package was built and runtime-tested on OBS Studio 32.1.1 on an M1 Pro. Coverage included real PPTX/PDF rendering, Presenter layouts, nested and multi-deck Program routing, PowerPoint live start/stop/restart/navigation/final-slide protection/black screen/reattach, all OSC controls and 16 feedback fields, cue state, cache reuse, embedded-media audio gain/disable, isolated installation, sanitizers, and release-package checks.
+Test environment: Apple M1 Pro, macOS 26.6.2, OBS 32.2.2, Microsoft PowerPoint,
+Stage Manager off. See the [release QA report](https://github.com/srdjankotarlic/pptbridge-sk-obs/blob/main/qa/MACOS-V0512-RELEASE-QA.md)
+for the individual results, earlier failures, and coverage limits. No universal
+crash-free guarantee or fresh embedded-media certification is claimed.
+
+The plugin has an ad-hoc signature; it is not Apple Developer ID signed or
+notarized. Installation was checked on an existing Mac, not a pristine machine.
 
 ### Help and Demo
 

@@ -17,7 +17,7 @@ To check, open `Apple menu > About This Mac`. If it says `Chip: Apple M...`, use
 
    Apple Silicon:
 
-   <https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.11/pptbridge-obs-macos-apple-silicon.zip>
+   <https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.12/pptbridge-obs-macos-apple-silicon.zip>
 
    Intel:
 
@@ -34,6 +34,12 @@ To check, open `Apple menu > About This Mac`. If it says `Chip: Apple M...`, use
    - `PPTBridge SK Presenter`
 
 If macOS blocks the command the first time, right-click it and choose `Open`.
+
+Before live PowerPoint capture, turn off Stage Manager in `System Settings >
+Desktop & Dock`. It can turn background slideshow capture into a small thumbnail
+or black frame. On macOS 26, use OBS Studio 32.2.2 or newer. The PPTBridge installer
+does not update OBS or change system settings. PDF/static previews do not need
+Stage Manager disabled.
 
 ## What To Add In OBS
 
@@ -143,7 +149,7 @@ For Stream Deck or Bitfocus Companion control without keyboard focus:
    - `/pptbridge/black`
    - `/pptbridge/reload`
 
-The release ZIP also includes `COMPANION-CONTROL.md` and `send-osc.sh` for setup/testing.
+The release ZIP also includes `COMPANION-CONTROL.md` and `scripts/send-osc.sh` for setup/testing.
 The repo also includes `companion/PPTBridge-SK-Companion-OSC-Template.json` as a Companion/Generic OSC starter map with common buttons and status feedback paths.
 
 ## Requirements

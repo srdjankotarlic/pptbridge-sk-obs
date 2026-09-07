@@ -84,8 +84,16 @@ def main() -> int:
         raise AssertionError("PowerPoint live start must target the validated PowerPoint application")
     if '@"/usr/bin/open"' not in live_start_session or '@"-b", ToNSString(kPowerPointBundleIdentifier)' not in live_start_session:
         raise AssertionError("PowerPoint live start must open decks through LaunchServices to avoid file-access dialogs")
-    if "PreparePowerPointWindowForCaptureAndRestoreFocus()" not in live_start_session:
+    if "PreparePowerPointWindowForCaptureAndRestoreFocus(application_before_start)" not in live_start_session:
         raise AssertionError("PowerPoint live start must prepare the slideshow window for ScreenCaptureKit")
+    remember_app = live_start_session.find("application_before_start =")
+    if remember_app < 0 or remember_app > live_start_session.find("QueryPowerPointLiveState("):
+        raise AssertionError("Remember the operator's application before any PowerPoint startup commands")
+    focus_restore = extract_function(source, "bool PreparePowerPointWindowForCaptureAndRestoreFocus(")
+    if "frontmost_pid != powerpoint_application.processIdentifier" not in focus_restore:
+        raise AssertionError("Focus restoration must leave an operator-selected third app alone")
+    if '@"-a", previous_application.bundleURL.path' not in focus_restore or "exit_code, 3.0" not in focus_restore:
+        raise AssertionError("The macOS focus fallback must use bounded normal app activation")
     if "auto staged_input = copied_input;" not in live_start_session:
         raise AssertionError("PowerPoint live fallback must track the staged path that was actually created")
     if "staged_input = alternate_copied_input;" not in live_start_session:
@@ -97,7 +105,7 @@ def main() -> int:
     start_once = live_start_session[
         live_start_session.find("auto start_once") : live_start_session.find("auto start_with_retry")
     ]
-    if start_once.find("PreparePowerPointWindowForCaptureAndRestoreFocus()") < start_once.find(
+    if start_once.find("PreparePowerPointWindowForCaptureAndRestoreFocus(application_before_start)") < start_once.find(
         "ParseLivePowerPointOutput(std_out, snapshot, attempt_error)"
     ):
         raise AssertionError("PowerPoint must only be activated after the exact requested slideshow is running")

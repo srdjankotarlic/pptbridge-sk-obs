@@ -4,9 +4,9 @@
 
 Built for and used in real live-event production. PPTBridge SK is an independent third-party plugin and is not affiliated with the OBS Project.
 
-[![Windows v0.5.10 stable](https://img.shields.io/badge/Windows-v0.5.10%20stable-2ea44f)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.10) [![macOS Apple Silicon v0.5.11 stable](https://img.shields.io/badge/macOS%20Apple%20Silicon-v0.5.11%20stable-2ea44f)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.11) ![OBS Studio 30+](https://img.shields.io/badge/OBS%20Studio-30%2B-4c4c4c)
+[![Windows v0.5.10 stable](https://img.shields.io/badge/Windows-v0.5.10%20stable-2ea44f)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.10) [![macOS Apple Silicon v0.5.12 stable](https://img.shields.io/badge/macOS%20Apple%20Silicon-v0.5.12%20stable-2ea44f)](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.12) ![OBS Studio 30+](https://img.shields.io/badge/OBS%20Studio-30%2B-4c4c4c)
 
-**[Download macOS Apple Silicon v0.5.11](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.11/pptbridge-obs-macos-apple-silicon.zip)** | **[Download Windows x64 v0.5.10](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip)** | [5-minute quickstart](QUICKSTART.md) | [Watch the 20-second demo](https://srdjankotarlic.github.io/pptbridge-sk-obs/#demo)
+**[Download macOS Apple Silicon v0.5.12](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.12/pptbridge-obs-macos-apple-silicon.zip)** | **[Download Windows x64 v0.5.10](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip)** | [5-minute quickstart](QUICKSTART.md) | [Watch the 20-second demo](https://srdjankotarlic.github.io/pptbridge-sk-obs/#demo)
 
 PPTBridge SK stays free, with no paywall. If it helps your production, you can [support development on Patreon (suggested $5)](https://www.patreon.com/posts/coffee-158046733).
 
@@ -18,7 +18,7 @@ Windows x64 and macOS Apple Silicon are stable release platforms. Intel Mac rema
 
 | Platform | Download | Status |
 | --- | --- | --- |
-| Apple Silicon Mac | **[Download v0.5.11 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.11/pptbridge-obs-macos-apple-silicon.zip)** | Stable, locally runtime-tested |
+| Apple Silicon Mac | **[Download v0.5.12 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.12/pptbridge-obs-macos-apple-silicon.zip)** | Stable, locally runtime-tested |
 | Intel Mac | [Download v0.4.4 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip) | Beta |
 | Windows 10/11 x64 | **[Download v0.5.10 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip)** | Stable, runtime-tested PowerPoint and native PDF workflows |
 
@@ -72,6 +72,11 @@ The presenter view is rendered by PPTBridge inside OBS. It is not a screen captu
 - Recovers or reattaches a live slideshow without restarting the whole OBS session.
 
 ## PowerPoint Live Mode
+
+**macOS:** turn off Stage Manager in `System Settings > Desktop & Dock` for reliable
+background live capture. On macOS 26, use OBS 32.2.2 or newer. See the
+[macOS troubleshooting notes](SETUP-GUIDE.md#troubleshooting). PDF/static previews
+do not require changing Stage Manager.
 
 `PPTBridge SK Slide` and `PPTBridge SK Presenter` expose a highlighted **PowerPoint Live Start / Stop** group when a `.pptx` deck is selected.
 
@@ -172,7 +177,7 @@ Use [GitHub Discussions](https://github.com/srdjankotarlic/pptbridge-sk-obs/disc
 
 ## Releases
 
-The current stable releases are **[v0.5.11 for Apple Silicon](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.11)** and **[v0.5.10 for Windows x64](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.10)**. Choose the ZIP that matches your operating system.
+The current stable releases are **[v0.5.12 for Apple Silicon](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.12)** and **[v0.5.10 for Windows x64](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.10)**. Choose the ZIP that matches your operating system.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history and [all GitHub releases](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases) for older and beta packages.
 

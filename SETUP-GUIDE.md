@@ -1,6 +1,6 @@
 # PPTBridge SK for OBS Setup Guide
 
-**Created by Srđan Kotarlić** | Windows v0.5.10 / Apple Silicon v0.5.11
+**Created by Srđan Kotarlić** | Windows v0.5.10 / Apple Silicon v0.5.12
 
 For the fastest install path, start with [QUICKSTART.md](QUICKSTART.md). This guide is the fuller walkthrough for setup, controls, multiple decks, and troubleshooting.
 
@@ -53,7 +53,7 @@ Full Windows details: [native-plugin/INSTALL-Windows.md](native-plugin/INSTALL-W
 ### macOS
 
 1. Download and unzip the right ZIP for your Mac:
-   - [Apple Silicon v0.5.11 stable](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.11/pptbridge-obs-macos-apple-silicon.zip)
+   - [Apple Silicon v0.5.12 stable](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.12/pptbridge-obs-macos-apple-silicon.zip)
    - [Intel v0.4.4 beta](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip)
 2. Quit OBS if it is open
 3. Open `START-HERE-macOS.txt`
@@ -214,6 +214,16 @@ preview is postponed until it can be verified without adding crash risk.
 - for strict OBS control over locally monitored PowerPoint audio, use the pro routing guide in `native-plugin/PRO-AUDIO-MODE.md`
 
 ## Troubleshooting
+
+On macOS 26 (Tahoe), use OBS Studio 32.2.2 or newer. We reproduced UI/shutdown
+crashes with OBS 32.1.1 and its older Qt runtime on this system; the plugin
+installer does not update OBS itself.
+
+For live PowerPoint, turn off Stage Manager in `System Settings > Desktop & Dock`.
+On the tested Mac it shrank background slideshow capture into a thumbnail or
+black frame. Reattach or restart live mode after changing this setting. PDF and
+static PPTX previews are unaffected. PPTBridge warns when Stage Manager is
+enabled but never changes your macOS preferences automatically.
 
 On macOS, the static PPTX preview cache is checked against the contents of both
 the presentation and its exported PDF. After replacing a PPTX at the same path,

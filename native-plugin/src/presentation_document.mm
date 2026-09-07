@@ -417,7 +417,7 @@ bool IsPowerPointRunning()
   return apps.count > 0;
 }
 
-bool PreparePowerPointWindowForCaptureAndRestoreFocus()
+bool PreparePowerPointWindowForCaptureAndRestoreFocus(NSRunningApplication *application_before_start)
 {
   @autoreleasepool {
     NSRunningApplication *previous_application = NSWorkspace.sharedWorkspace.frontmostApplication;
@@ -435,7 +435,11 @@ bool PreparePowerPointWindowForCaptureAndRestoreFocus()
     }
 
     if (previous_application.processIdentifier == powerpoint_application.processIdentifier) {
-      return true;
+      previous_application = application_before_start;
+      if (!previous_application || previous_application.terminated ||
+          previous_application.processIdentifier == powerpoint_application.processIdentifier) {
+        return true;
+      }
     }
 
     BOOL powerpoint_activated =
@@ -471,11 +475,32 @@ bool PreparePowerPointWindowForCaptureAndRestoreFocus()
       return true;
     }
 
-    const BOOL focus_restored =
-      [previous_application activateWithOptions:NSApplicationActivateAllWindows];
-    if (focus_restored) {
-      std::this_thread::sleep_for(kLiveCaptureFocusRestoreSettleTime);
-    } else {
+    // Do not override an app the operator selected while live startup was busy.
+    const auto frontmost_pid = NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier;
+    if (frontmost_pid != powerpoint_application.processIdentifier) {
+      return true;
+    }
+
+    [previous_application activateWithOptions:0];
+    std::this_thread::sleep_for(kLiveCaptureFocusRestoreSettleTime);
+    if (NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier ==
+        powerpoint_application.processIdentifier && previous_application.bundleURL) {
+      // AppKit can reject background activation on recent macOS. LaunchServices
+      // requests normal app activation without Accessibility or simulated keys.
+      std::string std_out;
+      std::string std_err;
+      int exit_code = 0;
+      RunTask(@"/usr/bin/open", @[ @"-a", previous_application.bundleURL.path ],
+        std_out, std_err, exit_code, 3.0);
+    }
+    const auto restore_deadline = Clock::now() + std::chrono::milliseconds(750);
+    while (Clock::now() < restore_deadline &&
+           NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier ==
+             powerpoint_application.processIdentifier) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    }
+    if (NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier ==
+        powerpoint_application.processIdentifier) {
       blog(
         LOG_WARNING,
         "[PPTBridge] PowerPoint slideshow was prepared for capture, but the previous app could not regain focus");
@@ -1597,6 +1622,7 @@ bool StartPowerPointLiveSession(
   LivePowerPointSnapshot &snapshot,
   std::string &out_error)
 {
+  NSRunningApplication *application_before_start = NSWorkspace.sharedWorkspace.frontmostApplication;
   const auto powerpoint_bundle = FindPowerPointBundle();
   if (powerpoint_bundle.empty()) {
     out_error = "Microsoft PowerPoint was not found.";
@@ -1623,7 +1649,7 @@ bool StartPowerPointLiveSession(
     if (QueryPowerPointLiveState(cache_dir, original_input.string(), existing, query_error) &&
         !existing.window_title.empty()) {
       snapshot = existing;
-      if (!PreparePowerPointWindowForCaptureAndRestoreFocus()) {
+      if (!PreparePowerPointWindowForCaptureAndRestoreFocus(application_before_start)) {
         blog(
           LOG_WARNING,
           "[PPTBridge] Reattached PowerPoint slideshow but could not prepare its window for capture");
@@ -1636,7 +1662,7 @@ bool StartPowerPointLiveSession(
       if (QueryPowerPointLiveState(cache_dir, copied_input.string(), existing, query_error) &&
           !existing.window_title.empty()) {
         snapshot = existing;
-        if (!PreparePowerPointWindowForCaptureAndRestoreFocus()) {
+        if (!PreparePowerPointWindowForCaptureAndRestoreFocus(application_before_start)) {
           blog(
             LOG_WARNING,
             "[PPTBridge] Reattached staged PowerPoint slideshow but could not prepare its window for capture");
@@ -1654,7 +1680,7 @@ bool StartPowerPointLiveSession(
             query_error) &&
           !existing.window_title.empty()) {
         snapshot = existing;
-        if (!PreparePowerPointWindowForCaptureAndRestoreFocus()) {
+        if (!PreparePowerPointWindowForCaptureAndRestoreFocus(application_before_start)) {
           blog(
             LOG_WARNING,
             "[PPTBridge] Reattached alternate staged PowerPoint slideshow but could not prepare its window for capture");
@@ -1749,7 +1775,7 @@ bool StartPowerPointLiveSession(
       return false;
     }
 
-    if (!PreparePowerPointWindowForCaptureAndRestoreFocus()) {
+    if (!PreparePowerPointWindowForCaptureAndRestoreFocus(application_before_start)) {
       blog(
         LOG_WARNING,
         "[PPTBridge] PowerPoint live mode started but its window could not be prepared for capture");

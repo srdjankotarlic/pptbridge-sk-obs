@@ -7,7 +7,7 @@ This is the shortest path from download to a working OBS presentation scene.
 | Platform | Download | Status |
 | --- | --- | --- |
 | Windows 10/11 x64 | [Windows v0.5.10 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip) | Stable |
-| Apple Silicon Mac (M-series) | [Apple Silicon v0.5.11 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.11/pptbridge-obs-macos-apple-silicon.zip) | Stable |
+| Apple Silicon Mac (M-series) | [Apple Silicon v0.5.12 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.12/pptbridge-obs-macos-apple-silicon.zip) | Stable |
 | Intel Mac | [Intel v0.4.4 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip) | Beta |
 
 To check your Mac type, open `Apple menu > About This Mac`. Use the
@@ -54,6 +54,10 @@ Open each PPTBridge source's properties and select the same presentation file:
 For `.pptx` live mode, Microsoft PowerPoint must be installed.
 
 ## 5. Start PowerPoint Live Mode
+
+On macOS, turn off Stage Manager in `System Settings > Desktop & Dock` before
+live mode so the background slideshow remains full-size in OBS. On macOS 26,
+use OBS 32.2.2 or newer. These steps are not needed for static PDF rendering.
 
 For PowerPoint decks:
 

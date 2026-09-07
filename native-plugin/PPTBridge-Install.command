@@ -165,4 +165,6 @@ echo "   - Spotlight/Clicker Capture uses PageDown/PageUp; normal arrows stay fr
 echo ""
 echo "If OBS asks about Safe Mode, choose normal launch so third-party plugins load."
 echo ""
-read -r -p "Press Enter to close..."
+if [ -t 0 ]; then
+  read -r -p "Press Enter to close..." || true
+fi
