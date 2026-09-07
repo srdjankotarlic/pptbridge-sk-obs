@@ -77,6 +77,7 @@ obs_source_info *pptbridge_presenter_source_info()
   info.get_defaults = defaults;
   info.get_properties = get_properties;
   info.update = update;
+  info.missing_files = source_missing_files;
   info.activate = activate;
   info.video_tick = video_tick;
   info.video_render = video_render;

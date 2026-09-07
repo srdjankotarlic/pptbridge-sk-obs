@@ -132,6 +132,8 @@ Hotkeys, OSC, and clicker capture follow the current OBS Program scene.
 | PPTBridge sources do not appear | Restart OBS normally, not Safe Mode; on Windows, run `INSTALL.cmd` again with OBS closed |
 | macOS blocks the installer | Right-click the command and choose `Open` |
 | Slides do not load | Check the file path and click `Reload Presentation` |
+| Selected filename starts with `~$` | This is PowerPoint's temporary lock file, not the deck. Use `Browse` to select the real `.pptx` without that prefix |
+| A deck was moved or renamed | Use `Browse` to select its current location in both the Slide and Presenter sources that use it |
 | PowerPoint does not start | Confirm Microsoft PowerPoint is installed |
 | A live slideshow closed unexpectedly | Wait a few seconds for Auto Recover, then use `Start / Restart` if you intentionally disabled it |
 | PowerPoint is live but its OBS video is missing | Click `Reattach Live PowerPoint Window` in source properties |

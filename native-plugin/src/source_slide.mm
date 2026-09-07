@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cctype>
 #include <functional>
+#include <filesystem>
 #include <sstream>
 #include <obs-frontend-api.h>
 #include <util/platform.h>
@@ -1376,7 +1377,13 @@ std::string describe_operator_status(const PresentationStatus &snapshot, bool pd
 {
   std::ostringstream status;
   status << "Operator status: ";
-  if (!pdf_deck && !pptx_deck && snapshot.total_slides == 0) {
+  if (!snapshot.error.empty() && !snapshot.loaded && !snapshot.live_ready && !snapshot.loading) {
+    status << "presentation unavailable\n" << snapshot.error;
+    return status.str();
+  }
+  if (snapshot.loading && snapshot.total_slides == 0) {
+    status << "loading presentation";
+  } else if (!pdf_deck && !pptx_deck && snapshot.total_slides == 0) {
     status << "select a .pptx or .pdf deck";
   } else if (snapshot.total_slides == 0) {
     status << "no loaded cues yet";
@@ -1424,6 +1431,13 @@ void refresh_operator_status_property(obs_properties_t *properties, SourceContex
       selected_deck_is_pdf(context),
       selected_deck_is_pptx(context));
     obs_property_set_description(status_property, status.c_str());
+  }
+
+  obs_property_t *issue_property = obs_properties_get(properties, "pptbridge_input_issue");
+  if (issue_property) {
+    const auto error = context->document->LastError();
+    obs_property_set_description(issue_property, error.c_str());
+    obs_property_set_visible(issue_property, !error.empty());
   }
 
   obs_property_t *source_status_property = obs_properties_get(properties, "pptbridge_status");
@@ -1494,6 +1508,8 @@ std::string build_status_text(SourceContext *context)
     status << "live ready";
   } else if (loaded) {
     status << "ready";
+  } else if (!last_error.empty()) {
+    status << "failed - check presentation file";
   } else {
     status << "idle";
   }
@@ -2104,6 +2120,12 @@ obs_properties_t *source_properties(SourceContext *context)
     OBS_PATH_FILE,
     "Presentations (*.pptx *.pdf);;PowerPoint (*.pptx);;PDF (*.pdf)",
     nullptr);
+  const auto input_error = context && context->document ? context->document->LastError() : std::string();
+  obs_property_t *input_issue = obs_properties_add_text(
+    props, "pptbridge_input_issue", input_error.c_str(), OBS_TEXT_INFO);
+  obs_property_text_set_info_type(input_issue, OBS_TEXT_INFO_ERROR);
+  obs_property_text_set_info_word_wrap(input_issue, true);
+  obs_property_set_visible(input_issue, !input_error.empty());
   add_operator_mode_properties(props, context);
   // The Slide source is hard-locked to Full HD (1920x1080) so the program
   // feed is always clean 16:9 broadcast-ready output. Only the Presenter
@@ -2384,11 +2406,64 @@ void source_update(SourceContext *context, obs_data_t *settings)
   context->rendered_timer_second = 0;
 }
 
+obs_missing_files_t *source_missing_files(void *data)
+{
+  auto *context = static_cast<SourceContext *>(data);
+  obs_missing_files_t *files = obs_missing_files_create();
+  if (!context || !context->source) {
+    return files;
+  }
+
+  obs_data_t *settings = obs_source_get_settings(context->source);
+  for (const char *key : {"pptx_path", "presenter_background_image_path"}) {
+    const std::string path = obs_data_get_string(settings, key);
+    std::error_code error;
+    if (path.empty() || std::filesystem::is_regular_file(path, error)) {
+      continue;
+    }
+    const auto replace = [](void *source_data, const char *new_path, void *key_data) {
+      auto *source_context = static_cast<SourceContext *>(source_data);
+      if (!source_context || !source_context->source || !new_path) {
+        return;
+      }
+      obs_data_t *updated = obs_source_get_settings(source_context->source);
+      obs_data_set_string(updated, static_cast<const char *>(key_data), new_path);
+      obs_source_update(source_context->source, updated);
+      obs_data_release(updated);
+      obs_source_update_properties(source_context->source);
+    };
+    obs_missing_files_add_file(files, obs_missing_file_create(
+      path.c_str(), replace, OBS_MISSING_FILE_SOURCE, context->source, const_cast<char *>(key)));
+  }
+  obs_data_release(settings);
+  return files;
+}
+
 void source_tick(SourceContext *context)
 {
   if (context && context->document) {
     context->document->EnsureLoadingAsync();
     context->document->SyncLiveStateAsync();
+    const auto version = context->document->StateVersion();
+    if (version != context->properties_state_version) {
+      context->properties_state_version = version;
+      const unsigned load_state = (context->document->IsLoading() ? 1u : 0u) |
+                                  (context->document->IsLoaded() ? 2u : 0u) |
+                                  (context->document->IsLivePowerPointReady() ? 4u : 0u);
+      const auto error = context->document->LastError();
+      if (load_state != context->properties_load_state || error != context->properties_error) {
+        context->properties_load_state = load_state;
+        context->properties_error = error;
+        // Load results arrive on workers; refresh an open properties dialog on the UI thread.
+        if (obs_source_t *source = obs_source_get_ref(context->source)) {
+          obs_queue_task(OBS_TASK_UI, [](void *data) {
+            auto *source = static_cast<obs_source_t *>(data);
+            obs_source_update_properties(source);
+            obs_source_release(source);
+          }, source, false);
+        }
+      }
+    }
     if (context->source && (obs_source_showing(context->source) || obs_source_active(context->source))) {
       Registry::Instance().SetActive(context->document);
     }
@@ -2803,6 +2878,7 @@ obs_source_info *pptbridge_slide_source_info()
   info.get_defaults = slide_source_defaults;
   info.get_properties = slide_source_get_properties;
   info.update = slide_source_update;
+  info.missing_files = source_missing_files;
   info.activate = slide_source_activate;
   info.deactivate = slide_source_deactivate;
   info.video_tick = slide_source_video_tick;

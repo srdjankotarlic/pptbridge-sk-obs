@@ -746,11 +746,19 @@ bool ValidatePresentationInput(const std::string &path, std::string &out_error)
     return false;
   }
 
+  const auto filename = fs::path(path).filename().string();
+  if (extension == ".pptx" && filename.rfind("~$", 0) == 0) {
+    out_error = "This is a temporary PowerPoint lock file, not a presentation. "
+                "Choose \"" + filename.substr(2) + "\" without the ~$ prefix using Browse.";
+    return false;
+  }
+
   std::error_code file_error;
   if (!fs::is_regular_file(path, file_error) || file_error) {
     out_error = extension == ".pdf"
       ? "The selected .pdf file could not be found."
       : "The selected .pptx file could not be found.";
+    out_error += " If it was moved or renamed, use Browse to select its current location.";
     return false;
   }
 

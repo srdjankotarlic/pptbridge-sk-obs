@@ -60,6 +60,7 @@ int main()
     const auto unsupported = root / "not-a-presentation.txt";
     const auto corrupt_pptx = root / "corrupt.pptx";
     const auto corrupt_pdf = root / "corrupt.pdf";
+    const auto lock_pptx = root / "~$conference.pptx";
     {
       std::ofstream output(unsupported);
       output << "not a presentation";
@@ -72,14 +73,22 @@ int main()
       std::ofstream output(corrupt_pdf);
       output << "not a PDF document";
     }
+    {
+      std::ofstream output(lock_pptx);
+      output << "PowerPoint owner lock";
+    }
 
     const bool unsupported_ok = ExpectRejected(unsupported.string(), "supports only .pptx and .pdf");
     const bool corrupt_ok = ExpectRejected(corrupt_pptx.string(), "not a valid PowerPoint presentation");
     const bool corrupt_pdf_ok = ExpectRejected(corrupt_pdf.string(), "selected .pdf file could not be opened by PDFKit");
     const bool missing_ok = ExpectRejected((root / "missing.pptx").string(), "could not be found");
     const bool empty_ok = ExpectRejected("", "Choose a .pptx or .pdf");
+    const bool lock_ok = ExpectRejected(lock_pptx.string(), "temporary PowerPoint lock file");
+    const bool lock_hint_ok = ExpectRejected(lock_pptx.string(), "\"conference.pptx\" without the ~$ prefix");
+    const bool missing_hint_ok = ExpectRejected((root / "moved.pdf").string(), "use Browse to select its current location");
 
     fs::remove_all(root, error);
-    return unsupported_ok && corrupt_ok && corrupt_pdf_ok && missing_ok && empty_ok ? 0 : 1;
+    return unsupported_ok && corrupt_ok && corrupt_pdf_ok && missing_ok && empty_ok &&
+           lock_ok && lock_hint_ok && missing_hint_ok ? 0 : 1;
   }
 }

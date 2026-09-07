@@ -60,6 +60,9 @@ struct SourceContext {
   uint32_t stride = 0;
   uint64_t rendered_state_version = 0;
   uint64_t rendered_timer_second = 0;
+  uint64_t properties_state_version = 0;
+  unsigned properties_load_state = 0;
+  std::string properties_error;
   mutable std::mutex render_state_mutex;
   PresenterRenderOptions presenter_options;
   bool use_live_powerpoint = true;
@@ -112,6 +115,7 @@ struct SourceContext {
 void source_defaults(obs_data_t *settings);
 obs_properties_t *source_properties(SourceContext *context);
 void source_update(SourceContext *context, obs_data_t *settings);
+obs_missing_files_t *source_missing_files(void *data);
 void source_tick(SourceContext *context);
 void source_destroy(SourceContext *context);
 void source_destroy_texture(SourceContext *context);
