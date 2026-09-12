@@ -1,6 +1,6 @@
 # PPTBridge SK Quickstart
 
-This is the shortest path from download to a working OBS presentation scene.
+This is the shortest path from download to a working PDF or PowerPoint scene in OBS. **PDFs work directly on Windows and macOS, without PowerPoint or a separate PDF reader.**
 
 ## 1. Download The Right ZIP
 
@@ -51,9 +51,13 @@ Open each PPTBridge source's properties and select the same presentation file:
 - `.pptx` for PowerPoint decks
 - `.pdf` for PDF decks on Windows or macOS
 
+**For PDF:** the pages load directly when you choose the file. Fit the Slide source to your scene and use its Next/Previous buttons. For a speaker monitor, use Presenter with the same PDF to see current/next page, timer, and cues. **Skip step 5 and continue to slide control.**
+
+No PowerPoint Live Mode, PDF-reader window, or display capture is needed. See the [PDF-in-OBS guide](https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/pdf-slides-presenter-view-obs.html) for the full workflow.
+
 For `.pptx` live mode, Microsoft PowerPoint must be installed.
 
-## 5. Start PowerPoint Live Mode
+## 5. Start PowerPoint Live Mode (PowerPoint Files Only)
 
 On macOS, turn off Stage Manager in `System Settings > Desktop & Dock` before
 live mode so the background slideshow remains full-size in OBS. On macOS 26,
@@ -123,9 +127,9 @@ For several presentations in one show:
 
 1. Create one OBS scene per deck.
 2. Add `PPTBridge SK Slide` to each scene.
-3. Add `PPTBridge SK Presenter` if the presenter needs notes.
-4. Select that scene's `.pptx` in both sources.
-5. Start live mode for each deck you want ready.
+3. Add `PPTBridge SK Presenter` for current/next preview, timer, cues, and available PowerPoint notes.
+4. Select that scene's `.pdf` or `.pptx` in both sources.
+5. PDFs load directly. Start live mode only for PowerPoint decks you want ready.
 
 Hotkeys, OSC, and clicker capture follow the current OBS Program scene.
 

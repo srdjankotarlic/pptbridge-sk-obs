@@ -17,7 +17,7 @@ Start here:
 
 For `.pptx` live mode, yes. PPTBridge uses PowerPoint for the live slideshow path so animations, click-builds, and embedded media can behave like a real presentation.
 
-For `.pdf` decks on macOS, PowerPoint is not required.
+For `.pdf` decks on **Windows and macOS**, neither PowerPoint nor a separate PDF reader is required. Add `PPTBridge SK Slide`, choose the PDF, and control its pages directly in OBS.
 
 ## What is the difference between Slide and Presenter?
 
@@ -103,7 +103,31 @@ Yes. Create one OBS scene per deck and put each deck's PPTBridge sources in its 
 
 ## Can I use PDF files?
 
-Yes, on Windows and macOS. PDF decks render directly without PowerPoint, but PDF pages do not contain PowerPoint animations, click-builds, presenter notes, or embedded PowerPoint media playback.
+**Yes. PPTBridge SK is also a PDF presentation plugin for OBS on Windows and macOS.** It renders pages directly as an OBS source, so you do not need PowerPoint, a separate PDF reader, display capture, or a set of manually exported page images.
+
+Add `PPTBridge SK Slide`, choose your `.pdf`, fit the source to your scene, and use Next/Previous. Add `PPTBridge SK Presenter` with the same PDF in a separate confidence scene for current/next page, timer, and cue-list guidance.
+
+[Read the PDF-in-OBS guide](https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/pdf-slides-presenter-view-obs.html).
+
+## What makes it useful for PDF presentations?
+
+The audience gets the selected PDF page while the operator or speaker can see what comes next. You can compose the clean page with cameras and other OBS sources, send it to a projector, stream or record it, and keep one scene per PDF when a show uses several decks. Conference slides, training material, agendas, diagrams, and static backup decks all fit this page-by-page workflow.
+
+## Can I control PDF pages with a clicker or Companion?
+
+Yes. PDF decks use the same next/previous/first/last and blackout controls as other PPTBridge decks. Use source buttons or focused OBS hotkeys; enable optional Spotlight/Clicker Capture for a stage remote, or use Companion with local OSC. Controls follow the PPTBridge deck in the current Program scene. See the [control guide](native-plugin/COMPANION-CONTROL.md).
+
+## Does a PDF have speaker notes, animation, or video?
+
+PPTBridge displays PDF pages as static slides. Ordinary PDF exports do not carry PowerPoint speaker notes into Presenter, and PDF playback does not reproduce PowerPoint animations, click-builds, or embedded media. Current/next page, timer, and cue guidance remain available. Use the original PowerPoint file when its live features or speaker notes are needed.
+
+## Do I need to turn off Stage Manager for PDFs on macOS?
+
+No. PDFs are rendered directly; the Stage Manager workaround applies to live PowerPoint window capture, not PDF pages.
+
+## What should I check before using a PDF at an event?
+
+Inspect page order, small text, unusual page sizes, and the fit/crop on the actual output display. Keep the file in the show folder and rehearse navigation and blackout. Password-protected PDFs are not supported on Windows; use a readable, unprotected presentation export.
 
 ## Does PPTBridge capture PowerPoint audio?
 

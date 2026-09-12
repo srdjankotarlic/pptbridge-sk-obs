@@ -2,7 +2,7 @@
 
 **Created by Srdjan Kotarlic**
 
-This folder contains the native OBS plugin version of PPTBridge SK.
+This folder contains the native OBS plugin version of PPTBridge SK for **PDF and PowerPoint presentations**. PDFs render directly on Windows and macOS without PowerPoint or a separate PDF reader. Use Slide for clean audience pages and Presenter for current/next preview, timer, and cue guidance. [PDF setup guide](https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/pdf-slides-presenter-view-obs.html).
 
 The main public release paths are the Windows x64 and Apple Silicon ZIPs:
 
@@ -25,7 +25,8 @@ It is designed to show up inside OBS as real source types:
 
 This native version is built around a practical conference workflow:
 
-- choose a PowerPoint file directly in the source properties
+- choose a PDF or PowerPoint file directly in the source properties
+- display and navigate PDF pages without PowerPoint or PDF-reader window capture on Windows and macOS
 - support true live PowerPoint playback on macOS when Microsoft PowerPoint is installed
 - let users choose manual or automatic PowerPoint slideshow startup
 - capture the live slideshow into `PPTBridge SK Slide` as a real OBS source

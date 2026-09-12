@@ -13,8 +13,9 @@ PPTBridge SK for OBS is a native OBS plugin that adds two real source types:
 
 Use it when you want:
 
-- a clean PowerPoint slide feed in program
-- a separate presenter view with notes on a stage monitor
+- direct PDF pages in OBS without PowerPoint, a PDF reader, or desktop capture
+- a clean PDF or PowerPoint feed in Program
+- a separate current/next preview, timer, cue list, and available PowerPoint notes on a stage monitor
 - slide control from OBS hotkeys, source buttons, Companion, local OSC, or a show-control surface
 - OBS to open quietly until you choose to start PowerPoint
 
@@ -34,7 +35,7 @@ You need:
 
 Recommended:
 
-- install Microsoft PowerPoint for the preferred true live mode
+- install Microsoft PowerPoint only if you need PowerPoint files and their live features
 - download the package that matches your platform from the
   [Download and Install table](README.md#download-and-install)
 
@@ -86,6 +87,18 @@ Recommended setup:
 
 - `PPTBridge SK Slide` in the program scene
 - `PPTBridge SK Presenter` in the stage/confidence scene
+
+## Present A PDF Without PowerPoint
+
+After installation, select a `.pdf` in `PPTBridge SK Slide`. Pages are rendered directly by the platform PDF engine on Windows or macOS; no PDF-reader window or PowerPoint session is opened. Fit the source to the intended audience scene, then check Next/Previous, First/Last, and Black Screen.
+
+For a confidence monitor, add `PPTBridge SK Presenter` to a separate scene and select the same PDF. Its current/next-page preview, timer, and cue list let the operator or speaker follow the deck while the audience sees only the clean Slide source. Keep the Presenter scene out of the audience output.
+
+Use source buttons, focused OBS hotkeys, optional clicker capture, or Companion / local OSC for navigation. For several PDFs, use one Program scene per deck. PowerPoint startup controls and the macOS Stage Manager workaround do not apply to PDF rendering.
+
+PDF is useful for static conference slides, training pages, agendas, diagrams, or a backup export of a deck. It displays exported pages; it does not restore PowerPoint animations, embedded video/audio, or speaker notes from an ordinary PDF. Check the exact file, page order, small text, and output fit before the event. Windows requires an unprotected PDF.
+
+Full walkthrough: [PDF slides with a presenter view in OBS](https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/pdf-slides-presenter-view-obs.html).
 
 ## Set Up Hotkeys
 

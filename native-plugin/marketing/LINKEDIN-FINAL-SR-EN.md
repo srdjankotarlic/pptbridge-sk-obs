@@ -1,39 +1,41 @@
-# LinkedIn Final Post
+# PPTBridge SK — PDF presentation post (SR + EN)
 
-Use this as the final LinkedIn post with Serbian first and English second.
+Updated September 12, 2026. Publication-ready text; posting is separate from editing this draft.
 
-## Final Post
+## SR
 
-Napravio sam **PPTBridge SK**, native macOS plugin za OBS koji ubacuje PowerPoint u OBS kao pravi source.
+PDF prezentacija direktno u OBS-u — bez PowerPoint-a i posebnog PDF čitača.
 
-Rešava praktičan event workflow: clean slide output za program i poseban presenter view sa notes za monitor na bini, uz kontrolu slajdova preko hotkeys/clickera.
+PPTBridge SK sam napravio za praktičan rad na događajima. Pored PowerPoint-a, plugin podržava i direktan prikaz PDF stranica na Windows-u i macOS-u. Ta mogućnost je već dostupna u aktuelnim verzijama.
 
-Besplatan download:
-https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest
+Dodaš PPTBridge SK Slide kao OBS izvor, izabereš PDF i publici prikazuješ čistu stranicu, bez alatki PDF čitača ili radne površine. Možeš da je kombinuješ sa kamerama i grafikom, snimaš, strimuješ ili pošalješ na OBS projektor.
 
-Ako nekome koristi za konferencije, prezentacije ili livestream produkciju, slobodno probajte i podelite feedback.
+Za govornika ili operatera postoji odvojeni PPTBridge SK Presenter: trenutna i sledeća stranica, tajmer i cue lista. Kontrola radi preko dugmadi u izvoru, OBS prečica, podržanih tastera klikera ili Companion/local OSC veze.
 
-Autor: **Srdjan Kotarlic**
+Posebno korisno kada dobiješ gotov PDF za konferenciju ili obuku, prikazuješ agendu i dijagrame ili pripremiš statičnu rezervu prezentacije. Za PowerPoint animacije, ugrađeni audio/video i beleške koristi originalni PowerPoint fajl.
 
----
+Plugin je besplatan i otvorenog koda. Ovde je uputstvo sa preuzimanjem za Windows i Mac:
+https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/pdf-slides-presenter-view-obs.html
 
-I built **PPTBridge SK**, a native macOS plugin for OBS that brings PowerPoint into OBS as a real source.
+Autor: Srdjan Kotarlic
 
-It solves a practical live-event workflow: clean slide output for program and a separate presenter view with notes for the stage/confidence monitor, with slide control via hotkeys/clickers.
+#OBSStudio #PDF #Presentations #EventProduction #OpenSource
 
-Free download:
-https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest
+## EN
 
-If it is useful for conferences, presentations, or livestream production, feel free to try it and share feedback.
+PDF presentations directly in OBS — without PowerPoint or a separate PDF reader.
 
-Built by **Srdjan Kotarlic**
+I built PPTBridge SK for practical live production. Alongside PowerPoint, the plugin renders PDF pages directly on Windows and macOS. This is already available in the current releases.
 
-## Suggested Hashtags
+Add PPTBridge SK Slide as an OBS source, select your PDF, and show clean pages without a reader toolbar or desktop. Combine the source with cameras and graphics, record it, stream it, or send it to an OBS projector.
 
-#obs #obsstudio #plugin #powerpoint #macos #livestream #eventproduction #presentation #opensource
+An optional PPTBridge SK Presenter source gives the speaker or operator the current page, next page, timer, and cue list. Control pages with source buttons, OBS hotkeys, supported clicker keys, or Companion/local OSC.
 
-## Upload Order
+Useful when a conference or training deck arrives as a PDF, when you present agendas and diagrams, or when you prepare a static backup of a presentation. Use the original PowerPoint file for animations, embedded audio/video, and speaker notes.
 
-1. `01-launch.png`
-2. `02-workflow.png`
-3. `03-download.png`
+Free and open source. The guide includes setup and Windows/Mac downloads:
+https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/pdf-slides-presenter-view-obs.html
+
+Created by Srdjan Kotarlic
+
+#OBSStudio #PDF #Presentations #EventProduction #OpenSource
