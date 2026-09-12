@@ -8,11 +8,11 @@ Created by **Srdjan Kotarlic**
 
 ## Repository Description
 
-`Free OBS plugin for live PowerPoint and PDF: clean slides, Presenter notes, clicker/OSC. Windows x64 and Apple Silicon stable.`
+`Free OBS PDF and PowerPoint plugin for Windows/macOS. Present PDFs directly without PowerPoint or a PDF reader: clean pages, current/next preview, timer, cues, clicker and Companion/OSC.`
 
 ## GitHub "About" Short Text
 
-`Clean PowerPoint/PDF slides and a separate Presenter view in OBS.`
+`PDF presentations directly in OBS, without PowerPoint. Clean pages and a separate Presenter view; live PowerPoint also supported.`
 
 ## Suggested Homepage Field
 
@@ -27,7 +27,7 @@ Copy these into GitHub topics:
 - `confidence-monitor`
 - `event-production`
 - `live-production`
-- `livestream`
+- `pdf-presentation`
 - `macos`
 - `obs`
 - `obs-studio`
@@ -40,24 +40,24 @@ Copy these into GitHub topics:
 - `presenter-notes`
 - `presenter-view`
 - `streamdeck`
-- `webinar`
+- `pdf-viewer`
 - `windows`
 
 ## Suggested Release Tag
 
 Windows: `v0.5.10`
 
-Apple Silicon: `v0.5.8`
+Apple Silicon: `v0.5.12`
 
 ## Suggested Release Title
 
 Windows: `PPTBridge SK v0.5.10 - Windows Production Hardening`
 
-Apple Silicon: `PPTBridge SK v0.5.8 - Apple Silicon Stable`
+Apple Silicon: `PPTBridge SK v0.5.12 - Apple Silicon Stable`
 
 ## README Tagline
 
-`Free OBS plugin that separates clean PowerPoint/PDF output from a customizable Presenter view.`
+`Free OBS PDF and PowerPoint plugin: direct PDF pages without PowerPoint, clean audience output, and a separate Presenter view.`
 
 ## Author Credit To Keep
 

@@ -1,6 +1,6 @@
 # PPTBridge SK
 
-**A free OBS Studio plugin that separates clean PowerPoint/PDF slide output for the audience from a customizable presenter view with notes, next slide, and timer.**
+**A free OBS Studio plugin for PDF and PowerPoint presentations. Show PDF pages directly in OBS on Windows and macOS — no PowerPoint or separate PDF reader needed — with clean audience output and a separate presenter view.**
 
 Built for and used in real live-event production. PPTBridge SK is an independent third-party plugin and is not affiliated with the OBS Project.
 
@@ -11,6 +11,23 @@ Built for and used in real live-event production. PPTBridge SK is an independent
 PPTBridge SK stays free, with no paywall. If it helps your production, you can [support development on Patreon (suggested $5)](https://www.patreon.com/posts/coffee-158046733).
 
 [![PPTBridge SK running inside OBS with clean Slide and Presenter sources](native-plugin/media/github/pptbridge-demo-preview.png)](https://srdjankotarlic.github.io/pptbridge-sk-obs/#demo)
+
+## Present PDFs Directly In OBS
+
+**Have a PDF deck? You can use PPTBridge SK without installing PowerPoint.** Open the PDF as a native OBS source, navigate its pages, and keep the desktop and PDF-reader controls out of the audience feed.
+
+- **Clean pages for the audience:** use `PPTBridge SK Slide` in your stream, recording, or projector scene. No display capture, PDF-reader window, or manual export of every page to an image is needed.
+- **A separate view for the operator or speaker:** `PPTBridge SK Presenter` can show the current page, next page, timer, and cue list. Select the same PDF in both sources.
+- **Page control from OBS:** next, previous, first, last, and blackout, plus optional clicker capture or Companion / local OSC control.
+- **Windows and macOS:** PDF rendering uses the operating system's PDF engine. PowerPoint Live Mode is not needed for PDFs.
+
+Useful for conference slide decks, training material, agendas, diagrams, and a static PDF backup of a presentation. Keep the exported page layout and operate the show from OBS without opening the authoring app.
+
+**Quick setup:** install the plugin → add `PPTBridge SK Slide` → select your `.pdf` → fit it to the scene → change pages with the source buttons. Add `PPTBridge SK Presenter` in a separate confidence-monitor scene if needed.
+
+PDF playback displays static pages. Use the original PowerPoint deck for live animations, click-builds, embedded media, or embedded speaker notes. Ordinary PDF exports do not carry those notes into the presenter view.
+
+**[Open the PDF-in-OBS guide](https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/pdf-slides-presenter-view-obs.html)** · [PDF questions](FAQ.md#can-i-use-pdf-files)
 
 ## Download and Install
 
@@ -55,13 +72,14 @@ PDF decks render directly on Windows and macOS and do not require PowerPoint. De
 
 | OBS source | What it shows | Put it here |
 | --- | --- | --- |
-| `PPTBridge SK Slide` | Clean audience slide output, including live animations/video | Program scene, projector, stream, or recording |
-| `PPTBridge SK Presenter` | Current slide, next slide, notes, timer, and cue list | Speaker monitor, confidence monitor, or operator preview |
+| `PPTBridge SK Slide` | Clean PDF pages or PowerPoint slides; animations/video in PowerPoint live mode | Program scene, projector, stream, or recording |
+| `PPTBridge SK Presenter` | Current/next page or slide, timer, cue list, and available PowerPoint notes | Speaker monitor, confidence monitor, or operator preview |
 
 The presenter view is rendered by PPTBridge inside OBS. It is not a screen capture of PowerPoint Presenter View, so it can be resized, cropped, and customized like a normal OBS source.
 
 ## What It Solves
 
+- Displays PDF pages directly in OBS without PowerPoint, a PDF-reader window, or desktop capture.
 - Keeps the desktop, PowerPoint chrome, and presenter notes out of the audience feed.
 - Keeps OBS output stable when the desktop PowerPoint window is moved or resized.
 - Shows notes, the next slide, timer, and cues on a separate confidence monitor.
@@ -151,6 +169,7 @@ The Windows stable build is runtime-tested on Windows 11 x64 with OBS Studio 32.
 
 | Need | Guide |
 | --- | --- |
+| Present a PDF without PowerPoint | [PDF-in-OBS guide](https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/pdf-slides-presenter-view-obs.html) |
 | Fastest setup | [QUICKSTART.md](QUICKSTART.md) |
 | Full setup and troubleshooting | [SETUP-GUIDE.md](SETUP-GUIDE.md) |
 | Common questions | [FAQ.md](FAQ.md) |

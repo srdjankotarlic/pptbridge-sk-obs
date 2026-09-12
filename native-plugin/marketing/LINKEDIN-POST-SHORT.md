@@ -1,27 +1,37 @@
-# LinkedIn Short Posts
+# LinkedIn copy — PDF workflow
+
+Updated September 12, 2026. Ready-to-use draft; this file is not a publication record.
 
 ## English
 
-I built **PPTBridge SK**, a native macOS plugin for OBS that brings PowerPoint into OBS as a real source.
+Have the slides as a PDF? You can present them directly in OBS with PPTBridge SK on Windows or macOS.
 
-It supports a clean slide output for program and a separate presenter view with notes for a stage/confidence monitor.
+No PowerPoint, separate PDF reader, or display capture needed. The Slide source gives the audience clean pages. An optional Presenter source gives you the current page, next page, timer, and cue list.
 
-Free download:
-https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest
+Turn pages with source buttons, OBS hotkeys, supported clicker keys, or Companion/local OSC. Useful for conference slides, training material, agendas, and static presentation backups.
 
-Built by **Srdjan Kotarlic**
+PDF pages stay static; use the original PowerPoint file for animations, embedded media, and PowerPoint speaker notes.
 
-#obs #obsstudio #powerpoint #plugin #macos #livestream #opensource
+Free and open source. Setup + downloads:
+https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/pdf-slides-presenter-view-obs.html
 
-## Serbian
+Created by Srdjan Kotarlic.
 
-Napravio sam **PPTBridge SK**, native macOS plugin za OBS koji ubacuje PowerPoint u OBS kao pravi source.
+#OBSStudio #PDF #Presentations #EventProduction #OpenSource
 
-Radi clean slide output za program i poseban presenter view sa notes za monitor na bini.
+## Srpski
 
-Besplatan download:
-https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/latest
+Imaš prezentaciju kao PDF? Uz PPTBridge SK možeš direktno da je prikažeš u OBS-u, na Windows-u ili macOS-u.
 
-Autor: **Srdjan Kotarlic**
+Nisu potrebni PowerPoint, poseban PDF čitač ni snimanje ekrana. Slide izvor publici prikazuje čiste stranice. Po želji dodaj Presenter izvor za trenutnu i sledeću stranicu, tajmer i cue listu.
 
-#obs #obsstudio #plugin #powerpoint #macos #livestream
+Stranice menjaš dugmadima u izvoru, OBS prečicama, podržanim tasterima klikera ili preko Companion/local OSC kontrole. Korisno za konferencije, obuke, agende i statičnu PDF rezervu prezentacije.
+
+PDF prikazuje statične stranice; za animacije, ugrađeni audio/video i PowerPoint beleške koristi originalnu PowerPoint datoteku.
+
+Besplatno i otvorenog koda. Uputstvo i preuzimanje:
+https://srdjankotarlic.github.io/pptbridge-sk-obs/guides/pdf-slides-presenter-view-obs.html
+
+Autor: Srdjan Kotarlic.
+
+#OBSStudio #PDF #Presentations #EventProduction #OpenSource
