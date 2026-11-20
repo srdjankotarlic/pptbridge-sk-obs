@@ -41,7 +41,7 @@ jobs:
           Expand-Archive -LiteralPath $archive -DestinationPath $obsRoot
           $obsHeaders = Join-Path $env:RUNNER_TEMP 'obs-headers'
           git clone --quiet --depth 1 --branch 32.0.2 https://github.com/obsproject/obs-studio.git $obsHeaders
-          if ($LASTEXITCODE -ne 0 -or (git -C $obsHeaders rev-parse HEAD) -ne 'cf303cb41c20258dca4dfc4ad7c456b1a4db8eed') { throw 'Unexpected OBS header revision' }
+          if ($LASTEXITCODE -ne 0 -or (git -C $obsHeaders rev-parse HEAD) -ne 'c025f210d36ada93c6b9ef2affd0f671b34c9775') { throw 'Unexpected OBS header revision' }
           $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
           $vs = & $vswhere -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
           $msvc = Get-ChildItem -Directory (Join-Path $vs 'VC/Tools/MSVC') | Sort-Object Name -Descending | Select-Object -First 1
