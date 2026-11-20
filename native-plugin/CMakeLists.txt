@@ -26,7 +26,7 @@ set(PPTBRIDGE_BRAND_NAME "PPTBridge SK for OBS")
 set(PPTBRIDGE_AUTHOR_NAME "Srđan Kotarlić")
 
 option(PPTBRIDGE_INSTALL_TO_USER_OBS "Install to the current user's OBS plugin folder" OFF)
-option(PPTBRIDGE_BUILD_WINDOWS_PDF_SMOKE "Build the standalone Windows PDF renderer smoke test" OFF)
+option(PPTBRIDGE_BUILD_WINDOWS_PDF_SMOKE "Build the Windows PDF renderer and OBS module smoke tests" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -203,5 +203,12 @@ elseif(WIN32)
       _CRT_SECURE_NO_WARNINGS
     )
     target_link_libraries(pptbridge-windows-pdf-smoke PRIVATE windowsapp)
+
+    add_executable(pptbridge-windows-obs-smoke tests/windows_obs_module_smoke.cpp)
+    target_include_directories(pptbridge-windows-obs-smoke PRIVATE
+      "${OBS_INCLUDE_DIR}"
+      "${CMAKE_CURRENT_BINARY_DIR}/generated"
+    )
+    target_link_libraries(pptbridge-windows-obs-smoke PRIVATE ${OBS_LIBOBS_LIBRARY})
   endif()
 endif()
