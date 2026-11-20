@@ -3603,15 +3603,9 @@ void PresentationDocument::LoadOnWorker()
       impl_->pdf_path = pdf_path;
       impl_->slides = std::move(metadata);
       impl_->media_by_slide = std::move(media_by_slide);
-      impl_->pdf_document = document;
-      impl_->loaded = true;
       impl_->loading = false;
-      impl_->current_media_triggered = false;
-      if (!impl_->live_ready) {
-        impl_->black = false;
-        impl_->current = 0;
-        impl_->started_at = Clock::now();
-      }
+      // The preview is already on air. Keep navigation, blackout and timer
+      // changes made by the operator while notes and media were preparing.
       impl_->error.clear();
       restart_for_queued_request = impl_->load_requested;
       impl_->version += 1;

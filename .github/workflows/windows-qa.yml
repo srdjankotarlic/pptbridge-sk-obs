@@ -90,7 +90,10 @@ jobs:
           & $smoke.FullName (Join-Path $PWD 'broken.pdf') (Join-Path $env:RUNNER_TEMP 'Broken PDF pages')
           if ($LASTEXITCODE -ne 2) { throw 'Windows PDF smoke accepted an invalid file or crashed' }
 
-          powershell.exe -NoProfile -File native-plugin/scripts/make-windows-release.ps1 -BuildDir (Join-Path $PWD 'build-win') -OutputDir (Join-Path $PWD 'packages')
+          $project = Get-Content native-plugin/CMakeLists.txt -Raw
+          if ($project -notmatch 'project\(pptbridge-obs-native VERSION ([\d.]+) ') { throw 'Cannot read PPTBridge version' }
+          $version = $Matches[1]
+          powershell.exe -NoProfile -File native-plugin/scripts/make-windows-release.ps1 -Version $version -BuildDir (Join-Path $PWD 'build-win') -OutputDir (Join-Path $PWD 'packages')
           if ($LASTEXITCODE -ne 0) { throw 'Windows packaging failed' }
           $zip = Get-ChildItem -Path packages -Filter '*.zip' | Select-Object -First 1
           $extracted = Join-Path $env:RUNNER_TEMP 'extracted installer'

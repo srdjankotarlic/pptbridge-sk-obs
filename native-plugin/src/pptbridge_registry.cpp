@@ -12,6 +12,14 @@ namespace pptbridge {
 
 namespace {
 
+#ifdef _WIN32
+std::string Utf8PathString(const std::filesystem::path &path)
+{
+  const auto utf8 = path.u8string();
+  return std::string(reinterpret_cast<const char *>(utf8.data()), utf8.size());
+}
+#endif
+
 std::string CanonicalRegistryPath(const std::string &path)
 {
 #ifdef _WIN32
@@ -32,7 +40,7 @@ std::string CanonicalRegistryPath(const std::string &path)
   if (!ec && !canonical.empty()) {
     normalized = canonical;
   }
-  return normalized.u8string();
+  return Utf8PathString(normalized);
 #else
   return path;
 #endif
@@ -46,7 +54,7 @@ std::string RegistryPathKey(const std::string &path)
   std::transform(wide.begin(), wide.end(), wide.begin(), [](wchar_t ch) {
     return static_cast<wchar_t>(std::towlower(ch));
   });
-  canonical = std::filesystem::path(wide).u8string();
+  canonical = Utf8PathString(std::filesystem::path(wide));
 #endif
   return canonical;
 }

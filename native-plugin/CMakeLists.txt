@@ -9,9 +9,14 @@ if(APPLE)
   list(APPEND PPTBRIDGE_LANGUAGES OBJCXX)
 endif()
 
-project(pptbridge-obs-native VERSION 0.5.12 LANGUAGES ${PPTBRIDGE_LANGUAGES})
+project(pptbridge-obs-native VERSION 0.5.13 LANGUAGES ${PPTBRIDGE_LANGUAGES})
 
-set(CMAKE_CXX_STANDARD 17)
+if(WIN32)
+  # C++/WinRT needs standard coroutines with current Visual Studio SDKs.
+  set(CMAKE_CXX_STANDARD 20)
+else()
+  set(CMAKE_CXX_STANDARD 17)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_OBJCXX_STANDARD 17)
@@ -54,6 +59,7 @@ configure_file(
 set(PPTBRIDGE_SOURCES
   src/pptbridge_osc_server.cpp
   src/pptbridge_registry.cpp
+  src/source_missing_files.cpp
 )
 
 if(APPLE)
