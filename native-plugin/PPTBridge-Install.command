@@ -108,17 +108,21 @@ mkdir -p "$TARGET_DIR"
 WORK_DIR="$(mktemp -d "$TARGET_DIR/.pptbridge-install.XXXXXX")"
 STAGED_PATH="$WORK_DIR/pptbridge-obs.plugin"
 BACKUP_PATH="$WORK_DIR/previous.plugin"
+INSTALL_LOCK="$TARGET_DIR/.pptbridge-install.lock"
+LOCK_HELD=false
 
 cleanup() {
   if [ -e "$BACKUP_PATH" ] && [ ! -e "$TARGET_PATH" ]; then
     if ! mv "$BACKUP_PATH" "$TARGET_PATH"; then
       echo "Could not restore the previous plugin. It is available at:"
       echo "$BACKUP_PATH"
+      [ "$LOCK_HELD" = false ] || rm -f "$INSTALL_LOCK"
       return
     fi
     echo "Previous PPTBridge SK plugin was restored."
   fi
   rm -rf "$WORK_DIR"
+  [ "$LOCK_HELD" = false ] || rm -f "$INSTALL_LOCK"
 }
 trap cleanup EXIT
 trap 'exit 1' HUP INT TERM
@@ -143,15 +147,29 @@ if ! /usr/bin/codesign --verify --deep --strict "$STAGED_PATH"; then
   exit 1
 fi
 
+# Serialize activation so two installer windows cannot overwrite each other.
+if ! /usr/bin/shlock -p "$$" -f "$INSTALL_LOCK"; then
+  echo "Another PPTBridge installation is finishing. Wait for it to close, then try again."
+  pause_if_interactive
+  exit 1
+fi
+LOCK_HELD=true
+if pgrep -x "OBS" >/dev/null 2>&1; then
+  echo "Quit OBS before replacing the plugin, then run this installer again."
+  pause_if_interactive
+  exit 1
+fi
+
 # Keep the installed bundle intact until the staged copy can be activated.
 if [ -e "$TARGET_PATH" ]; then
   mv "$TARGET_PATH" "$BACKUP_PATH"
 fi
 if ! mv "$STAGED_PATH" "$TARGET_PATH"; then
   echo "Could not activate the new plugin bundle."
-  pause_if_interactive
   exit 1
 fi
+cleanup
+trap - EXIT HUP INT TERM
 
 if [ -n "$LEGACY_CLEANUP_SCRIPT" ]; then
   "$LEGACY_CLEANUP_SCRIPT"

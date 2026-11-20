@@ -17,7 +17,7 @@ To check, open `Apple menu > About This Mac`. If it says `Chip: Apple M...`, use
 
    Apple Silicon:
 
-   <https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.12/pptbridge-obs-macos-apple-silicon.zip>
+   <https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.13/pptbridge-obs-macos-apple-silicon.zip>
 
    Intel:
 
@@ -35,11 +35,10 @@ To check, open `Apple menu > About This Mac`. If it says `Chip: Apple M...`, use
 
 If macOS blocks the command the first time, right-click it and choose `Open`.
 
-Before live PowerPoint capture, turn off Stage Manager in `System Settings >
-Desktop & Dock`. It can turn background slideshow capture into a small thumbnail
-or black frame. On macOS 26, use OBS Studio 32.2.2 or newer. The PPTBridge installer
-does not update OBS or change system settings. PDF/static previews do not need
-Stage Manager disabled.
+Turn off Stage Manager in `System Settings > Desktop & Dock` for live
+animation and video while using other apps. With Stage Manager enabled,
+PPTBridge shows the current slide preview when PowerPoint is in the background.
+PDF decks work with either setting. Use OBS Studio 32.2.2 or newer on macOS 26. On macOS 27, use OBS Studio 33.0.1 or newer.
 
 ## What To Add In OBS
 

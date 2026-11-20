@@ -88,11 +88,11 @@ navigating while this feature is enabled.
 
 POWERPOINT STARTUP
 
-For macOS 26 (Tahoe), use OBS Studio 32.2.2 or newer. Older OBS/Qt builds
-can crash during interface navigation or shutdown on this macOS version.
-Before live PowerPoint, turn Stage Manager off in System Settings >
-Desktop & Dock. It can turn a background slideshow into a small thumbnail
-or black capture. PDF and static PPTX previews are unaffected.
+Use OBS Studio 32.2.2 or newer on macOS 26. On macOS 27, use OBS Studio 33.0.1 or newer.
+For live animation and video while using other apps, turn Stage Manager off
+in System Settings > Desktop & Dock. With Stage Manager on, PPTBridge shows
+the current slide preview while PowerPoint is in the background. PowerPoint
+slide navigation keeps working. PDF decks work with either setting.
 
 In the PPTBridge SK Slide source properties:
 

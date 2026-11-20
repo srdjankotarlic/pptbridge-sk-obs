@@ -1,6 +1,17 @@
 # Changelog
 
-PPTBridge SK v0.5.12 is the current stable Apple Silicon release. Windows x64 remains stable on v0.5.10, with Intel Mac on a separate beta track. Download the current packages from the [README](README.md#download-and-install) or [GitHub Releases](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases).
+PPTBridge SK v0.5.13 is the current stable Apple Silicon release. Windows x64 remains stable on v0.5.10, with Intel Mac on a separate beta track. Download the current packages from the [README](README.md#download-and-install) or [GitHub Releases](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases).
+
+## v0.5.13 - On-Air Preview and Installation Reliability
+
+- Keep the active slide, blackout and timer while PowerPoint notes and media finish loading on macOS.
+- Show the current slide when Stage Manager parks PowerPoint in the background. The slideshow stays running and follows navigation commands.
+- Check the macOS plugin bundle and signature before replacing the installed copy. Restore the previous plugin if activation fails.
+- Register OBS missing-file recovery on Windows for Slide and Presenter, including Unicode paths and optional backgrounds. Reject PowerPoint owner lock files with a message that points to the original deck.
+- Build the Windows PDF renderer using C++20 coroutines with current MSVC SDKs. Add a Windows x64 build, installer, PDF and module validation workflow.
+- Add the Apple Silicon runtime results and the Windows validation scope to the [QA notes](qa/V0513-PLATFORM-QA.md).
+
+[Apple Silicon v0.5.13 release notes and download](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.13)
 
 ## macOS v0.5.12 - Cache Integrity and Live Capture Recovery
 

@@ -2,10 +2,16 @@ name: Windows x64 QA
 
 on:
   workflow_dispatch:
-  push:
-    branches: [codex/pptbridge-platform-qa]
+  pull_request:
     paths:
       - 'native-plugin/**'
+      - 'qa/obs-pdf-runtime-smoke.mjs'
+      - '.github/workflows/windows-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'native-plugin/**'
+      - 'qa/obs-pdf-runtime-smoke.mjs'
       - '.github/workflows/windows-qa.yml'
 
 permissions:
@@ -96,6 +102,9 @@ jobs:
           powershell.exe -NoProfile -File native-plugin/scripts/make-windows-release.ps1 -Version $version -BuildDir (Join-Path $PWD 'build-win') -OutputDir (Join-Path $PWD 'packages')
           if ($LASTEXITCODE -ne 0) { throw 'Windows packaging failed' }
           $zip = Get-ChildItem -Path packages -Filter '*.zip' | Select-Object -First 1
+          $checksum = Get-Content -LiteralPath ($zip.FullName + '.sha256') -Raw
+          $hash = (Get-FileHash -LiteralPath $zip.FullName).Hash.ToLowerInvariant()
+          if ($checksum -cne "$hash  $($zip.Name)`n") { throw 'Packaged checksum does not match the ZIP' }
           $extracted = Join-Path $env:RUNNER_TEMP 'extracted installer'
           Expand-Archive -LiteralPath $zip.FullName -DestinationPath $extracted
           $installer = Join-Path $extracted 'INSTALL.cmd'
@@ -140,7 +149,8 @@ jobs:
               Start-Sleep -Seconds 1
             }
             if (!$ready) { throw 'Portable OBS did not start its WebSocket server' }
-            node qa/obs-pdf-runtime-smoke.mjs (Join-Path $PWD 'slides.pdf')
+            $pdf = Join-Path $env:RUNNER_TEMP ("PDF " + [char]0x010D + [char]0x017E + ".pdf")
+            node qa/obs-pdf-runtime-smoke.mjs $pdf
             if ($LASTEXITCODE -ne 0) { throw 'Portable OBS PDF runtime smoke failed' }
           } finally {
             if (!$process.HasExited) {
