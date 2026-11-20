@@ -859,6 +859,19 @@ void sync_live_audio_activity(SourceContext *context)
   set_live_audio_active(context, should_be_showing, should_be_active);
 }
 
+bool stage_manager_enabled()
+{
+  return [[[NSUserDefaults standardUserDefaults]
+    persistentDomainForName:@"com.apple.WindowManager"][@"GloballyEnabled"] boolValue];
+}
+
+bool stage_manager_blocks_background_capture()
+{
+  return stage_manager_enabled() &&
+    ![NSWorkspace.sharedWorkspace.frontmostApplication.bundleIdentifier
+      isEqualToString:@"com.microsoft.Powerpoint"];
+}
+
 void sync_live_capture_source(SourceContext *context)
 {
   if (!context || !visual_child_sources_wanted(context) || !context->document || !context->use_live_powerpoint) {
@@ -875,7 +888,7 @@ void sync_live_capture_source(SourceContext *context)
     }
   }
 
-  if (!context->document->IsLivePowerPointReady()) {
+  if (!context->document->IsLivePowerPointReady() || stage_manager_blocks_background_capture()) {
     release_live_capture_source(context);
     return;
   }
@@ -1542,7 +1555,9 @@ std::string build_status_text(SourceContext *context)
 
     if (context->mode == ViewMode::Slide) {
       status << "Live capture: ";
-      if (live_capture_is_renderable(context)) {
+      if (live_ready && stage_manager_blocks_background_capture()) {
+        status << "static slide preview while PowerPoint is in the background with Stage Manager";
+      } else if (live_capture_is_renderable(context)) {
         status << "attached";
       } else if (live_children.capture_present && live_children.capture_window_id != 0) {
         status << "attaching video frames";
@@ -2165,11 +2180,10 @@ obs_properties_t *source_properties(SourceContext *context)
         presenter_live_controls);
     }
   }
-  if (show_live_controls &&
-      [[[NSUserDefaults standardUserDefaults] persistentDomainForName:@"com.apple.WindowManager"][@"GloballyEnabled"] boolValue]) {
+  if (show_live_controls && stage_manager_enabled()) {
     obs_property_t *stage_manager_note = obs_properties_add_text(
       props, "pptbridge_stage_manager_note",
-      "Stage Manager is enabled. It can shrink or blank the live PowerPoint capture when you switch apps. Turn it off in System Settings > Desktop & Dock before using live mode. PDF and static previews are unaffected.",
+      "Stage Manager is enabled. When PowerPoint is in the background, OBS shows the current slide without live animation. Turn off Stage Manager in System Settings > Desktop & Dock to use full live capture while working in other apps.",
       OBS_TEXT_INFO);
     obs_property_text_set_info_type(stage_manager_note, OBS_TEXT_INFO_WARNING);
     obs_property_text_set_info_word_wrap(stage_manager_note, true);
@@ -2577,25 +2591,30 @@ void source_render(SourceContext *context, gs_effect_t *effect)
     return;
   }
 
-  if (context->mode == ViewMode::Slide && render_live_capture(context)) {
+  const bool slide = context->mode == ViewMode::Slide;
+  const bool fit_window = context->live_capture_resize_mode == LiveCaptureResizeMode::FitWindow;
+  if (slide && fit_window && render_live_capture(context)) {
     return;
   }
 
   refresh_texture_if_needed(context);
-  if (!context->texture) {
+  if (context->texture) {
+    if (!effect) {
+      effect = obs_get_base_effect(OBS_EFFECT_DEFAULT);
+    }
+
+    gs_eparam_t *image = gs_effect_get_param_by_name(effect, "image");
+    gs_effect_set_texture(image, context->texture);
+    while (gs_effect_loop(effect, "Draw")) {
+      gs_draw_sprite(context->texture, 0, context->width, context->height);
+    }
+  }
+
+  // ScreenCaptureKit can report dimensions before it has an opaque frame.
+  // The static slide underneath the live image keeps that interval on air.
+  if (slide && !fit_window && render_live_capture(context)) {
     return;
   }
-
-  if (!effect) {
-    effect = obs_get_base_effect(OBS_EFFECT_DEFAULT);
-  }
-
-  gs_eparam_t *image = gs_effect_get_param_by_name(effect, "image");
-  gs_effect_set_texture(image, context->texture);
-  while (gs_effect_loop(effect, "Draw")) {
-    gs_draw_sprite(context->texture, 0, context->width, context->height);
-  }
-
   render_media_overlay(context);
 }
 

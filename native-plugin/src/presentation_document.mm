@@ -4074,10 +4074,10 @@ bool PresentationDocument::RenderSlideBGRA(
     if (black) {
       // Black screen is a deliberate program-output state. Keep the canvas
       // completely black instead of falling through to a status placeholder.
-    } else if (live_enabled && live_ready) {
-      DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode active…", canvas);
     } else if (loaded) {
       DrawPageThumbnail(document, current, canvas);
+    } else if (live_enabled && live_ready) {
+      DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode is active. Preparing the static preview…", canvas);
     } else if (live_waiting_for_manual_start) {
       DrawCenteredMessage(@"PPTBridge SK", @"PowerPoint live mode is manual. Click Start / Restart PowerPoint Live Mode in the highlighted source-property group.", canvas);
     } else if (live_enabled && loading) {

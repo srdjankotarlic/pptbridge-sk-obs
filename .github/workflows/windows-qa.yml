@@ -106,10 +106,13 @@ jobs:
           $dll = 'obs-plugins/64bit/pptbridge-obs.dll'
           if ((Get-FileHash (Join-Path $extracted $dll)).Hash -ne (Get-FileHash (Join-Path $env:OBS_RUNTIME $dll)).Hash) { throw 'Installed DLL mismatch' }
           $obsSmoke = Get-ChildItem -Recurse -File build-win -Filter 'pptbridge-windows-obs-smoke.exe' | Select-Object -First 1
-          $env:Path = "$(Join-Path $env:OBS_RUNTIME 'bin/64bit');$env:Path"
+          # OBS 33 resolves plugin dependencies from the application's own
+          # directory instead of PATH. Match the normal OBS executable layout.
+          $obsTestExe = Join-Path $env:OBS_RUNTIME 'bin/64bit/pptbridge-windows-obs-smoke.exe'
+          Copy-Item -LiteralPath $obsSmoke.FullName -Destination $obsTestExe
           $unicodePdf = Join-Path $env:RUNNER_TEMP ("PDF " + [char]0x010D + [char]0x017E + ".pdf")
           Copy-Item -LiteralPath 'slides.pdf' -Destination $unicodePdf
-          & $obsSmoke.FullName (Join-Path $env:OBS_RUNTIME $dll) (Join-Path $env:OBS_RUNTIME 'data/obs-plugins/pptbridge-obs') $unicodePdf
+          & $obsTestExe (Join-Path $env:OBS_RUNTIME $dll) (Join-Path $env:OBS_RUNTIME 'data/obs-plugins/pptbridge-obs') $unicodePdf
           if ($LASTEXITCODE -ne 0) { throw 'OBS module load or missing-file relink failed' }
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
