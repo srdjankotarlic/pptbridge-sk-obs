@@ -114,6 +114,43 @@ jobs:
           Copy-Item -LiteralPath 'slides.pdf' -Destination $unicodePdf
           & $obsTestExe (Join-Path $env:OBS_RUNTIME $dll) (Join-Path $env:OBS_RUNTIME 'data/obs-plugins/pptbridge-obs') $unicodePdf
           if ($LASTEXITCODE -ne 0) { throw 'OBS module load or missing-file relink failed' }
+      - name: Test PDF navigation in portable OBS Studio
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $obsBin = Join-Path $env:OBS_RUNTIME 'bin/64bit'
+          $config = Join-Path $env:OBS_RUNTIME 'config/obs-studio'
+          $wsConfig = Join-Path $config 'plugin_config/obs-websocket'
+          New-Item -ItemType Directory -Force -Path $wsConfig | Out-Null
+          $env:PPTBRIDGE_QA_OBS_PASSWORD = [guid]::NewGuid().ToString('N')
+          @{
+            server_enabled = $true
+            server_port = 4455
+            auth_required = $true
+            server_password = $env:PPTBRIDGE_QA_OBS_PASSWORD
+            alerts_enabled = $false
+          } | ConvertTo-Json | Set-Content (Join-Path $wsConfig 'config.json') -Encoding utf8
+          @('[General]', 'FirstRun=true') | Set-Content (Join-Path $config 'user.ini') -Encoding ascii
+          $process = Start-Process -FilePath (Join-Path $obsBin 'obs64.exe') -WorkingDirectory $obsBin -ArgumentList '--portable', '--disable-updater' -PassThru
+          try {
+            $ready = $false
+            for ($attempt = 0; $attempt -lt 60 -and !$process.HasExited; $attempt++) {
+              $ready = [bool](Get-NetTCPConnection -LocalPort 4455 -State Listen -ErrorAction SilentlyContinue)
+              if ($ready) { break }
+              Start-Sleep -Seconds 1
+            }
+            if (!$ready) { throw 'Portable OBS did not start its WebSocket server' }
+            node qa/obs-pdf-runtime-smoke.mjs (Join-Path $PWD 'slides.pdf')
+            if ($LASTEXITCODE -ne 0) { throw 'Portable OBS PDF runtime smoke failed' }
+          } finally {
+            if (!$process.HasExited) {
+              [void]$process.CloseMainWindow()
+              if (!$process.WaitForExit(10000)) { Stop-Process -Id $process.Id -Force }
+            }
+            $log = Get-ChildItem -Path (Join-Path $config 'logs') -File -ErrorAction SilentlyContinue |
+              Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($log) { Get-Content $log.FullName -Tail 100 }
+          }
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: windows-x64-obs-${{ matrix.obs }}
