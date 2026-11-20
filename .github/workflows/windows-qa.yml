@@ -1,0 +1,170 @@
+name: Windows x64 QA
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'native-plugin/**'
+      - 'qa/obs-pdf-runtime-smoke.mjs'
+      - '.github/workflows/windows-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'native-plugin/**'
+      - 'qa/obs-pdf-runtime-smoke.mjs'
+      - '.github/workflows/windows-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - obs: 32.0.2
+            sha256: 60b4510590140bd83625cc694d4ccd56b34fb499fc41d18c9558636a53ceabfa
+          - obs: 33.0.1
+            sha256: 0d9436451c2d772b33428e3fdae9776f071895c335de17283176306fb72651d3
+    env:
+      OBS_VERSION: ${{ matrix.obs }}
+      OBS_SHA256: ${{ matrix.sha256 }}
+
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - name: Prepare OBS headers, runtime and import libraries
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $obsRoot = Join-Path $env:RUNNER_TEMP 'obs runtime'
+          $archive = Join-Path $env:RUNNER_TEMP 'obs.zip'
+          curl.exe --fail --location --retry 3 --output $archive "https://github.com/obsproject/obs-studio/releases/download/$env:OBS_VERSION/OBS-Studio-$env:OBS_VERSION-Windows-x64.zip"
+          if ($LASTEXITCODE -ne 0) { throw 'OBS download failed' }
+          if ((Get-FileHash -LiteralPath $archive).Hash -ne $env:OBS_SHA256) { throw 'Unexpected OBS archive checksum' }
+          Expand-Archive -LiteralPath $archive -DestinationPath $obsRoot
+          $obsHeaders = Join-Path $env:RUNNER_TEMP 'obs-headers'
+          git clone --quiet --depth 1 --branch 32.0.2 https://github.com/obsproject/obs-studio.git $obsHeaders
+          if ($LASTEXITCODE -ne 0 -or (git -C $obsHeaders rev-parse HEAD) -ne 'c025f210d36ada93c6b9ef2affd0f671b34c9775') { throw 'Unexpected OBS header revision' }
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $vs = & $vswhere -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          $msvc = Get-ChildItem -Directory (Join-Path $vs 'VC/Tools/MSVC') | Sort-Object Name -Descending | Select-Object -First 1
+          $msvcBin = Join-Path $msvc.FullName 'bin/Hostx64/x64'
+          $imports = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'obs-imports')
+          foreach ($module in @('obs', 'obs-frontend-api')) {
+            $dll = Join-Path $obsRoot "bin/64bit/$module.dll"
+            $symbols = @(& (Join-Path $msvcBin 'dumpbin.exe') /EXPORTS $dll | ForEach-Object {
+              if ($_ -match '^\s+\d+\s+[0-9A-Fa-f]+\s+[0-9A-Fa-f]{8}\s+(\S+)') { $Matches[1] }
+            })
+            if ($LASTEXITCODE -ne 0 -or $symbols.Count -lt 10) { throw "Could not read exports from $dll" }
+            $def = Join-Path $imports "$module.def"
+            @("LIBRARY $module.dll", 'EXPORTS') + $symbols | Set-Content -LiteralPath $def -Encoding ascii
+            & (Join-Path $msvcBin 'lib.exe') /NOLOGO /MACHINE:X64 "/DEF:$def" "/OUT:$imports/$module.lib"
+            if ($LASTEXITCODE -ne 0) { throw "Could not create import library for $module" }
+          }
+          "OBS_RUNTIME=$obsRoot", "OBS_HEADERS=$obsHeaders", "OBS_IMPORTS=$imports" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Compile plugin and PDF smoke test
+        shell: pwsh
+        run: |
+          cmake -S native-plugin -B build-win -A x64 "-DOBS_SOURCE_DIR=$env:OBS_HEADERS" "-DOBS_APP_DIR=$env:OBS_RUNTIME" "-DOBS_LIBRARY_DIR=$env:OBS_IMPORTS" -DPPTBRIDGE_BUILD_WINDOWS_PDF_SMOKE=ON
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build-win --config Release --parallel
+      - name: Run Windows PDF and USB installer checks
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -m pip install --disable-pip-version-check reportlab
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @'
+          from reportlab.pdfgen.canvas import Canvas
+          pdf = Canvas("slides.pdf")
+          for page in range(3):
+              pdf.drawString(72, 720, f"PPTBridge PDF smoke {page + 1}")
+              pdf.showPage()
+          pdf.save()
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $smoke = Get-ChildItem -Recurse -File build-win -Filter 'pptbridge-windows-pdf-smoke.exe' | Select-Object -First 1
+          $output = & $smoke.FullName (Join-Path $PWD 'slides.pdf') (Join-Path $env:RUNNER_TEMP 'PDF pages')
+          $output
+          if ($LASTEXITCODE -ne 0 -or $output -notmatch '^PAGES=3\|') { throw 'Windows PDF smoke failed' }
+
+          Set-Content 'broken.pdf' 'This is not a PDF.'
+          & $smoke.FullName (Join-Path $PWD 'broken.pdf') (Join-Path $env:RUNNER_TEMP 'Broken PDF pages')
+          if ($LASTEXITCODE -ne 2) { throw 'Windows PDF smoke accepted an invalid file or crashed' }
+
+          $project = Get-Content native-plugin/CMakeLists.txt -Raw
+          if ($project -notmatch 'project\(pptbridge-obs-native VERSION ([\d.]+) ') { throw 'Cannot read PPTBridge version' }
+          $version = $Matches[1]
+          powershell.exe -NoProfile -File native-plugin/scripts/make-windows-release.ps1 -Version $version -BuildDir (Join-Path $PWD 'build-win') -OutputDir (Join-Path $PWD 'packages')
+          if ($LASTEXITCODE -ne 0) { throw 'Windows packaging failed' }
+          $zip = Get-ChildItem -Path packages -Filter '*.zip' | Select-Object -First 1
+          $checksum = Get-Content -LiteralPath ($zip.FullName + '.sha256') -Raw
+          $hash = (Get-FileHash -LiteralPath $zip.FullName).Hash.ToLowerInvariant()
+          if ($checksum -cne "$hash  $($zip.Name)`n") { throw 'Packaged checksum does not match the ZIP' }
+          $extracted = Join-Path $env:RUNNER_TEMP 'extracted installer'
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $extracted
+          $installer = Join-Path $extracted 'INSTALL.cmd'
+          foreach ($attempt in 1..2) {
+            & $installer $env:OBS_RUNTIME --no-pause
+            if ($LASTEXITCODE -ne 0) { throw "Windows install attempt $attempt failed" }
+          }
+          $dll = 'obs-plugins/64bit/pptbridge-obs.dll'
+          if ((Get-FileHash (Join-Path $extracted $dll)).Hash -ne (Get-FileHash (Join-Path $env:OBS_RUNTIME $dll)).Hash) { throw 'Installed DLL mismatch' }
+          $obsSmoke = Get-ChildItem -Recurse -File build-win -Filter 'pptbridge-windows-obs-smoke.exe' | Select-Object -First 1
+          # OBS 33 resolves plugin dependencies from the application's own
+          # directory instead of PATH. Match the normal OBS executable layout.
+          $obsTestExe = Join-Path $env:OBS_RUNTIME 'bin/64bit/pptbridge-windows-obs-smoke.exe'
+          Copy-Item -LiteralPath $obsSmoke.FullName -Destination $obsTestExe
+          $unicodePdf = Join-Path $env:RUNNER_TEMP ("PDF " + [char]0x010D + [char]0x017E + ".pdf")
+          Copy-Item -LiteralPath 'slides.pdf' -Destination $unicodePdf
+          & $obsTestExe (Join-Path $env:OBS_RUNTIME $dll) (Join-Path $env:OBS_RUNTIME 'data/obs-plugins/pptbridge-obs') $unicodePdf
+          if ($LASTEXITCODE -ne 0) { throw 'OBS module load or missing-file relink failed' }
+      - name: Test PDF navigation in portable OBS Studio
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $obsBin = Join-Path $env:OBS_RUNTIME 'bin/64bit'
+          $config = Join-Path $env:OBS_RUNTIME 'config/obs-studio'
+          $wsConfig = Join-Path $config 'plugin_config/obs-websocket'
+          New-Item -ItemType Directory -Force -Path $wsConfig | Out-Null
+          $env:PPTBRIDGE_QA_OBS_PASSWORD = [guid]::NewGuid().ToString('N')
+          @{
+            server_enabled = $true
+            server_port = 4455
+            auth_required = $true
+            server_password = $env:PPTBRIDGE_QA_OBS_PASSWORD
+            alerts_enabled = $false
+          } | ConvertTo-Json | Set-Content (Join-Path $wsConfig 'config.json') -Encoding utf8
+          @('[General]', 'FirstRun=true') | Set-Content (Join-Path $config 'user.ini') -Encoding ascii
+          $process = Start-Process -FilePath (Join-Path $obsBin 'obs64.exe') -WorkingDirectory $obsBin -ArgumentList '--portable', '--disable-updater' -PassThru
+          try {
+            $ready = $false
+            for ($attempt = 0; $attempt -lt 60 -and !$process.HasExited; $attempt++) {
+              $ready = [bool](Get-NetTCPConnection -LocalPort 4455 -State Listen -ErrorAction SilentlyContinue)
+              if ($ready) { break }
+              Start-Sleep -Seconds 1
+            }
+            if (!$ready) { throw 'Portable OBS did not start its WebSocket server' }
+            $pdf = Join-Path $env:RUNNER_TEMP ("PDF " + [char]0x010D + [char]0x017E + ".pdf")
+            node qa/obs-pdf-runtime-smoke.mjs $pdf
+            if ($LASTEXITCODE -ne 0) { throw 'Portable OBS PDF runtime smoke failed' }
+          } finally {
+            if (!$process.HasExited) {
+              [void]$process.CloseMainWindow()
+              if (!$process.WaitForExit(10000)) { Stop-Process -Id $process.Id -Force }
+            }
+            $log = Get-ChildItem -Path (Join-Path $config 'logs') -File -ErrorAction SilentlyContinue |
+              Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($log) { Get-Content $log.FullName -Tail 100 }
+          }
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: windows-x64-obs-${{ matrix.obs }}
+          path: |
+            packages/*.zip
+            packages/*.sha256
+          if-no-files-found: error

@@ -417,24 +417,6 @@ try {
   });
   createdInputs.push(slideB);
 
-  // Uncached PPTX conversion can take several seconds. Never treat the stable
-  // loading placeholder as slide 1 or navigation assertions become meaningless.
-  const slideAInitial = await waitForScreenshot(
-    slideA,
-    "slide-a-initial.png",
-    (candidate) => candidate.bytes >= minimumStaticScreenshotBytes,
-    45000);
-  const presenterInitial = await waitForScreenshot(
-    presenterA,
-    "presenter-a-initial.png",
-    (candidate) => candidate.bytes >= minimumStaticScreenshotBytes,
-    15000);
-  const slideBInitial = await waitForScreenshot(
-    slideB,
-    "slide-b-initial.png",
-    (candidate) => candidate.bytes >= minimumStaticScreenshotBytes,
-    15000);
-
   for (const address of expectedFeedbackAddresses) {
     await waitForFeedback(address, () => true, 10000);
   }
@@ -484,6 +466,24 @@ try {
     throw new Error(`initial OSC error status is not empty: ${initialFeedback["/pptbridge/status/error"]}`);
   }
   const totalSlides = initialFeedback["/pptbridge/status/total"];
+
+  // Wait for loaded status before taking reference frames. A loading
+  // placeholder can exceed the minimum PNG size.
+  const slideAInitial = await waitForScreenshot(
+    slideA,
+    "slide-a-initial.png",
+    (candidate) => candidate.bytes >= minimumStaticScreenshotBytes,
+    45000);
+  const presenterInitial = await waitForScreenshot(
+    presenterA,
+    "presenter-a-initial.png",
+    (candidate) => candidate.bytes >= minimumStaticScreenshotBytes,
+    15000);
+  const slideBInitial = await waitForScreenshot(
+    slideB,
+    "slide-b-initial.png",
+    (candidate) => candidate.bytes >= minimumStaticScreenshotBytes,
+    15000);
 
   let feedbackMarker = feedbackSequence;
   await request("PressInputPropertiesButton", {

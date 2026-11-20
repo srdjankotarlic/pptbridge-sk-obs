@@ -7,7 +7,7 @@ This is the shortest path from download to a working PDF or PowerPoint scene in 
 | Platform | Download | Status |
 | --- | --- | --- |
 | Windows 10/11 x64 | [Windows v0.5.10 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip) | Stable |
-| Apple Silicon Mac (M-series) | [Apple Silicon v0.5.12 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.12/pptbridge-obs-macos-apple-silicon.zip) | Stable |
+| Apple Silicon Mac (M-series) | [Apple Silicon v0.5.13 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.13/pptbridge-obs-macos-apple-silicon.zip) | Stable |
 | Intel Mac | [Intel v0.4.4 ZIP](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip) | Beta |
 
 To check your Mac type, open `Apple menu > About This Mac`. Use the

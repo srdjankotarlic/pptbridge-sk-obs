@@ -47,13 +47,13 @@ Copy these into GitHub topics:
 
 Windows: `v0.5.10`
 
-Apple Silicon: `v0.5.12`
+Apple Silicon: `v0.5.13`
 
 ## Suggested Release Title
 
 Windows: `PPTBridge SK v0.5.10 - Windows Production Hardening`
 
-Apple Silicon: `PPTBridge SK v0.5.12 - Apple Silicon Stable`
+Apple Silicon: `PPTBridge SK v0.5.13 - Apple Silicon Stable`
 
 ## README Tagline
 

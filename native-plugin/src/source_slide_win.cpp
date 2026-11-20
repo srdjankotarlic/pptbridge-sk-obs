@@ -3675,6 +3675,7 @@ obs_source_info *pptbridge_slide_source_info()
   info.get_defaults = slide_source_defaults;
   info.get_properties = slide_source_get_properties;
   info.update = slide_source_update;
+  info.missing_files = source_missing_files;
   info.activate = slide_source_activate;
   info.deactivate = slide_source_deactivate;
   info.video_tick = slide_source_video_tick;

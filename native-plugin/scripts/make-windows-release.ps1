@@ -81,7 +81,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::CreateFromDirectory($staging, $zipPath, [System.IO.Compression.CompressionLevel]::Optimal, $false)
 
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zipPath).Hash.ToLowerInvariant()
-Set-Content -LiteralPath $shaPath -Value "$hash  $(Split-Path -Leaf $zipPath)" -Encoding ASCII
+[IO.File]::WriteAllText($shaPath, "$hash  $(Split-Path -Leaf $zipPath)`n", [Text.Encoding]::ASCII)
 
 [pscustomobject]@{
   Zip = $zipPath

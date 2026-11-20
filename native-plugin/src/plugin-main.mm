@@ -971,7 +971,7 @@ bool obs_module_load(void)
   obs_frontend_add_tools_menu_item("PPTBridge SK: Local OSC Control On/Off", toggle_osc_menu, nullptr);
   obs_frontend_add_tools_menu_item("PPTBridge SK: Spotlight/Clicker Capture On/Off", toggle_clicker_capture_menu, nullptr);
 
-  blog(LOG_INFO, "[PPTBridge SK] Native plugin loaded");
+  blog(LOG_INFO, "[PPTBridge SK] Native plugin loaded (v%s)", PPTBRIDGE_OBS_NATIVE_VERSION);
   return true;
 }
 

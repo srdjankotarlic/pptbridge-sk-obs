@@ -16,9 +16,14 @@ elif [ -x "$SCRIPT_DIR/scripts/cleanup-legacy-python.sh" ]; then
 fi
 TARGET_DIR="$HOME/Library/Application Support/obs-studio/plugins"
 TARGET_PATH="$TARGET_DIR/pptbridge-obs.plugin"
-BACKUP_PATH="$TARGET_DIR/pptbridge-obs.plugin.previous"
 PLUGIN_EXECUTABLE="$BUNDLE_PATH/Contents/MacOS/pptbridge-obs"
 MACHINE_ARCH="$(uname -m)"
+
+pause_if_interactive() {
+  if [ -t 0 ]; then
+    read -r -p "Press Enter to close..." || true
+  fi
+}
 
 echo ""
 echo "PPTBridge SK for OBS"
@@ -39,7 +44,7 @@ if [ -z "$PLUGIN_ARCHES" ]; then
   echo "Expected plugin executable:"
   echo "$PLUGIN_EXECUTABLE"
   echo ""
-  read -r -p "Press Enter to close..."
+  pause_if_interactive
   exit 1
 fi
 
@@ -55,7 +60,7 @@ case " $PLUGIN_ARCHES " in
     echo "- Apple Silicon Macs: pptbridge-obs-macos-apple-silicon.zip"
     echo "- Intel Macs: pptbridge-obs-macos-intel.zip"
     echo ""
-    read -r -p "Press Enter to close..."
+    pause_if_interactive
     exit 1
     ;;
 esac
@@ -67,7 +72,7 @@ if pgrep -x "OBS" >/dev/null 2>&1; then
   echo "Please quit OBS manually, then run this installer again."
   echo "This avoids OBS/macOS quit crashes while the plugin is being replaced."
   echo ""
-  read -r -p "Press Enter to close..."
+  pause_if_interactive
   exit 1
 fi
 
@@ -93,52 +98,78 @@ elif [ -x "$OBS_EXECUTABLE" ]; then
       echo ""
       echo "Install the matching OBS Studio build, or download the matching PPTBridge SK package."
       echo ""
-      read -r -p "Press Enter to close..."
+      pause_if_interactive
       exit 1
     fi
   fi
 fi
 
 mkdir -p "$TARGET_DIR"
-rm -rf "$BACKUP_PATH"
-if [ -d "$TARGET_PATH" ]; then
-  mv "$TARGET_PATH" "$BACKUP_PATH"
-fi
+WORK_DIR="$(mktemp -d "$TARGET_DIR/.pptbridge-install.XXXXXX")"
+STAGED_PATH="$WORK_DIR/pptbridge-obs.plugin"
+BACKUP_PATH="$WORK_DIR/previous.plugin"
+INSTALL_LOCK="$TARGET_DIR/.pptbridge-install.lock"
+LOCK_HELD=false
 
-if ! /usr/bin/ditto "$BUNDLE_PATH" "$TARGET_PATH"; then
-  echo "Install failed while copying the plugin."
-  if [ -d "$BACKUP_PATH" ]; then
-    rm -rf "$TARGET_PATH"
-    mv "$BACKUP_PATH" "$TARGET_PATH"
+cleanup() {
+  if [ -e "$BACKUP_PATH" ] && [ ! -e "$TARGET_PATH" ]; then
+    if ! mv "$BACKUP_PATH" "$TARGET_PATH"; then
+      echo "Could not restore the previous plugin. It is available at:"
+      echo "$BACKUP_PATH"
+      [ "$LOCK_HELD" = false ] || rm -f "$INSTALL_LOCK"
+      return
+    fi
     echo "Previous PPTBridge SK plugin was restored."
   fi
-  echo ""
-  read -r -p "Press Enter to close..."
+  rm -rf "$WORK_DIR"
+  [ "$LOCK_HELD" = false ] || rm -f "$INSTALL_LOCK"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+
+if ! /usr/bin/ditto "$BUNDLE_PATH" "$STAGED_PATH" ||
+   [ ! -x "$STAGED_PATH/Contents/MacOS/pptbridge-obs" ] ||
+   [ ! -s "$STAGED_PATH/Contents/Resources/locale/en-US.ini" ] ||
+   [ ! -s "$STAGED_PATH/Contents/Resources/locale/en-GB.ini" ] ||
+   ! /usr/bin/plutil -lint "$STAGED_PATH/Contents/Info.plist" >/dev/null; then
+  echo "The plugin bundle is incomplete. Extract the whole ZIP and run the installer again."
+  pause_if_interactive
   exit 1
 fi
-
-chmod +x "$TARGET_PATH/Contents/MacOS/pptbridge-obs" 2>/dev/null || true
-rm -rf "$BACKUP_PATH"
 
 if command -v xattr >/dev/null 2>&1; then
-  xattr -dr com.apple.quarantine "$SCRIPT_DIR" >/dev/null 2>&1 || true
-  xattr -dr com.apple.quarantine "$TARGET_PATH" >/dev/null 2>&1 || true
+  xattr -dr com.apple.quarantine "$STAGED_PATH" >/dev/null 2>&1 || true
 fi
 
-if command -v codesign >/dev/null 2>&1; then
-  SIGN_INFO="$(codesign -dv "$TARGET_PATH" 2>&1 || true)"
-  if echo "$SIGN_INFO" | grep -q "TeamIdentifier=not set"; then
-    codesign --force --deep --sign - "$TARGET_PATH" >/dev/null 2>&1 || true
-  fi
-fi
-
-if [ ! -x "$TARGET_PATH/Contents/MacOS/pptbridge-obs" ]; then
-  echo "Install completed, but the plugin executable was not found where expected:"
-  echo "$TARGET_PATH/Contents/MacOS/pptbridge-obs"
-  echo ""
-  read -r -p "Press Enter to close..."
+if ! /usr/bin/codesign --verify --deep --strict "$STAGED_PATH"; then
+  echo "The plugin signature check failed. Download a fresh ZIP from the release page."
+  pause_if_interactive
   exit 1
 fi
+
+# Serialize activation so two installer windows cannot overwrite each other.
+if ! /usr/bin/shlock -p "$$" -f "$INSTALL_LOCK"; then
+  echo "Another PPTBridge installation is finishing. Wait for it to close, then try again."
+  pause_if_interactive
+  exit 1
+fi
+LOCK_HELD=true
+if pgrep -x "OBS" >/dev/null 2>&1; then
+  echo "Quit OBS before replacing the plugin, then run this installer again."
+  pause_if_interactive
+  exit 1
+fi
+
+# Keep the installed bundle intact until the staged copy can be activated.
+if [ -e "$TARGET_PATH" ]; then
+  mv "$TARGET_PATH" "$BACKUP_PATH"
+fi
+if ! mv "$STAGED_PATH" "$TARGET_PATH"; then
+  echo "Could not activate the new plugin bundle."
+  exit 1
+fi
+cleanup
+trap - EXIT HUP INT TERM
 
 if [ -n "$LEGACY_CLEANUP_SCRIPT" ]; then
   "$LEGACY_CLEANUP_SCRIPT"
@@ -165,6 +196,4 @@ echo "   - Spotlight/Clicker Capture uses PageDown/PageUp; normal arrows stay fr
 echo ""
 echo "If OBS asks about Safe Mode, choose normal launch so third-party plugins load."
 echo ""
-if [ -t 0 ]; then
-  read -r -p "Press Enter to close..." || true
-fi
+pause_if_interactive

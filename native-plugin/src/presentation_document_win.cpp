@@ -3928,9 +3928,14 @@ void PresentationDocument::LoadOnWorker()
   };
 
   const fs::path source_path(Utf8ToWide(impl_->path));
+  const auto filename = source_path.filename().wstring();
+  if (filename.rfind(L"~$", 0) == 0 && IsSupportedPowerPointExtension(impl_->path)) {
+    fail_load("This is a temporary PowerPoint lock file. Use Browse to select the original presentation without the ~$ prefix.");
+    return;
+  }
   std::error_code input_error;
   if (!fs::exists(source_path, input_error) || !fs::is_regular_file(source_path, input_error)) {
-    fail_load("The selected presentation file could not be found or is not a regular file.");
+    fail_load("The selected presentation file could not be found or is not a regular file. Use Browse to select its current location.");
     return;
   }
 

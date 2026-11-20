@@ -7,7 +7,7 @@ This folder contains the native OBS plugin version of PPTBridge SK for **PDF and
 The main public release paths are the Windows x64 and Apple Silicon ZIPs:
 
 - [Download stable Windows x64 build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.10/pptbridge-obs-windows-x64-v0.5.10.zip)
-- [Download stable Apple Silicon v0.5.12 build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.12/pptbridge-obs-macos-apple-silicon.zip)
+- [Download stable Apple Silicon v0.5.13 build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.5.13/pptbridge-obs-macos-apple-silicon.zip)
 - [Download Intel Mac beta build](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/download/v0.4.4/pptbridge-obs-macos-intel.zip)
 - [Open the Windows v0.5.10 stable release page](https://github.com/srdjankotarlic/pptbridge-sk-obs/releases/tag/v0.5.10)
 
@@ -45,7 +45,7 @@ This native version is built around a practical conference workflow:
 
 ## Quick Platform Guide
 
-- `v0.5.12` = current Apple Silicon stable release with content-verified caches, live-start focus recovery, clearer input errors, and Stage Manager guidance
+- `v0.5.13` = current Apple Silicon stable release with a background slide fallback, preserved on-air controls during notes loading, and a transactional ZIP installer
 - `v0.5.10` = current Windows x64 stable release with hardened live capture, nested Program-scene routing, same-name deck isolation, bounded transactional caches, safer parallel PDF rendering, and a rollback-safe five-file installer
 - `v0.5.9` = previous Windows x64 stable release that added native PDF support
 - `v0.5.8` = previous Apple Silicon and Windows stable release
@@ -69,7 +69,7 @@ This native version is built around a practical conference workflow:
 - `v0.4.0` = previous macOS stable release with Companion/OSC control
 - `v0.3.0` = previous macOS stable release with presenter customization
 - `v0.2.2` = previous macOS stable release
-- If someone asks "which one should I install?", the answer is: M-series Mac users install the Apple Silicon v0.5.12 ZIP; Windows 10/11 x64 users install the Windows v0.5.10 ZIP; older Intel Mac users can test the Intel beta ZIP.
+- If someone asks "which one should I install?", the answer is: M-series Mac users install the Apple Silicon v0.5.13 ZIP; Windows 10/11 x64 users install the Windows v0.5.10 ZIP; older Intel Mac users can test the Intel beta ZIP.
 
 ## What Problem It Solves
 
